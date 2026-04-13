@@ -1,0 +1,30 @@
+{
+  "name": "create-tindae-ui",
+  "version": "1.0.0",
+  "description": "Scaffold a Vue 3 enterprise project with tindae-ui architecture",
+  "type": "module",
+  "bin": {
+    "create-tindae-ui": "./dist/bin/create-tindae-ui.js"
+  },
+  "files": [
+    "dist",
+    "template"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx bin/create-tindae-ui.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "@types/prompts": "^2.4.9",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=16.7.0"
+  }
+}
