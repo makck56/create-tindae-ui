@@ -1,0 +1,10 @@
+:root {
+  --color-primary: #1890ff;
+  --color-success: #52c41a;
+  --color-warning: #faad14;
+  --color-error: #f5222d;
+  --color-text: rgba(0, 0, 0, 0.85);
+  --color-bg: #f0f2f5;
+  --sidebar-width: 220px;
+  --header-height: 48px;
+}
