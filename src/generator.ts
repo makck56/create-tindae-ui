@@ -7,7 +7,7 @@ import { setProjectName } from './utils/pkg.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export function scaffold(targetDir: string, projectName: string): void {
-  const templateDir = resolve(__dirname, '..', 'template');
+  const templateDir = resolve(__dirname, '..', '..', 'template');
 
   console.log(`\n✨ Scaffolding tindae-ui project in ${targetDir}...\n`);
   console.log('   ├── Copying template...');
