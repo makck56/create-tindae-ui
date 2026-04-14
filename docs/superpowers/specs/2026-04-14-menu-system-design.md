@@ -16,7 +16,7 @@
 
 ```
 src/
-├── config/
+├── modules/app/
 │   ├── menu.config.ts      # 菜单配置数据
 │   └── menuTypes.ts         # 菜单类型定义
 ├── layouts/
@@ -27,7 +27,7 @@ src/
 
 ---
 
-## 3. 类型定义 — `src/config/menuTypes.ts`
+## 3. 类型定义 — `src/modules/app/menuTypes.ts`
 
 ```typescript
 export interface MenuItem {
@@ -44,7 +44,7 @@ export type MenuConfig = MenuItem[];
 
 ---
 
-## 4. 菜单配置 — `src/config/menu.config.ts`
+## 4. 菜单配置 — `src/modules/app/menu.config.ts`
 
 ```typescript
 import type { MenuConfig } from './menuTypes';
@@ -96,7 +96,7 @@ export default defineConfig({
     autoRoutesPlugin(),
     menuVisualizerPlugin({
       viewsPath: 'src/pages',
-      menuConfigPath: 'src/config/menu.config.ts',
+      menuConfigPath: 'src/modules/app/menu.config.ts',
       routeNamesPath: 'src/shared/constants/routeNames.ts',
     }),
   ],
@@ -109,4 +109,4 @@ export default defineConfig({
 
 ## 7. 文件归属设计
 
-`src/config/` 而非 `src/shared/`：菜单配置属于应用级配置，不是跨域复用的通用工具。符合架构规范中 Pages/Modules/Shared/Core 的分层原则。
+`src/modules/app/`：菜单配置归属于 `app` 模块，作为应用级配置的一部分。符合架构规范中 Pages/Modules/Shared/Core 的分层原则 — 菜单是应用级别的功能，不是跨域复用的通用工具，也不是独立业务 domain。
