@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore } from '@/stores/app';
+import { useAppStore } from '@/modules/app/stores/app';
 import { useRouter } from 'vue-router';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons-vue';
 
@@ -16,7 +16,7 @@ function navigateTo(path: string) {
 <template>
   <a-layout class="min-h-screen">
     <a-layout-sider v-model:collapsed="appStore.sidebarCollapsed" collapsible :width="220">
-      <div class="p-4 text-white text-center font-bold text-lg">Tindae UI</div>
+      <div class="p-4 text-white text-center font-bold text-lg">{{ appStore.appName }}</div>
       <a-menu theme="dark" mode="inline" @click="({ key }: { key: string }) => navigateTo(key)">
         <a-menu-item key="/user-management">用户管理</a-menu-item>
       </a-menu>
