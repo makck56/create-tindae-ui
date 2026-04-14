@@ -26,8 +26,6 @@ src/
 │   └── auth/
 │       ├── api/
 │       │   └── auth.api.ts         # 查询用户信息接口
-│       ├── composables/
-│       │   └── useAuth.ts          # auth composable
 │       ├── models/
 │       │   └── Auth.ts             # UserInfo / MenuPermission 类型
 │       ├── stores/
@@ -158,16 +156,10 @@ export const useAuthStore = defineStore('auth', () => {
 });
 ```
 
-### 5.3 Composable — `modules/auth/composables/useAuth.ts`
+### 5.3 模块导出 — `modules/auth/index.ts`
 
 ```typescript
-export { useAuthStore as useAuth } from '../stores/auth';
-```
-
-### 5.4 模块导出 — `modules/auth/index.ts`
-
-```typescript
-export { useAuth } from './composables/useAuth';
+export { useAuthStore } from './stores/auth';
 export type { UserInfo, MenuPermission, AuthData } from './models/Auth';
 ```
 
