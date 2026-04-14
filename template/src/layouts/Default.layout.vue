@@ -1,15 +1,31 @@
 <script setup lang="ts">
-import { useAppStore } from '@/modules/app/stores/app';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons-vue';
+import { useAppStore } from '@/modules/app/stores/app';
+import { useAuthStore } from '@/modules/auth/stores/auth';
+import { menuConfig } from '@/modules/app/config/menu.config';
+import type { MenuItem } from '@/modules/app/config/menuTypes';
 
 defineOptions({ name: 'DefaultLayout' });
 
 const appStore = useAppStore();
+const authStore = useAuthStore();
 const router = useRouter();
 
-function navigateTo(path: string) {
-  router.push(path);
+function filterMenu(items: MenuItem[]): MenuItem[] {
+  return items
+    .filter((item) => !item.code || authStore.permissionCodes.has(item.code))
+    .map((item) =>
+      item.children ? { ...item, children: filterMenu(item.children) } : item,
+    )
+    .filter((item) => !item.children || item.children.length > 0);
+}
+
+const filteredMenu = computed(() => filterMenu(menuConfig));
+
+function handleMenuClick({ key }: { key: string }) {
+  router.push({ name: key });
 }
 </script>
 
@@ -17,8 +33,17 @@ function navigateTo(path: string) {
   <a-layout class="min-h-screen">
     <a-layout-sider v-model:collapsed="appStore.sidebarCollapsed" collapsible :width="220">
       <div class="p-4 text-white text-center font-bold text-lg">{{ appStore.appName }}</div>
-      <a-menu theme="dark" mode="inline" @click="({ key }: { key: string }) => navigateTo(key)">
-        <a-menu-item key="/user-management">用户管理</a-menu-item>
+      <a-menu theme="dark" mode="inline" @click="handleMenuClick">
+        <template v-for="item in filteredMenu" :key="item.routeName ?? item.label">
+          <a-menu-item v-if="!item.children" :key="item.routeName">
+            {{ item.label }}
+          </a-menu-item>
+          <a-sub-menu v-else :key="item.label" :title="item.label">
+            <a-menu-item v-for="child in item.children" :key="child.routeName">
+              {{ child.label }}
+            </a-menu-item>
+          </a-sub-menu>
+        </template>
       </a-menu>
     </a-layout-sider>
     <a-layout>
