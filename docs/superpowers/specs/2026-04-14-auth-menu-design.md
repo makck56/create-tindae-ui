@@ -41,7 +41,11 @@ src/
     └── routeNames.ts               # 自动生成的路由名称常量（已存在）
 ```
 
-模块专属 store 放在各自模块的 `stores/` 目录内，`src/stores/` 目录不再需要。
+模块专属 store 放在各自模块的 `stores/` 目录内。
+
+### 迁移说明
+
+现有 `src/stores/app.ts`（含 `appName`, `sidebarCollapsed`, `toggleSidebar`）迁移至 `src/modules/app/stores/app.ts`，内容不变，仅移动位置。迁移后删除 `src/stores/` 目录。`Default.layout.vue` 的导入路径从 `@/stores/app` 改为 `@/modules/app/stores/app`。
 
 ---
 
@@ -80,10 +84,11 @@ export interface AuthData {
 }
 ```
 
-### 3.3 路由 Meta 扩展
+### 3.3 路由 Meta 扩展 — `src/core/types/global.d.ts`
+
+追加到现有的 `global.d.ts` 文件中：
 
 ```typescript
-// 全局类型扩展
 declare module 'vue-router' {
   interface RouteMeta {
     code?: string;  // 权限码，匹配后端返回的 menus[].code
@@ -107,6 +112,8 @@ export const menuConfig: MenuConfig = [
   },
 ];
 ```
+
+> **前置条件**：`ROUTE_NAMES` 由 `autoRoutesPlugin` 从 `*.routes.ts` 文件自动生成。当前模板的路由定义在 `router/index.ts` 中，需要为每个页面创建对应的 `.routes.ts` 文件，例如 `src/pages/user-management/user-management.routes.ts`，插件才能生成 `routeNames.ts`。
 
 ---
 
@@ -140,19 +147,34 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserInfo | null>(null);
   const permissionCodes = ref<Set<string>>(new Set());
   const loading = ref(false);
+  const error = ref<string | null>(null);
+  const initialized = ref(false); // 标记是否已尝试获取，防止失败后无限重试
 
   async function fetchUser() {
+    if (initialized.value) return; // 已尝试过，不重复请求
     loading.value = true;
+    error.value = null;
     try {
-      const { data } = await getUserInfo();
-      user.value = data.data.user;
-      permissionCodes.value = new Set(data.data.menus.map(m => m.code));
+      const { data: response } = await getUserInfo();
+      if (response.data.code !== 0) {
+        throw new Error(`接口返回错误: ${response.data.code}`);
+      }
+      const { user: userInfo, menus } = response.data.data;
+      user.value = userInfo;
+      permissionCodes.value = new Set(menus.map(m => m.code));
+    } catch (e: any) {
+      error.value = e.message || '获取用户信息失败';
     } finally {
       loading.value = false;
+      initialized.value = true;
     }
   }
 
-  return { user, permissionCodes, loading, fetchUser };
+  function hasPermission(code: string): boolean {
+    return permissionCodes.value.has(code);
+  }
+
+  return { user, permissionCodes, loading, error, initialized, fetchUser, hasPermission };
 });
 ```
 
@@ -168,22 +190,31 @@ export type { UserInfo, MenuPermission, AuthData } from './models/Auth';
 ## 6. 路由守卫 — `router/index.ts`
 
 ```typescript
+// 白名单路由：不需要权限校验
+const WHITE_LIST = ['/403'];
+
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
 
-  // 403 页面直接放行
-  if (to.path === '/403') return true;
+  // 白名单路由直接放行
+  if (WHITE_LIST.includes(to.path)) return true;
 
-  // 未获取用户信息时调用 fetchUser
-  if (!authStore.user) {
+  // 未初始化时调用 fetchUser
+  if (!authStore.initialized) {
     await authStore.fetchUser();
+  }
+
+  // 获取用户信息失败（网络错误、接口异常）
+  if (authStore.error) {
+    // 未获取到用户信息，无法判断权限，跳 403
+    return '/403';
   }
 
   // 没有 meta.code 的路由放行（如首页重定向）
   if (!to.meta.code) return true;
 
   // 校验权限
-  if (!authStore.permissionCodes.has(to.meta.code)) {
+  if (!authStore.hasPermission(to.meta.code)) {
     return '/403';
   }
 });
@@ -192,12 +223,32 @@ router.beforeEach(async (to) => {
 路由配置示例：
 
 ```typescript
-{
-  path: '/user-management',
-  name: 'UserManagement',
-  meta: { code: 'user-management' },
-  component: () => import('@/pages/user-management/pages/UserList.page.vue'),
-}
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    component: DefaultLayout,
+    children: [
+      { path: '', redirect: '/user-management' },
+      {
+        path: '/user-management',
+        name: 'UserManagement',
+        meta: { code: 'user-management' },
+        component: () => import('@/pages/user-management/pages/UserList.page.vue'),
+      },
+      {
+        path: '/user-management/:id',
+        name: 'UserManagementDetail',
+        meta: { code: 'user-management' }, // 复用同一权限码
+        component: () => import('@/pages/user-management/pages/UserDetail.page.vue'),
+      },
+      {
+        path: '/403',
+        name: 'Forbidden',
+        component: () => import('@/pages/error/pages/Forbidden.page.vue'),
+      },
+    ],
+  },
+];
 ```
 
 ---
@@ -236,16 +287,31 @@ function filterMenu(items: MenuItem[]): MenuItem[] {
 
 ## 8. 403 页面 — `pages/error/pages/Forbidden.page.vue`
 
-使用 antd `Result` 组件展示 403 提示，提供返回首页按钮。
+使用 antd `Result` 组件展示 403 提示，提供返回按钮。不使用固定 `/` 路径跳转，改为跳转到第一个有权限的菜单路由，避免无权限时形成重定向循环。
 
 ```vue
 <template>
   <a-result status="403" title="403" sub-title="抱歉，您没有权限访问此页面">
     <template #extra>
-      <a-button type="primary" @click="router.push('/')">返回首页</a-button>
+      <a-button type="primary" @click="goBack">返回</a-button>
     </template>
   </a-result>
 </template>
+```
+
+```typescript
+// 返回逻辑：有历史记录则 router.back()，否则跳转第一个有权限的菜单路由
+function goBack() {
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    // 从过滤后的菜单中取第一个可用的 routeName
+    const firstRoute = filteredMenu.value.find(item => item.routeName);
+    if (firstRoute?.routeName) {
+      router.push({ name: firstRoute.routeName });
+    }
+  }
+}
 ```
 
 ---
@@ -258,13 +324,20 @@ function filterMenu(items: MenuItem[]): MenuItem[] {
   ▼
 路由守卫 beforeEach
   │
-  ├─ 已有用户信息？── 否 ──▶ fetchUser() ──▶ 存储 user + permissionCodes
+  ├─ 白名单路由（/403）？ ──▶ 放行
+  │
+  ├─ 未初始化？ ──▶ fetchUser()（仅执行一次，失败不重试）
+  │                   │
+  │                   ├─ 成功 ──▶ 存储 user + permissionCodes
+  │                   └─ 失败 ──▶ 设置 error，跳转 /403
+  │
+  ├─ authStore.error 存在？ ──▶ 跳转 /403
   │
   ├─ to.meta.code 不存在？ ──▶ 放行
   │
-  └─ permissionCodes.has(code)？ ── 否 ──▶ 跳转 /403
-                                    │
-                                   是 ──▶ 放行
+  └─ hasPermission(code)？ ── 否 ──▶ 跳转 /403
+                              │
+                             是 ──▶ 放行
   │
   ▼
 Layout 渲染菜单
