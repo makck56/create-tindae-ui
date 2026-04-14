@@ -13,3 +13,8 @@ export interface AuthData {
   user: UserInfo;
   menus: MenuPermission[];
 }
+
+export interface LoginParams {
+  username: string;
+  password: string;
+}
