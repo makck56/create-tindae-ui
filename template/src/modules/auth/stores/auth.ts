@@ -15,11 +15,11 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     error.value = null;
     try {
-      const { data: response } = await getUserInfo();
-      if (response.data.code !== 0) {
-        throw new Error(`接口返回错误: ${response.data.code}`);
+      const { data: res } = await getUserInfo();
+      if (res.code !== 0) {
+        throw new Error(`接口返回错误: ${res.code}`);
       }
-      const { user: userInfo, menus } = response.data.data;
+      const { user: userInfo, menus } = res.data;
       user.value = userInfo;
       permissionCodes.value = new Set(menus.map((m) => m.code));
     } catch (e: any) {
