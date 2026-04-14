@@ -24,6 +24,7 @@
     "axios": "^1.7.0"
   },
   "devDependencies": {
+    "@internal/build-tools": "workspace:*",
     "@vitejs/plugin-vue": "^5.1.0",
     "vite": "^5.4.0",
     "vue-tsc": "^2.1.0",
