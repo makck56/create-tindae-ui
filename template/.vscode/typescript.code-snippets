@@ -1,0 +1,25 @@
+{
+  "Status Constants": {
+    "scope": "typescript",
+    "prefix": "const-status",
+    "description": "Generate status constants with map and options",
+    "body": [
+      "export const ${1:Name} = {",
+      "\t${2:KEY}: '${3:value}',",
+      "\t${4:KEY}: '${5:value}',",
+      "} as const;",
+      "",
+      "export type ${1:Name}Value = (typeof ${1:Name})[keyof typeof ${1:Name}];",
+      "",
+      "export const ${1:Name}Map: Record<${1:Name}Value, string> = {",
+      "\t[${1:Name}.${2:KEY}]: '${6:label}',",
+      "\t[${1:Name}.${4:KEY}]: '${7:label}',",
+      "};",
+      "",
+      "export const ${1:Name}Options = Object.entries(${1:Name}Map).map(",
+      "\t([value, label]) => ({ label, value }) as const,",
+      ");",
+      ""
+    ]
+  }
+}

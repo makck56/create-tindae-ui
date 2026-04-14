@@ -3,40 +3,21 @@ import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import DefaultLayout from '@/layouts/Default.layout.vue';
 import { useAuthStore } from '@/modules/auth/stores/auth';
+import { loginRoutes } from '@/pages/login/login.routes';
+import { errorRoutes } from '@/pages/error/error.routes';
+import { userManagementRoutes } from '@/pages/user-management/user-management.routes';
 
 const WHITE_LIST = ['/login', '/403'];
 
 const routes: RouteRecordRaw[] = [
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('@/pages/login/pages/Login.page.vue'),
-  },
-  {
-    path: '/403',
-    name: 'Forbidden',
-    component: () => import('@/pages/error/pages/Forbidden.page.vue'),
-  },
+  ...loginRoutes,
+  ...errorRoutes,
   {
     path: '/',
     component: DefaultLayout,
     children: [
-      {
-        path: '',
-        redirect: '/user-management',
-      },
-      {
-        path: '/user-management',
-        name: 'UserManagement',
-        meta: { code: 'user-management' },
-        component: () => import('@/pages/user-management/pages/UserList.page.vue'),
-      },
-      {
-        path: '/user-management/:id',
-        name: 'UserManagementDetail',
-        meta: { code: 'user-management' },
-        component: () => import('@/pages/user-management/pages/UserDetail.page.vue'),
-      },
+      { path: '', redirect: '/user-management' },
+      ...userManagementRoutes,
     ],
   },
 ];
@@ -49,7 +30,6 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
 
-  // 已登录用户访问 /login → 重定向到首页
   if (to.path === '/login') {
     if (!authStore.initialized) {
       await authStore.fetchUser();
@@ -66,12 +46,10 @@ router.beforeEach(async (to) => {
     await authStore.fetchUser();
   }
 
-  // 未登录 → 跳登录页
   if (!authStore.user) {
     return { path: '/login', query: { redirect: to.fullPath } };
   }
 
-  // 网络错误
   if (authStore.error) {
     return '/403';
   }
