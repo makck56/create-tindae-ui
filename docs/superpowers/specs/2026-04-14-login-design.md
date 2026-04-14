@@ -23,13 +23,22 @@ src/
 │   │   └── Auth.ts              # 增加 LoginParams, LoginResult
 │   ├── stores/
 │   │   └── auth.ts              # 增加 login(), logout(), isLoggedIn
-│   └── index.ts
+│   └── index.ts                 # 新增导出 LoginParams
 ├── pages/login/
 │   └── pages/
 │       └── Login.page.vue       # 左右分栏登录页
 └── router/
-    └── index.ts                 # 改造：/login 路由 + 白名单 + 重定向逻辑
+    └── index.ts                 # 改造：/login /403 顶层路由 + 白名单 + 重定向逻辑
 ```
+
+### 改动说明
+
+- `modules/auth/models/Auth.ts` — 新增 `LoginParams`
+- `modules/auth/api/auth.api.ts` — 新增 `login()`, `logout()`
+- `modules/auth/stores/auth.ts` — 新增 `isLoggedIn`, `login()`, `logout()`，改造 `fetchUser()` 区分 401
+- `modules/auth/index.ts` — 新增导出 `LoginParams`
+- `layouts/Default.layout.vue` — 头部增加登出按钮，调用 `authStore.logout()` 后 `router.push('/login')`
+- `router/index.ts` — `/login` `/403` 移到顶层路由，守卫增加已登录访问 `/login` 的重定向
 
 ---
 
@@ -42,11 +51,9 @@ export interface LoginParams {
   username: string;
   password: string;
 }
-
-export interface LoginResult {
-  // httpOnly Cookie 由后端 Set-Cookie 设置，前端不需要返回值
-}
 ```
+
+> **API 契约**：`POST /api/auth/login` 返回 `{ code: 0 }`，后端通过 `Set-Cookie` 设置 httpOnly Cookie。前端不处理 token，只检查 `code === 0`。`POST /api/auth/logout` 同理返回 `{ code: 0 }`，后端清除 Cookie。
 
 ---
 
@@ -55,10 +62,10 @@ export interface LoginResult {
 在现有 `getUserInfo` 基础上新增：
 
 ```typescript
-import type { AuthData, LoginParams, LoginResult } from '../models/Auth';
+import type { LoginParams } from '../models/Auth';
 
 export const login = (data: LoginParams) => {
-  return request.post<{ code: number; data: LoginResult }>('/auth/login', data);
+  return request.post<{ code: number }>('/auth/login', data);
 };
 
 export const logout = () => {
@@ -66,11 +73,47 @@ export const logout = () => {
 };
 ```
 
+> **CSRF 防护**：后端应校验 `SameSite` Cookie 属性（`Lax` 或 `Strict`），或验证 `X-Requested-With` 请求头。前端 axios 实例默认发送该头，后端只需校验即可防范 CSRF。
+
 ---
 
 ## 5. Store 扩展 — `modules/auth/stores/auth.ts`
 
 在现有 store 基础上新增：
+
+### fetchUser 改造
+
+现有 `fetchUser()` 需要区分"未认证（401）"和"网络/服务端错误"。在 catch 中检查 axios 错误状态码：
+
+```typescript
+async function fetchUser() {
+  if (initialized.value) return;
+  loading.value = true;
+  error.value = null;
+  try {
+    const { data: res } = await getUserInfo();
+    if (res.code !== 0) {
+      throw new Error(`接口返回错误: ${res.code}`);
+    }
+    const { user: userInfo, menus } = res.data;
+    user.value = userInfo;
+    permissionCodes.value = new Set(menus.map((m) => m.code));
+  } catch (e: any) {
+    if (e?.response?.status === 401) {
+      // 未认证：清空用户信息，不设 error（属于正常流程）
+      user.value = null;
+    } else {
+      // 网络错误或服务端异常：记录错误
+      error.value = e.message || '获取用户信息失败';
+    }
+  } finally {
+    loading.value = false;
+    initialized.value = true;
+  }
+}
+```
+
+路由守卫根据状态区分：`!authStore.user` → 跳登录页，`authStore.error` → 显示错误。
 
 ### 新增 state/computed
 
@@ -89,6 +132,7 @@ async function login(params: LoginParams) {
     if (res.code !== 0) {
       throw new Error(`登录失败: ${res.code}`);
     }
+    // httpOnly Cookie 已由后端设置，重置状态并获取用户信息
     initialized.value = false;
     await fetchUser();
   } catch (e: any) {
@@ -111,10 +155,13 @@ async function logout() {
   }
   user.value = null;
   permissionCodes.value = new Set();
+  loading.value = false;
   initialized.value = false;
   error.value = null;
 }
 ```
+
+> **调用方负责导航**：`logout()` 只清除状态，不直接操作 router。调用方（如 Layout 头部的登出按钮）在调用后执行 `router.push('/login')`。
 
 ### return 新增
 
@@ -136,10 +183,15 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/login/pages/Login.page.vue'),
   },
   {
+    path: '/403',
+    name: 'Forbidden',
+    component: () => import('@/pages/error/pages/Forbidden.page.vue'),
+  },
+  {
     path: '/',
     component: DefaultLayout,
     children: [
-      // ... 现有子路由不变
+      // ... 现有子路由不变（不再包含 /403）
     ],
   },
 ];
@@ -147,6 +199,18 @@ const routes: RouteRecordRaw[] = [
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
 
+  // 已登录用户访问 /login → 重定向到首页
+  if (to.path === '/login') {
+    if (!authStore.initialized) {
+      await authStore.fetchUser();
+    }
+    if (authStore.user) {
+      return '/';
+    }
+    return true;
+  }
+
+  // 白名单路由直接放行
   if (WHITE_LIST.includes(to.path)) return true;
 
   if (!authStore.initialized) {
@@ -169,9 +233,9 @@ router.beforeEach(async (to) => {
 ```
 
 关键变化：
-- `/login` 加入白名单
-- `/login` 路由为顶层路由，不在 DefaultLayout 内
-- 未登录跳 `/login?redirect=xxx`，不再跳 403
+- `/login` 和 `/403` 都是顶层路由，不在 DefaultLayout 内（避免未认证用户看到空壳布局）
+- 已登录用户访问 `/login` 自动重定向到首页
+- 未登录跳 `/login?redirect=xxx`
 - 已登录但权限不足才跳 403
 
 ---
@@ -248,12 +312,18 @@ async function handleLogin() {
   ▼
 路由守卫
   │
-  ├─ 白名单（/login, /403）→ 放行
+  ├─ 访问 /login？
+  │   ├─ 未初始化 → fetchUser()
+  │   ├─ 已登录 → 重定向 /
+  │   └─ 未登录 → 放行（显示登录页）
+  │
+  ├─ 白名单（/403）→ 放行
   │
   ├─ 未初始化 → fetchUser()
   │                │
   │                ├─ 成功（有 user）→ 继续
-  │                └─ 失败（无 user）→ 跳 /login?redirect=xxx
+  │                ├─ 401（未认证）→ user=null, 跳 /login?redirect=xxx
+  │                └─ 网络错误 → error 存在，显示错误提示
   │
   ├─ 已登录但无 meta.code → 放行
   │
@@ -267,11 +337,10 @@ login(username, password)
   ├─ 成功 → fetchUser() 获取权限
   └─ 跳转 redirect 参数指向的页面
 
-用户点击登出
+用户点击登出（Layout 头部按钮）
   │
   ▼
-logout()
-  ├─ POST /api/auth/logout
-  ├─ 清空 user / permissionCodes / initialized
-  └─ 跳转 /login
+Layout: authStore.logout() → router.push('/login')
+  ├─ POST /api/auth/logout（后端清除 Cookie）
+  └─ 清空 user / permissionCodes / initialized / error
 ```
