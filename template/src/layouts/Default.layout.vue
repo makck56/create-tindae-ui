@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons-vue';
+import { MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined } from '@ant-design/icons-vue';
 import { useAppStore } from '@/modules/app/stores/app';
 import { useAuthStore } from '@/modules/auth/stores/auth';
 import { menuConfig } from '@/modules/app/config/menu.config';
@@ -26,6 +26,11 @@ const filteredMenu = computed(() => filterMenu(menuConfig));
 
 function handleMenuClick({ key }: { key: string }) {
   router.push({ name: key });
+}
+
+async function handleLogout() {
+  await authStore.logout();
+  router.push('/login');
 }
 </script>
 
@@ -54,6 +59,13 @@ function handleMenuClick({ key }: { key: string }) {
             <MenuUnfoldOutlined v-else />
           </template>
         </a-button>
+        <div class="flex items-center gap-4">
+          <span v-if="authStore.user" class="text-gray-600">{{ authStore.user.username }}</span>
+          <a-button type="text" @click="handleLogout">
+            <template #icon><LogoutOutlined /></template>
+            登出
+          </a-button>
+        </div>
       </a-layout-header>
       <a-layout-content class="m-4 p-4 bg-white rounded">
         <router-view />
