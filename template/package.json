@@ -4,12 +4,13 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "dev": "pnpm --filter @internal/build-tools build && vite",
+    "build": "pnpm --filter @internal/build-tools build && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.ts,.tsx --fix && prettier --write \"src/**/*.{vue,ts,css}\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "pnpm --filter @internal/build-tools build"
   },
   "dependencies": {
     "vue": "^3.5.0",

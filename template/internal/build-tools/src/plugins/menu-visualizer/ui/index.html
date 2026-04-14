@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Menu Visualizer</title>
+  <script type="module" src="/@vite/client"></script>
+  <script src="/__menu-api/static/vue.js"></script>
+  <link href="/__menu-api/static/remixicon.css" rel="stylesheet">
+  <!--INJECT_STYLE-->
+</head>
+<body>
+  <div id="app">
+    <!-- Left: Component List -->
+    <div class="sidebar">
+      <div class="toolbar">
+        <b>路由列表 (ROUTE_NAMES)</b>
+        <span style="font-size: 12px; color: #999;">点击添加</span>
+      </div>
+      <div style="padding: 0; overflow-y: auto; flex: 1;">
+        <div v-for="(routes, domain) in routeTree" :key="domain">
+          <div class="domain-header">{{ domain }}</div>
+          <div v-for="route in routes" :key="route.key" class="file-row" @click="addRouteToMenu(domain, route)">
+            <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-weight: 500;">{{ route.comment || route.value }}</span>
+              </div>
+              <span style="color: #999; font-size: 10px;">{{ route.key }}</span>
+            </div>
+            <i class="ri-add-circle-fill add-icon"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Visual Editor -->
+    <div class="main">
+      <div class="toolbar">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <b>菜单结构</b>
+          <button class="btn" @click="addRootItem"><i class="ri-add-line"></i> 新增根菜单</button>
+          <button class="btn" @click="deleteCurrent" :disabled="!selectedItem" style="color: #ff4d4f;"><i class="ri-delete-bin-line"></i> 删除选中</button>
+        </div>
+        <button class="btn btn-primary" @click="save">保存配置 (CMD+S)</button>
+      </div>
+      
+      <div class="content">
+        <div class="visual-editor" @click="selectedItem = null">
+          <div v-if="menuData.length === 0" class="empty-tip">
+            暂无菜单配置，请点击上方按钮添加根菜单
+          </div>
+          <menu-tree :tasks="menuData" :route-tree="routeTree" @select="selectItem" @delete="deleteItem" :selected-id="selectedId"></menu-tree>
+        </div>
+        
+        <!-- Right: Property Editor -->
+        <div class="sidebar" style="width: 300px; border-left: 1px solid var(--border); border-right: none; border-left: 1px solid var(--border);">
+          <div class="toolbar"><b>属性编辑</b></div>
+          <div v-if="selectedItem" style="padding: 16px;">
+            <div class="form-group">
+              <label class="form-label">标题 (Label)</label>
+              <input class="form-input" v-model="selectedItem.label" placeholder="请输入菜单标题">
+            </div>
+            <div class="form-group">
+              <label class="form-label">图标 (Icon)</label>
+              <input class="form-input" v-model="selectedItem.icon" placeholder="AntD Icon Name">
+              <div style="margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap;">
+                 <span v-for="ic in ['AppstoreOutlined', 'SettingOutlined', 'UserOutlined', 'DatabaseOutlined']" 
+                       @click="selectedItem.icon = ic"
+                       style="cursor: pointer; font-size: 16px; padding: 4px; border: 1px solid #eee; border-radius: 4px;"
+                       :title="ic">
+                   <i class="ri-star-line" v-if="ic === 'AppstoreOutlined'"></i>
+                   <i class="ri-settings-3-line" v-else-if="ic === 'SettingOutlined'"></i>
+                   <i class="ri-user-line" v-else-if="ic === 'UserOutlined'"></i>
+                   <i class="ri-database-2-line" v-else></i>
+                 </span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">路由名称 (RouteName)</label>
+              <input class="form-input" v-model="selectedItem.routeName" placeholder="ROUTE_NAMES...">
+            </div>
+            
+            <div class="form-group" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+              <label class="form-label">操作</label>
+              <div style="display: flex; gap: 10px;">
+                  <button class="btn" @click="moveItem(-1)" title="上移"><i class="ri-arrow-up-line"></i></button>
+                  <button class="btn" @click="moveItem(1)" title="下移"><i class="ri-arrow-down-line"></i></button>
+              </div>
+            </div>
+          </div>
+          <div v-else style="padding: 20px; text-align: center; color: #999; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px;">
+            <i class="ri-cursor-line" style="font-size: 32px; margin-bottom: 10px;"></i>
+            <div>请选择一个菜单项<br>进行编辑或添加子菜单</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--INJECT_SCRIPT-->
+</body>
+</html>

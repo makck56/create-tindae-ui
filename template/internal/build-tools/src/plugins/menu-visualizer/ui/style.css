@@ -1,0 +1,48 @@
+:root { --primary: #1677ff; --bg: #f0f2f5; --border: #d9d9d9; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); height: 100vh; overflow: hidden; }
+#app { display: flex; height: 100%; }
+
+/* Layout */
+.sidebar { width: 350px; background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.toolbar { height: 50px; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; justify-content: space-between; }
+.content { flex: 1; display: flex; overflow: hidden; }
+.visual-editor { flex: 1; padding: 20px; overflow-y: auto; }
+
+/* Components */
+.btn { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border); background: #fff; cursor: pointer; transition: all 0.2s; font-size: 13px; }
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn:hover { opacity: 0.8; }
+
+.menu-tree { list-style: none; padding: 0; margin: 0; }
+.menu-item { margin-bottom: 8px; }
+.menu-item-content { 
+padding: 10px; display: flex; align-items: center; gap: 8px; cursor: pointer; 
+background: #fff; border: 1px solid var(--border); border-radius: 4px;
+transition: all 0.2s;
+}
+.menu-item-content:hover { background: #fafafa; border-color: var(--primary); }
+.menu-item-content.active > .menu-item-content { border-left: 3px solid var(--primary); background: #e6f7ff; border-color: var(--primary); }
+
+.menu-item-content.invalid-route { border-color: #ff4d4f; background: #fff2f0; }
+.menu-item-content.invalid-route span { color: #ff4d4f; }
+
+.menu-item-content .delete-btn { opacity: 0; transition: opacity 0.2s; color: #999; margin-left: 8px; font-size: 16px; }
+.menu-item-content:hover .delete-btn { opacity: 1; }
+.menu-item-content .delete-btn:hover { color: #ff4d4f; }
+
+.menu-children { padding-left: 24px; padding-top: 8px; }
+
+.form-group { margin-bottom: 12px; }
+.form-label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+.form-input { width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
+
+.file-row { cursor: pointer; font-size: 12px; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+.file-row:hover { background: #e6f7ff; color: var(--primary); }
+.file-row .add-icon { opacity: 0; transition: opacity 0.2s; }
+.file-row:hover .add-icon { opacity: 1; }
+
+.domain-header { padding: 8px 12px; background: #fafafa; border-bottom: 1px solid #f0f0f0; font-weight: bold; font-size: 13px; color: #333; }
+
+.badge { font-size: 10px; background: #eee; padding: 2px 4px; border-radius: 2px; color: #666; }
+.empty-tip { text-align: center; color: #999; padding: 20px; font-size: 13px; }
