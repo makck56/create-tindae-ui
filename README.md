@@ -1,105 +1,101 @@
-# 前端架构设计指南
+# create-tindae-ui
 
-**版本**: 2.5  
-**最后更新**: 2025-12
+快速搭建 Vue 3 企业级前端项目的脚手架工具。
 
-本文档是项目的前端架构门户。详细规范请参考 `docs/` 目录下的文档。
-
-## 📚 文档索引 (Documentation Index)
-
-| 文档 | 描述 | 适用人群 |
-| :--- | :--- | :--- |
-| [**架构白皮书**](docs/ARCHITECTURE.md) | 设计哲学、分层架构、依赖规则 | 架构师、Tech Lead、新成员 |
-| [**开发规范手册**](docs/CODING_STANDARDS.md) | 命名规范、代码实现细节、目录深度约束 | **所有开发者 (必读)** |
-| [**迁移指南**](docs/MIGRATION.md) | 旧项目迁移策略、共存方案 | 负责重构的开发者 |
-
----
-
-## 1. 快速上手 (Getting Started)
-
-### 1.1. 技术栈 (Tech Stack)
-
-*   **核心框架**: [Vue 3](https://vuejs.org/) (Composition API)
-*   **构建工具**: [Vite](https://vitejs.dev/)
-*   **语言**: [TypeScript](https://www.typescriptlang.org/) (严格模式)
-*   **状态管理**: [Pinia](https://pinia.vuejs.org/)
-*   **路由**: [Vue Router](https://router.vuejs.org/)
-*   **代码规范**: ESLint + Prettier + Commitlint
-
-### 1.2. 安装与运行
-
-确保本地 Node.js 版本 >= 18.0.0，推荐使用 `pnpm`。
+## 快速开始
 
 ```bash
-# 安装依赖
-pnpm install
+# 使用 pnpm
+pnpm create tindae-ui
 
-# 启动开发服务器
+# 或指定项目名
+pnpm create tindae-ui my-app
+
+# 使用 npx
+npx create-tindae-ui my-app
+```
+
+交互式输入项目名后，脚手架会自动完成：
+
+1. 复制项目模板到目标目录
+2. 替换 `package.json` 中的项目名称
+3. 执行 `pnpm install` 安装依赖
+4. 初始化 git 仓库并创建首次提交
+
+```bash
+cd my-app
 pnpm dev
-
-# 构建生产环境
-pnpm build
-
-# 代码格式化与检查
-pnpm lint
 ```
 
-### 1.3. 快速生成工具 (Scaffolding)
+## 模板技术栈
 
-本项目提供了自动化脚本，用于快速生成符合架构规范的 Domain 和 Feature 目录结构。
+| 类别 | 选型 |
+|------|------|
+| 框架 | Vue 3 + TypeScript |
+| 构建 | Vite 5 |
+| UI 库 | Ant Design Vue 3 |
+| 状态管理 | Pinia |
+| 路由 | Vue Router 4 |
+| 样式 | Tailwind CSS 3 |
+| 图表 | ECharts 5 |
+| 表格 | VXE Table 4 |
+| 测试 | Vitest + Vue Test Utils |
+| 代码规范 | ESLint + Prettier |
+
+## 架构概览
+
+采用三层单向依赖架构，确保复杂度可控：
+
+```
+Pages (业务域) → Modules (全局业务) → Shared (通用底层)
+```
+
+- **Page / View 分离** — `*.page.vue` 是路由壳，极薄；`*.view.vue` 承载全部业务逻辑，与路由解耦，可跨页面复用
+- **Feature 内聚** — 同一实体的列表、详情、编辑归属同一 feature，共享 API、Model、Composable
+- **模块化路由** — 每个 page 目录下独立声明 `*.routes.ts`，由自定义 Vite 插件自动校验路由名称
+
+生成的项目目录结构：
+
+```
+src/
+├── main.ts                     # 应用入口
+├── App.vue
+├── router/                     # 路由与守卫
+├── layouts/                    # 布局组件
+├── core/plugins/               # 第三方库初始化配置
+├── modules/
+│   ├── auth/                   # 认证模块（登录/登出/权限）
+│   └── app/                    # 全局状态与菜单配置
+├── pages/
+│   ├── login/                  # 登录页
+│   ├── error/                  # 403 页
+│   └── user-management/        # 示例业务页
+├── shared/
+│   ├── ui-kit/                 # UI 增强（composables / 样式覆盖）
+│   ├── utils/                  # 通用工具函数
+│   └── constants/              # 常量与路由名称
+└── build-plugins/              # 自定义 Vite 插件
+    ├── vite-plugin-route-names # 路由名称自动生成与校验
+    └── menu-visualizer         # 菜单配置可视化调试
+```
+
+## 自定义 Vite 插件
+
+### vite-plugin-route-names
+
+扫描 `src/pages/**/ *.routes.ts`，自动生成 `src/shared/constants/routeNames.ts`，确保路由名称与菜单配置保持同步。支持 CLI 校验和自动修复。
+
+### menu-visualizer
+
+开发模式下启动可视化面板，展示菜单配置与路由的对应关系，方便调试菜单权限。
+
+## 本地开发（脚手架本身）
 
 ```bash
-# 创建新的业务域 (Domain)
-# 包含: 路由定义、Page Shell、基础 Feature 结构
-pnpm scaffold:domain
-
-# 在现有域下创建新特性 (Feature)
-# 包含: View, Composable, API, Model, Constants
-pnpm scaffold:feature
+pnpm install
+pnpm dev my-test-app
 ```
 
-## 2. 目录结构总览 (The "What")
+## License
 
-```text
-src/
-├── assets/                 # 【全局资源】仅存放全站通用的静态资源
-├── core/                   # 【应用基建】项目的“骨架”与启动逻辑
-├── layouts/                # 【全局布局】路由的直接容器
-├── shared/                 # 【通用底层】纯净的、无业务属性的工具箱 (严禁引用 pages/modules)
-├── modules/                # 【全局业务】跨域复用的业务模块 (如 Auth, Notification)
-├── pages/                  # 【业务域】所有业务代码的根目录
-│   └── [domain]/           # 示例：data-source-management
-│       ├── pages/          # 1.【路由页】极薄的 .page.vue 路由入口
-│       ├── features/       # 2.【特性核】所有业务逻辑的实现 (View, API, Store)
-│       ├── shared/         # 3.【域内共享】仅供本域内部特性共享的资源
-│       └── [domain].routes.ts # 4.【域路由】本域的路由定义
-├── types/                  # 【全局类型契约】
-├── App.vue                 # 根组件
-├── main.ts                 # 入口文件
-└── router/                 # 路由组装
-```
-
-## 3. 协作工作流 (Collaboration Workflow)
-
-### 3.1. Git 提交规范
-
-本项目启用 Commitlint，提交信息必须遵循 Conventional Commits 标准：
-
-`type(scope): subject`
-
-*   `feat`: 新增功能
-*   `fix`: 修复 Bug
-*   `refactor`: 代码重构
-*   `docs`: 文档变更
-*   `style`: 格式调整
-*   `chore`: 构建过程或辅助工具变动
-
-**示例**：`feat(datasource): add connection test button`
-
-### 3.2. IDE 配置
-
-为确保“保存即格式化”，所有开发者必须安装以下 VS Code 插件：
-
-1.  **Vue - Official (Volar)**
-2.  **ESLint**
-3.  **Prettier**
+MIT
