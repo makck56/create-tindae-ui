@@ -1,0 +1,16 @@
+<template>
+  <{{featurePascal}}ListView />
+</template>
+
+<script setup lang="ts">
+/**
+ * {{featureChineseName}}列表 - 路由页 (Page Shell)
+ * @route /{{domainKebab}}/{{featureKebab}}/list
+ * 
+ * 职责:
+ * 1. 作为 keep-alive 的缓存锚点
+ * 2. 从 $route 获取参数传递给 View
+ * 3. 不包含任何业务逻辑
+ */
+import {{featurePascal}}ListView from '../features/{{featureKebab}}/views/{{featurePascal}}List.view.vue';
+</script>

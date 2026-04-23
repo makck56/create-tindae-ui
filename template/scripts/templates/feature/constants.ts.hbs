@@ -1,0 +1,22 @@
+/**
+ * {{featureChineseName}}常量
+ * @feature {{featureKebab}}
+ */
+
+/**
+ * 状态枚举
+ */
+export const {{featurePascal}}Statuses = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+} as const;
+
+export type {{featurePascal}}Status = (typeof {{featurePascal}}Statuses)[keyof typeof {{featurePascal}}Statuses];
+
+/**
+ * 状态选项
+ */
+export const {{featurePascal}}StatusOptions = [
+  { label: '启用', value: {{featurePascal}}Statuses.ACTIVE },
+  { label: '禁用', value: {{featurePascal}}Statuses.INACTIVE },
+] as const;

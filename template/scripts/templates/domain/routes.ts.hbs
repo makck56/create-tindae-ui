@@ -1,0 +1,28 @@
+/**
+ * {{chineseName}} - 路由配置
+ * @domain {{domainKebab}}
+ */
+import type { RouteRecordRaw } from 'vue-router';
+
+export const {{domainCamel}}Routes: RouteRecordRaw[] = [
+  {
+    path: '/{{domainKebab}}',
+    name: '{{domainPascal}}',
+    redirect: '/{{domainKebab}}/list',
+    meta: {
+      title: '{{chineseName}}',
+      icon: 'IconDatabase', // 请替换为实际图标
+    },
+    children: [
+      {
+        path: 'list',
+        name: '{{domainPascal}}List',
+        component: () => import('./pages/{{domainPascal}}List.page.vue'),
+        meta: {
+          title: '{{chineseName}}列表',
+          keepAlive: true,
+        },
+      },
+    ],
+  },
+];

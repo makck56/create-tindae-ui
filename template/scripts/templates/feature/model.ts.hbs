@@ -1,0 +1,26 @@
+/**
+ * {{featureChineseName}} 数据模型
+ * @feature {{featureKebab}}
+ */
+
+/**
+ * {{featureChineseName}}实体
+ */
+export interface {{featurePascal}} {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive';
+  statusLabel: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 创建{{featureChineseName}}参数
+ */
+export interface Create{{featurePascal}}Params {
+  name: string;
+  status?: 'active' | 'inactive';
+  description?: string;
+}
