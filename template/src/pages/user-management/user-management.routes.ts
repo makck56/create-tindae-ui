@@ -7,10 +7,4 @@ export const userManagementRoutes: RouteRecordRaw[] = [
     meta: { code: 'user-management' },
     component: () => import('./pages/UserList.page.vue'),
   },
-  {
-    path: '/user-management/:id',
-    name: 'UserManagementDetail',
-    meta: { code: 'user-management' },
-    component: () => import('./pages/UserDetail.page.vue'),
-  },
 ];

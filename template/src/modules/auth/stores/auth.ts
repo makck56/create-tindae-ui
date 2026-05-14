@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { COPY } from '@/shared/constants/copy';
 import { getUserInfo, login as loginApi, logout as logoutApi } from '../api/auth.api';
 import type { UserInfo, LoginParams } from '../models/Auth';
 
@@ -19,7 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data: res } = await getUserInfo();
       if (res.code !== 0) {
-        throw new Error(`接口返回错误: ${res.code}`);
+        throw new Error(`${COPY.LOGIN.API_ERROR}: ${res.code}`);
       }
       const { user: userInfo, menus } = res.data;
       user.value = userInfo;
@@ -28,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (e?.response?.status === 401) {
         user.value = null;
       } else {
-        error.value = e.message || '获取用户信息失败';
+        error.value = e.message || COPY.LOGIN.FETCH_USER_FAILED;
       }
     } finally {
       loading.value = false;
@@ -42,12 +43,12 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data: res } = await loginApi(params);
       if (res.code !== 0) {
-        throw new Error(`登录失败: ${res.code}`);
+        throw new Error(res.message || `${COPY.LOGIN.LOGIN_FAILED}: ${res.code}`);
       }
       initialized.value = false;
       await fetchUser();
     } catch (e: any) {
-      error.value = e.message || '登录失败';
+      error.value = e.message || COPY.LOGIN.LOGIN_FAILED;
       throw e;
     } finally {
       loading.value = false;

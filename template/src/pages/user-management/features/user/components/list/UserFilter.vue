@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { UserStatus, UserRole } from '../models/User';
-import { UserStatusOptions, UserRoleOptions } from '../models/User';
+import type { UserStatus, UserRole } from '../../models/User';
+import { UserStatusOptions, UserRoleOptions } from '../../models/User';
 
 defineProps<{
   name?: string;

@@ -1,0 +1,47 @@
+<script setup lang="ts">
+import { useCaptcha } from '../composables/useCaptcha';
+import { useLoginForm } from '../composables/useLoginForm';
+import { COPY } from '@/shared/constants/copy';
+
+defineOptions({ name: 'LoginView' });
+
+const props = defineProps<{
+  redirect: string;
+}>();
+
+const { captchaImage, refresh: refreshCaptcha } = useCaptcha();
+const { formState, loading, handleLogin } = useLoginForm(props.redirect, refreshCaptcha);
+</script>
+
+<template>
+  <div class="min-h-screen flex items-center justify-center bg-gray-100">
+    <div class="w-full max-w-sm bg-white rounded-lg shadow-lg p-8">
+      <h2 class="text-2xl font-bold text-center mb-8">{{ COPY.LOGIN.TITLE }}</h2>
+      <a-form :model="formState" @finish="handleLogin">
+        <a-form-item name="username" :rules="[{ required: true, message: COPY.LOGIN.USERNAME_REQUIRED }]">
+          <a-input v-model:value="formState.username" :placeholder="COPY.LOGIN.USERNAME" size="large" />
+        </a-form-item>
+        <a-form-item name="password" :rules="[{ required: true, message: COPY.LOGIN.PASSWORD_REQUIRED }]">
+          <a-input-password v-model:value="formState.password" :placeholder="COPY.LOGIN.PASSWORD" size="large" />
+        </a-form-item>
+        <a-form-item name="captchaCode" :rules="[{ required: true, message: COPY.LOGIN.CAPTCHA_REQUIRED }]">
+          <div class="flex gap-2">
+            <a-input v-model:value="formState.captchaCode" :placeholder="COPY.LOGIN.CAPTCHA" size="large" class="flex-1" />
+            <img
+              :src="captchaImage"
+              :alt="COPY.LOGIN.CAPTCHA"
+              class="h-10 rounded cursor-pointer border border-gray-200"
+              :title="COPY.LOGIN.CAPTCHA_REFRESH"
+              @click="refreshCaptcha"
+            />
+          </div>
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" html-type="submit" size="large" block :loading="loading">
+            {{ COPY.LOGIN.TITLE }}
+          </a-button>
+        </a-form-item>
+      </a-form>
+    </div>
+  </div>
+</template>

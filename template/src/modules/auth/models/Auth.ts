@@ -16,5 +16,6 @@ export interface AuthData {
 
 export interface LoginParams {
   username: string;
-  password: string;
+  password: string;     // RSA 加密后的密文
+  captchaCode: string;  // 验证码
 }
