@@ -1,0 +1,4 @@
+{"type":"server-started","port":60350,"host":"0.0.0.0","url_host":"0.0.0.0","url":"http://0.0.0.0:60350","screen_dir":"/home/makck/code/create-tindae-ui/.superpowers/brainstorm/1229003-1776907387/content","state_dir":"/home/makck/code/create-tindae-ui/.superpowers/brainstorm/1229003-1776907387/state"}
+{"type":"screen-added","file":"/home/makck/code/create-tindae-ui/.superpowers/brainstorm/1229003-1776907387/content/login-layout.html"}
+{"type":"screen-added","file":"/home/makck/code/create-tindae-ui/.superpowers/brainstorm/1229003-1776907387/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}
