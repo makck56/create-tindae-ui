@@ -1,40 +1,52 @@
-# 项目状态 (2026-04-22)
+# 项目状态 (2026-05-14)
 
 ## 已完成
 
-### README.md 重写
-- 将旧的"前端架构设计指南"替换为脚手架工具文档
-- 涵盖快速开始、技术栈、架构概览、目录结构、自定义 Vite 插件
-- 已提交: `42eb53e docs: rewrite README as scaffolding tool documentation`
+### vxe-table 重构
+- vxe-table 版本锁定 4.3.7
+- vxeTable.ts 改为 defineAsyncComponent 同步注册 + requestIdleCallback 空闲预加载
+- view 零导入 vxe-table 组件，全局注册后直接使用 `<vxe-grid>` / `<vxe-table>` 等
+- UserList 从 vxe-table + vxe-column + a-pagination 迁移到 vxe-grid（gridOptions 模式）
+- gridOptions 包含 proxyConfig.ajax.query + props 映射（`result: 'list', total: 'total'`）
+- 提交: `3ae20a7 refactor: vxe-table idle loading with defineAsyncComponent and vxe-grid`
 
-### Scaffold 脚本同步 (features-demo → template)
-从 `features-demo/scripts/` 复制到 `template/scripts/`：
-- `scaffold.ts` — 入口文件
-- `scaffold-core/` — actions.ts, io.ts, template.ts, utils.ts, route-manager.ts, readme-manager.ts
-- `templates/domain/` — routes.ts.hbs, page-list.vue.hbs, readme.md.hbs
-- `templates/feature/` — view-list.vue.hbs, composable-list.ts.hbs, api.ts.hbs, model.ts.hbs, constants.ts.hbs, page-list.vue.hbs
+### Scaffold 模板重构
+- view-list.vue.hbs: 改用 vxe-grid + slot 模板，Handlebars 转义 Vue `{{ }}`
+- composable-list.ts.hbs: 返回 gridOptions（columns/pagerConfig/proxyConfig）
+- api.ts.hbs: axios.create 模式 + `.api.ts` 后缀
+- model.ts.hbs: PascalCase 文件名 + ListParams/ListResult 类型 + barrel index
+- page-list.vue.hbs: 添加 defineOptions 组件名
+- actions.ts: model 文件用 toPascalCase，自动生成 models/index.ts，API 文件名加 .api 后缀
+- 移除 components/shared 目录的默认生成
+- 提交: `55e8567 refactor: scaffold templates use vxe-grid and consistent naming`
 
-### package.json 更新
-- 新增 scripts: `scaffold`, `scaffold:domain`, `scaffold:feature`
-- 新增 devDependencies: `handlebars@^4.7.8`, `@types/handlebars@^4.1.0`, `tsx@^4.21.0`
+### 构建优化
+- vite.config.ts: manualChunks 拆分 vendor-antd 和 vendor-vxe
+- dev server 添加 `host: true`
+- 提交: `d921057 feat: pin vxe-table to 4.3.7, add vendor chunks and dev host config`
 
-### 移除 Detail 相关内容
-- actions.ts: 移除 Detail page/view/composable 生成逻辑
-- routes.ts.hbs: 移除 detail/:id 路由
-- readme.md.hbs: 移除 Detail 引用
-- api.ts.hbs: 移除 getDetail 方法
-- 删除模板文件: page-detail.vue.hbs, view-detail.vue.hbs, composable-detail.ts.hbs
+### useSpin composable
+- 4 状态机（IDLE → PENDING → SPINNING → LINGERING → IDLE）
+- 延迟开启 loading（默认 300ms），开启后最少展示（默认 500ms）
+- 9 个单元测试全部通过
+- 位置: `template/src/shared/composables/useSpin.ts`
+- 提交: `7da7692 feat: add useSpin composable with state machine`
 
-### 脚本测试
-- `scaffold:domain` — 通过（生成完整域结构：路由、页面壳、视图、composable、API、Model、常量、README）
-- `scaffold:feature` — 通过（在已有域下生成特性文件，自动更新路由和 README）
-- 测试产物已清理
+### Auth 模块更新 & Login 页面重构
+- auth api/stores/models 更新
+- login 页面拆分为 features（composables: useLoginForm, useCaptcha, useRsaEncrypt + views: Login.view.vue）
+- 提交: `8b520c3 feat: auth module updates, login page refactor, and route cleanup`
 
-## 未提交
-
-以上 scaffold 脚本同步和 Detail 移除的变更尚未提交到 git。
+### 文档整理
+- 删除根目录 docs/ 下过时文档，保留 template/ARCHITECTURE.md
+- ARCHITECTURE.md 新增轻量域规范（扁平结构，适用于 login/error 等简单域）
+- 新增 specs/plans: vxe-table-idle-loading, usespin-composable
+- 提交: `34de902`, `78840b0`
 
 ## 待办
 
-- [ ] 提交 scaffold 脚本同步的变更
-- [ ] 更新 pnpm-lock.yaml（添加了 handlebars、tsx 等新依赖）
+- [ ] Mock server（登录页无法登录，无后端服务）
+- [ ] 轻量项目使用指南：是否需要在 ARCHITECTURE.md 中补充"按需展开"理念
+- [ ] vxe-table CSS 预加载完整性（toolbar/pager/modal/tooltip 样式）
+- [ ] API 层共享 axios 实例（当前每个 feature 独立 axios.create）
+- [ ] useSpin 在项目中的实际接入

@@ -98,6 +98,44 @@ graph LR
 - 特性 (`features/`) 是自包含的"积木"，所有相关代码都在一起
 - 域内共享 (`shared/`) 仅存放本域多个特性复用的资源
 
+### 轻量域
+
+只有 1 个功能模块、不需要独立 api/models 层时，使用扁平化的轻量结构：
+
+```
+pages/login/
+├── login.routes.ts
+├── Login.page.vue
+├── assets/
+│   └── logo.svg
+├── components/
+│   └── LoginForm.vue
+├── composables/
+│   ├── useLoginForm.ts
+│   ├── useCaptcha.ts
+│   └── useRsaEncrypt.ts
+├── constants.ts
+└── views/
+    └── Login.view.vue
+```
+
+**标准域 vs 轻量域：**
+
+| 目录 | 标准域 | 轻量域 |
+|---|---|---|
+| `routes.ts` | ✅ | ✅ |
+| `pages/` | ✅ 多路由壳 | ❌ 单页面直接放根 |
+| `features/` | ✅ 按功能拆子目录 | ❌ 扁平化 |
+| `views/` | `features/*/views/` | ✅ 根级 |
+| `composables/` | `features/*/composables/` | ✅ 根级 |
+| `components/` | `features/*/components/` | ✅ 根级 |
+| `api/` | `features/*/api/` | ❌ 不需要 |
+| `models/` | `features/*/models/` | ❌ 不需要 |
+| `constants.ts` | `features/*/constants/` | ✅ 单文件 |
+| `assets/` | — | ✅ 域内静态资源 |
+
+**判断标准：** 只有 1 个功能模块且不需要独立 API 层 → 轻量域；否则 → 标准域。
+
 ---
 
 ## 3. Page vs View 分离
