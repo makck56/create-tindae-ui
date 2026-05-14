@@ -35,13 +35,17 @@ describe('useUserList', () => {
     vi.clearAllMocks();
   });
 
-  it('should fetch user list successfully', async () => {
-    const { users, total, fetchList } = useUserList();
+  it('should return gridOptions with correct columns', () => {
+    const { gridOptions } = useUserList();
 
-    await fetchList();
+    expect(gridOptions.columns).toHaveLength(6);
+    expect(gridOptions.columns[0]).toEqual({ field: 'name', title: '用户名' });
+    expect(gridOptions.pagerConfig.pageSize).toBe(10);
+  });
 
-    expect(users.value).toHaveLength(1);
-    expect(users.value[0].name).toBe('张三');
-    expect(total.value).toBe(1);
+  it('should have proxyConfig.ajax.query function', () => {
+    const { gridOptions } = useUserList();
+
+    expect(typeof gridOptions.proxyConfig.ajax.query).toBe('function');
   });
 });

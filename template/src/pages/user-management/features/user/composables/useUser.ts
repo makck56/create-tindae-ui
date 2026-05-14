@@ -1,58 +1,77 @@
 import { ref, reactive } from 'vue';
+import type { VxeGridInstance } from 'vxe-table';
 import { message } from 'ant-design-vue';
 import { getUserList, getUserDetail, deleteUser } from '../api/user.api';
-import type { User, UserListParams, UserStatus, UserRole } from '../models/User';
+import type { User, UserStatus, UserRole } from '../models/User';
 import { COPY } from '@/shared/constants/copy';
 
 export function useUserList() {
-  const loading = ref(false);
-  const users = ref<User[]>([]);
-  const total = ref(0);
-  const pagination = reactive({ page: 1, pageSize: 10 });
-
   const filters = reactive({
     name: undefined as string | undefined,
     status: undefined as UserStatus | undefined,
     role: undefined as UserRole | undefined,
   });
 
-  async function fetchList() {
-    loading.value = true;
-    try {
-      const params: UserListParams = {
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        ...filters,
-      };
-      const { data: res } = await getUserList(params);
-      users.value = res.data.list;
-      total.value = res.data.total;
-    } catch {
-      message.error(COPY.COMMON.FAILED);
-    } finally {
-      loading.value = false;
-    }
-  }
+  const gridRef = ref<VxeGridInstance | null>(null);
 
-  async function handleDelete(id: string) {
-    try {
-      await deleteUser(id);
-      message.success(COPY.COMMON.SUCCESS);
-      fetchList();
-    } catch {
-      message.error(COPY.COMMON.FAILED);
-    }
+  const gridOptions = reactive({
+    columns: [
+      { field: 'name', title: '用户名' },
+      { field: 'email', title: '邮箱' },
+      { field: 'role', title: '角色' },
+      {
+        field: 'status',
+        title: '状态',
+        slots: { default: 'status_default' },
+      },
+      { field: 'createdAt', title: '创建时间' },
+      {
+        title: '操作',
+        width: 200,
+        slots: { default: 'actions_default' },
+      },
+    ],
+    pagerConfig: { pageSize: 10 },
+    proxyConfig: {
+      props: {
+        result: 'list',
+        total: 'total',
+      },
+      ajax: {
+        query: async ({ page }: { page: { currentPage: number; pageSize: number } }) => {
+          const { data: res } = await getUserList({
+            page: page.currentPage,
+            pageSize: page.pageSize,
+            ...filters,
+          });
+          return res.data;
+        },
+      },
+    },
+  });
+
+  function handleSearch() {
+    gridRef.value?.commitProxy('query');
   }
 
   function resetFilters() {
     filters.name = undefined;
     filters.status = undefined;
     filters.role = undefined;
-    pagination.page = 1;
-    fetchList();
+    handleSearch();
   }
 
-  return { loading, users, total, pagination, filters, fetchList, handleDelete, resetFilters };
+  async function handleDelete(id: string) {
+    try {
+      await deleteUser(id);
+      message.success(COPY.COMMON.SUCCESS);
+      handleSearch();
+    } catch {
+      message.error(COPY.COMMON.FAILED);
+    }
+  }
+
+  return { gridRef, gridOptions, filters, handleSearch, resetFilters, handleDelete };
 }
 
 export function useUserDetail() {
