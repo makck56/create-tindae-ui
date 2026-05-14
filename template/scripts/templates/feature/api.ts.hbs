@@ -1,35 +1,23 @@
-/**
- * {{featureChineseName}} API
- * @feature {{featureKebab}}
- */
-import { http } from '@/core/http';
-import type { Result, PaginationParams, PaginationResult } from '@/types/api';
-import type { {{featurePascal}}, Create{{featurePascal}}Params } from '../models/{{featureCamel}}';
+import axios from 'axios';
+import type { {{featurePascal}}, Create{{featurePascal}}Params, {{featurePascal}}ListParams, {{featurePascal}}ListResult } from '../models/{{featurePascal}}';
 
-/**
- * 获取{{featureChineseName}}列表
- */
-export const get{{featurePascal}}List = (params: PaginationParams & { keyword?: string }) => {
-  return http.get<Result<PaginationResult<{{featurePascal}}>>>('/{{domainKebab}}/{{featureKebab}}/list', { params });
+const request = axios.create({
+  baseURL: '/api',
+  timeout: 10000,
+});
+
+export const get{{featurePascal}}List = (params: {{featurePascal}}ListParams) => {
+  return request.get<{ code: number; data: {{featurePascal}}ListResult }>('/{{domainKebab}}/{{featureKebab}}/list', { params });
 };
 
-/**
- * 创建{{featureChineseName}}
- */
-export const create{{featurePascal}} = (params: Create{{featurePascal}}Params) => {
-  return http.post<Result<{{featurePascal}}>>('/{{domainKebab}}/{{featureKebab}}', params);
+export const create{{featurePascal}} = (data: Create{{featurePascal}}Params) => {
+  return request.post<{ code: number; data: {{featurePascal}} }>('/{{domainKebab}}/{{featureKebab}}', data);
 };
 
-/**
- * 更新{{featureChineseName}}
- */
-export const update{{featurePascal}} = (id: string, params: Partial<Create{{featurePascal}}Params>) => {
-  return http.put<Result<{{featurePascal}}>>(`/{{domainKebab}}/{{featureKebab}}/${id}`, params);
+export const update{{featurePascal}} = (id: string, data: Partial<Create{{featurePascal}}Params>) => {
+  return request.put<{ code: number; data: {{featurePascal}} }>(`/{{domainKebab}}/{{featureKebab}}/${id}`, data);
 };
 
-/**
- * 删除{{featureChineseName}}
- */
 export const delete{{featurePascal}} = (id: string) => {
-  return http.delete<Result<void>>(`/{{domainKebab}}/{{featureKebab}}/${id}`);
+  return request.delete<{ code: number }>(`/{{domainKebab}}/{{featureKebab}}/${id}`);
 };

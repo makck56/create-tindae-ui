@@ -1,26 +1,34 @@
-/**
- * {{featureChineseName}} 数据模型
- * @feature {{featureKebab}}
- */
-
-/**
- * {{featureChineseName}}实体
- */
 export interface {{featurePascal}} {
   id: string;
   name: string;
   status: 'active' | 'inactive';
-  statusLabel: string;
-  description?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
-/**
- * 创建{{featureChineseName}}参数
- */
+export const {{featurePascal}}Statuses = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+} as const;
+
+export type {{featurePascal}}Status = (typeof {{featurePascal}}Statuses)[keyof typeof {{featurePascal}}Statuses];
+
+export const {{featurePascal}}StatusOptions = [
+  { label: '启用', value: {{featurePascal}}Statuses.ACTIVE },
+  { label: '禁用', value: {{featurePascal}}Statuses.INACTIVE },
+];
+
 export interface Create{{featurePascal}}Params {
   name: string;
-  status?: 'active' | 'inactive';
-  description?: string;
+  status?: {{featurePascal}}Status;
+}
+
+export interface {{featurePascal}}ListParams {
+  page: number;
+  pageSize: number;
+  keyword?: string;
+}
+
+export interface {{featurePascal}}ListResult {
+  list: {{featurePascal}}[];
+  total: number;
 }

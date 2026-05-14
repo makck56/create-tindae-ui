@@ -1,96 +1,50 @@
-/**
- * {{featureChineseName}}列表逻辑
- * @feature {{featureKebab}}
- */
-import { ref, reactive } from 'vue';
+import { reactive } from 'vue';
 import { message } from 'ant-design-vue';
-import * as {{featureCamel}}Api from '../api/{{featureCamel}}';
-import type { {{featurePascal}} } from '../models/{{featureCamel}}';
+import { get{{featurePascal}}List, delete{{featurePascal}} } from '../api/{{featureCamel}}.api';
+import { COPY } from '@/shared/constants/copy';
 
-export const use{{featurePascal}}List = () => {
-  const dataSource = ref<{{featurePascal}}[]>([]);
-  const loading = ref(false);
-  const searchKeyword = ref('');
-  
-  const pagination = reactive({
-    current: 1,
-    pageSize: 10,
-    total: 0,
+export function use{{featurePascal}}List() {
+  const gridOptions = reactive({
+    columns: [
+      { field: 'name', title: '名称' },
+      {
+        field: 'status',
+        title: '状态',
+        slots: { default: 'status_default' },
+      },
+      { field: 'createdAt', title: '创建时间' },
+      {
+        title: '操作',
+        width: 200,
+        slots: { default: 'actions_default' },
+      },
+    ],
+    pagerConfig: { pageSize: 10 },
+    proxyConfig: {
+      props: {
+        result: 'list',
+        total: 'total',
+      },
+      ajax: {
+        query: async ({ page }: { page: { currentPage: number; pageSize: number } }) => {
+          const { data: res } = await get{{featurePascal}}List({
+            page: page.currentPage,
+            pageSize: page.pageSize,
+          });
+          return res.data;
+        },
+      },
+    },
   });
 
-  const columns = [
-    {
-      title: '名称',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-    },
-    {
-      title: '操作',
-      key: 'actions',
-      width: 180,
-    },
-  ];
-
-  const loadData = async () => {
-    loading.value = true;
+  async function handleDelete(id: string) {
     try {
-      const res = await {{featureCamel}}Api.get{{featurePascal}}List({
-        page: pagination.current,
-        pageSize: pagination.pageSize,
-        keyword: searchKeyword.value,
-      });
-      dataSource.value = res.data.list;
-      pagination.total = res.data.total;
-    } catch (error) {
-      message.error('加载失败');
-    } finally {
-      loading.value = false;
+      await delete{{featurePascal}}(id);
+      message.success(COPY.COMMON.SUCCESS);
+    } catch {
+      message.error(COPY.COMMON.FAILED);
     }
-  };
+  }
 
-  const handleSearch = () => {
-    pagination.current = 1;
-    loadData();
-  };
-
-  const handleTableChange = (pag: any) => {
-    pagination.current = pag.current;
-    pagination.pageSize = pag.pageSize;
-    loadData();
-  };
-
-  const deleteItem = async (id: string) => {
-    try {
-      await {{featureCamel}}Api.delete{{featurePascal}}(id);
-      message.success('删除成功');
-      loadData();
-    } catch (error) {
-      message.error('删除失败');
-    }
-  };
-
-  // 初始化加载
-  loadData();
-
-  return {
-    dataSource,
-    loading,
-    pagination,
-    searchKeyword,
-    columns,
-    handleSearch,
-    handleTableChange,
-    loadData,
-    deleteItem,
-  };
-};
+  return { gridOptions, handleDelete };
+}

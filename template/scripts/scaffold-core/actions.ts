@@ -83,7 +83,6 @@ export const scaffoldDomain = async () => {
       `${basePath}/pages`,
       `${basePath}/features/${featureKebab}/views`,
       `${basePath}/features/${featureKebab}/components/list`,
-      `${basePath}/features/${featureKebab}/components/shared`,
       `${basePath}/features/${featureKebab}/composables`,
       `${basePath}/features/${featureKebab}/api`,
       `${basePath}/features/${featureKebab}/models`,
@@ -130,14 +129,18 @@ export const scaffoldDomain = async () => {
     await createFile(
       `${basePath}/features/${featureKebab}/api/${toCamelCase(
         featureName || domainName
-      )}.ts`,
+      )}.api.ts`,
       await renderTemplate("feature/api.ts.hbs", templateData)
     );
     await createFile(
-      `${basePath}/features/${featureKebab}/models/${toCamelCase(
+      `${basePath}/features/${featureKebab}/models/${toPascalCase(
         featureName || domainName
       )}.ts`,
       await renderTemplate("feature/model.ts.hbs", templateData)
+    );
+    await createFile(
+      `${basePath}/features/${featureKebab}/models/index.ts`,
+      `export * from './${toPascalCase(featureName || domainName)}';\n`
     );
     await createFile(
       `${basePath}/features/${featureKebab}/constants/index.ts`,
@@ -281,12 +284,16 @@ export const scaffoldFeature = async () => {
       await renderTemplate("feature/composable-list.ts.hbs", templateData)
     );
     await createFile(
-      `${basePath}/api/${toCamelCase(featureName)}.ts`,
+      `${basePath}/api/${toCamelCase(featureName)}.api.ts`,
       await renderTemplate("feature/api.ts.hbs", templateData)
     );
     await createFile(
-      `${basePath}/models/${toCamelCase(featureName)}.ts`,
+      `${basePath}/models/${toPascalCase(featureName)}.ts`,
       await renderTemplate("feature/model.ts.hbs", templateData)
+    );
+    await createFile(
+      `${basePath}/models/index.ts`,
+      `export * from './${toPascalCase(featureName)}';\n`
     );
     await createFile(
       `${basePath}/constants/index.ts`,

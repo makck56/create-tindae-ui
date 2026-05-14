@@ -1,111 +1,23 @@
-<template>
-  <div class="{{featureKebab}}-list">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <a-input-search
-        v-model:value="searchKeyword"
-        placeholder="请输入{{featureChineseName}}名称"
-        style="width: 300px"
-        @search="handleSearch"
-      />
-      <a-button type="primary" @click="handleCreate">
-        <template #icon><PlusOutlined /></template>
-        新建{{featureChineseName}}
-      </a-button>
-    </div>
-
-    <!-- 数据表格 -->
-    <a-table
-      :columns="columns"
-      :data-source="dataSource"
-      :loading="loading"
-      :pagination="pagination"
-      @change="handleTableChange"
-    >
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'actions'">
-          <a-space>
-            <a @click="handleEdit(record)">编辑</a>
-            <a-divider type="vertical" />
-            <a-popconfirm
-              title="确认删除吗？"
-              @confirm="handleDelete(record.id)"
-            >
-              <a class="danger">删除</a>
-            </a-popconfirm>
-          </a-space>
-        </template>
-      </template>
-    </a-table>
-
-    <!-- 新建/编辑弹窗 -->
-    <{{featurePascal}}FormModal
-      v-model:visible="modalVisible"
-      :record="currentRecord"
-      @success="handleModalSuccess"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
-/**
- * {{featureChineseName}}列表 - 业务视图 (View Core)
- * 
- * 职责: 100% 的业务逻辑实现
- * 特点: 与路由完全解耦，可被任意复用
- */
-import { ref } from 'vue';
-import { PlusOutlined } from '@ant-design/icons-vue';
 import { use{{featurePascal}}List } from '../composables/use{{featurePascal}}List';
-import {{featurePascal}}FormModal from '../components/list/{{featurePascal}}FormModal.vue';
+import { COPY } from '@/shared/constants/copy';
 
-const {
-  dataSource,
-  loading,
-  pagination,
-  searchKeyword,
-  columns,
-  handleSearch,
-  handleTableChange,
-  loadData,
-  deleteItem,
-} = use{{featurePascal}}List();
+defineOptions({ name: '{{featurePascal}}List' });
 
-const modalVisible = ref(false);
-const currentRecord = ref(null);
-
-const handleCreate = () => {
-  currentRecord.value = null;
-  modalVisible.value = true;
-};
-
-const handleEdit = (record: any) => {
-  currentRecord.value = record;
-  modalVisible.value = true;
-};
-
-const handleDelete = async (id: string) => {
-  await deleteItem(id);
-};
-
-const handleModalSuccess = () => {
-  modalVisible.value = false;
-  loadData();
-};
+const { gridOptions, handleDelete } = use{{featurePascal}}List();
 </script>
 
-<style scoped>
-.{{featureKebab}}-list {
-  padding: 24px;
-}
-
-.search-bar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.danger {
-  color: #ff4d4f;
-}
-</style>
+<template>
+  <vxe-grid v-bind="gridOptions" border>
+    <template #status_default="{ row }">
+      <a-tag :color="row.status === 'active' ? 'green' : 'red'">
+        \{{ row.status === 'active' ? '启用' : '禁用' }}
+      </a-tag>
+    </template>
+    <template #actions_default="{ row }">
+      <a-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
+        <a-button type="link" danger size="small">\{{ COPY.COMMON.DELETE }}</a-button>
+      </a-popconfirm>
+    </template>
+  </vxe-grid>
+</template>
