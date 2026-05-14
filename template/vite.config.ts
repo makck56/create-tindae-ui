@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
-import { autoRoutesPlugin, menuVisualizerPlugin } from './build-plugins';
+import { autoRoutesPlugin, menuVisualizerPlugin, defineRenderPlugin } from './build-plugins';
 
 export default defineConfig({
   plugins: [
     vue(),
+    defineRenderPlugin(),
     autoRoutesPlugin(),
     menuVisualizerPlugin({
       viewsPath: 'src/pages',

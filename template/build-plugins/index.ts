@@ -16,3 +16,6 @@ export type {
 
 // 菜单可视化插件
 export { default as menuVisualizerPlugin } from './plugins/menu-visualizer/index.js';
+
+// defineRender 插件
+export { default as defineRenderPlugin } from './plugins/vite-plugin-define-render';
