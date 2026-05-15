@@ -1,3 +1,9 @@
-// Bootstrap is self-invoking — MSW starts in dev mode, then app mounts.
-// See src/core/bootstrap/index.ts
-import './core/bootstrap';
+import { setupApp } from './core/bootstrap';
+
+if (import.meta.env.DEV) {
+  import('@/mock/browser').then(({ worker }) => {
+    worker.start({ onUnhandledRequest: 'bypass' }).then(setupApp);
+  });
+} else {
+  setupApp();
+}

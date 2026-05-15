@@ -24,13 +24,3 @@ export function setupApp() {
 
   app.mount('#app');
 }
-
-async function bootstrap() {
-  if (import.meta.env.DEV) {
-    const mockSetup = (await import(String.raw`@/mock/start`)).startMockServiceWorker
-    await mockSetup()
-  }
-  setupApp();
-}
-
-bootstrap();
