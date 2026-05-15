@@ -27,9 +27,8 @@ export function setupApp() {
 
 async function bootstrap() {
   if (import.meta.env.DEV) {
-    const mockPath = '@/mock/browser'
-    const { worker } = await import(/* @vite-ignore */ mockPath)
-    await worker.start({ onUnhandledRequest: 'bypass' })
+    const mockSetup = (await import(String.raw`@/mock/start`)).startMockServiceWorker
+    await mockSetup()
   }
   setupApp();
 }
