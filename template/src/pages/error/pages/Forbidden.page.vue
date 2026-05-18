@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import { ROUTE_NAMES } from '@/shared/constants/routeNames';
 
-defineOptions({ name: 'Forbidden' });
+defineOptions({ name: ROUTE_NAMES.Error.FORBIDDEN });
 
 const router = useRouter();
 
