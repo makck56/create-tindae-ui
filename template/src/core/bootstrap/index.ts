@@ -1,10 +1,11 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from '@/App.vue';
-import { setupRouter } from './router';
-import { setupAntd } from '@/core/plugins/antd';
+import { setupRouter, router } from './router';
+import '@/core/plugins/antd';
 import { setupEcharts } from '@/core/plugins/echarts';
 import { setupVxeTable } from '@/core/plugins/vxeTable';
+import { setupTab } from '@/layouts/tab';
 import '@/assets/styles/tailwind.css';
 import '@/assets/styles/global.css';
 
@@ -17,8 +18,10 @@ export function setupApp() {
   app.use(createPinia());
   setupRouter(app);
 
-  // 2. UI libraries
-  setupAntd(app);
+  // 2. Tab (must be after Pinia + Router)
+  setupTab(router);
+
+  // 3. UI libraries
   setupEcharts(app);
   setupVxeTable(app);
 

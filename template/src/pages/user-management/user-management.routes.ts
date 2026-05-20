@@ -4,7 +4,7 @@ export const userManagementRoutes: RouteRecordRaw[] = [
   {
     path: '/user-management',
     name: 'UserManagement',
-    meta: { code: 'user-management' },
+    meta: { code: 'UserManagement', title: '用户管理', keepAlive: true },
     component: () => import('./pages/UserList.page.vue'),
   },
 ];

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined } from '@ant-design/icons-vue';
 import { useAppStore } from '@/modules/app/stores/app';
 import { useAuthStore } from '@/modules/auth/stores/auth';
+import { useTabStore, TabBar } from '@/layouts/tab';
 import { menuConfig } from '@/modules/app/config/menu.config';
 import type { MenuItem } from '@/modules/app/config/menuTypes';
 
@@ -11,6 +12,7 @@ defineOptions({ name: 'DefaultLayout' });
 
 const appStore = useAppStore();
 const authStore = useAuthStore();
+const tabStore = useTabStore();
 const router = useRouter();
 
 function filterMenu(items: MenuItem[]): MenuItem[] {
@@ -67,8 +69,13 @@ async function handleLogout() {
           </a-button>
         </div>
       </a-layout-header>
+      <TabBar />
       <a-layout-content class="m-4 p-4 bg-white rounded">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive :include="tabStore.cachedNames">
+            <component :is="Component" :key="$route.fullPath" />
+          </keep-alive>
+        </router-view>
       </a-layout-content>
     </a-layout>
   </a-layout>

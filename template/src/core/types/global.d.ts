@@ -11,5 +11,7 @@ declare global {
 declare module 'vue-router' {
   interface RouteMeta {
     code?: string;
+    keepAlive?: boolean;
+    title?: string;
   }
 }
