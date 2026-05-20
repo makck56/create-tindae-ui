@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import Components from 'unplugin-vue-components/vite';
+import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers';
 import { resolve } from 'path';
 import { autoRoutesPlugin, menuVisualizerPlugin, defineRenderPlugin } from './build-plugins';
 
@@ -8,6 +10,10 @@ export default defineConfig({
     vue(),
     defineRenderPlugin(),
     autoRoutesPlugin(),
+    Components({
+      resolvers: [AntDesignVueResolver({ importStyle: false })],
+      dts: 'src/auto-components.d.ts',
+    }),
     menuVisualizerPlugin({
       viewsPath: 'src/pages',
       menuConfigPath: 'src/modules/app/config/menu.config.ts',
