@@ -10,11 +10,13 @@ const MOCK_MENUS = [
   { code: 'UserManagement', name: '用户管理' },
 ]
 
-let loggedIn = false
+function isLoggedIn(): boolean {
+  return sessionStorage.getItem('mock-auth') === '1'
+}
 
 export const authHandlers = [
   http.post('/api/auth/login', async () => {
-    loggedIn = true
+    sessionStorage.setItem('mock-auth', '1')
     return HttpResponse.json({
       code: 0,
       message: 'ok',
@@ -23,7 +25,7 @@ export const authHandlers = [
   }),
 
   http.get('/api/user/info', () => {
-    if (!loggedIn) {
+    if (!isLoggedIn()) {
       return HttpResponse.json({ code: 401, message: '未登录' }, { status: 401 })
     }
     return HttpResponse.json({
@@ -36,7 +38,7 @@ export const authHandlers = [
   }),
 
   http.post('/api/auth/logout', () => {
-    loggedIn = false
+    sessionStorage.removeItem('mock-auth')
     return HttpResponse.json({ code: 0 })
   }),
 ]

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useUserList } from '../composables/useUser';
-import UserFilter from '../components/list/UserFilter.vue';
+import UserFilter from '../components/UserFilter.vue';
 import { COPY } from '@/shared/constants/copy';
 
 defineOptions({ name: 'UserList' });
