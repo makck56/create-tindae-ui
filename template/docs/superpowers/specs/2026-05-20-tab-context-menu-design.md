@@ -26,9 +26,10 @@ export interface TabItem {
 }
 ```
 
-### State additions
+### State changes
 
-- `visitedOrder: string[]` — ordered list of tab keys by visit time (most recent last)
+- `activeTab` — now stores `key` (route.path) instead of `route.name`
+- New: `visitedOrder: string[]` — ordered list of tab keys by visit time (most recent last)
 
 ### addTab changes
 
