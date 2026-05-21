@@ -27,7 +27,7 @@ import type { RouteLocationNormalizedLoaded } from 'vue-router';
 
 function mockRoute(overrides: Partial<RouteLocationNormalizedLoaded> & { name: string; path: string }): RouteLocationNormalizedLoaded {
   return {
-    fullPath: overrides.path,
+    fullPath: overrides.fullPath ?? overrides.path,
     hash: '',
     matched: [],
     meta: overrides.meta ?? { title: overrides.name },
@@ -36,7 +36,6 @@ function mockRoute(overrides: Partial<RouteLocationNormalizedLoaded> & { name: s
     path: overrides.path,
     query: overrides.query ?? {},
     redirectedFrom: null,
-    fullPath: overrides.fullPath ?? overrides.path,
   } as RouteLocationNormalizedLoaded;
 }
 
@@ -198,9 +197,10 @@ export const useTabStore = defineStore('tab', {
       const removed = this.tabs.splice(0, index);
       const removedKeys = new Set(removed.map((t) => t.key));
       this.visitedOrder = this.visitedOrder.filter((k) => !removedKeys.has(k));
-      this.activeTab = key;
-      const tab = this.tabs.find((t) => t.key === key)!;
-      router.push(tab.path);
+      if (this.activeTab !== key) {
+        this.activeTab = key;
+        router.push(this.tabs.find((t) => t.key === key)!.path);
+      }
     },
 
     closeRightTabs(key: string, router: Router) {
@@ -209,9 +209,10 @@ export const useTabStore = defineStore('tab', {
       const removed = this.tabs.splice(index + 1);
       const removedKeys = new Set(removed.map((t) => t.key));
       this.visitedOrder = this.visitedOrder.filter((k) => !removedKeys.has(k));
-      this.activeTab = key;
-      const tab = this.tabs.find((t) => t.key === key)!;
-      router.push(tab.path);
+      if (this.activeTab !== key) {
+        this.activeTab = key;
+        router.push(this.tabs.find((t) => t.key === key)!.path);
+      }
     },
 
     closeOtherTabs(key: string) {
@@ -290,15 +291,12 @@ describe('useTabStore — closeTab visitedOrder navigation', () => {
     store.addTab(mockRoute({ name: 'Home', path: '/home' }));
     store.addTab(mockRoute({ name: 'User', path: '/user' }));
     store.addTab(mockRoute({ name: 'Order', path: '/order' }));
-    // Close '/user' first
+    // Close '/user' first — visitedOrder becomes ['/home', '/order']
     store.closeTab('/user', router);
-    // visitedOrder: ['/home', '/order']
-    // active: '/home'
 
-    // Re-add '/user' and navigate to '/order'
+    // Re-add '/user' and '/order' — visitedOrder becomes ['/home', '/order', '/user', '/order']
     store.addTab(mockRoute({ name: 'User', path: '/user' }));
     store.addTab(mockRoute({ name: 'Order', path: '/order' }));
-    // visitedOrder: ['/home', '/user', '/order']
 
     store.closeTab('/order', router);
     expect(store.activeTab).toBe('/user');
@@ -399,7 +397,6 @@ git commit -m "test: add close/navigation tests for tab store"
 
 ```vue
 <script setup lang="ts">
-import { computed } from 'vue';
 import {
   ReloadOutlined,
   CloseOutlined,
