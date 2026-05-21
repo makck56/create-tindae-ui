@@ -48,7 +48,7 @@
 
 `updateRoutes` 适配扁平路由格式：
 - 不再查找 `children: [` 数组插入
-- 改为读取 `*.routes.ts` 文件，找到 `RouteRecordRaw[]` 数组末尾，追加新路由项
+- 改为读取 `*.routes.ts` 文件，找到 `RouteRecordRaw[]` 数组末尾（匹配 `];`），在它前面追加新路由项
 - 新路由格式：`{ path: '/{featureKebab}', name: '{featurePascal}', meta: { title, keepAlive }, component: () => import(...) }`
 
 ### 修改: `scripts/templates/domain/routes.ts.hbs`
@@ -70,23 +70,24 @@ export const {{domainCamel}}Routes: RouteRecordRaw[] = [
 
 ### 新增: `scripts/scaffold-core/menu-manager.ts`
 
-`listMenuOptions(): Promise<Array<{ index: number; label: string; path: string }>>`
-- 读取 `menu.config.ts`，解析现有菜单项，返回扁平列表
-- 每项包含 index（0 = 根级）、label、path（用于定位嵌套位置）
+`listMenuOptions(): Promise<Array<{ index: number; label: string }>>`
+- 读取 `menu.config.ts` 文件内容
+- 用正则匹配所有 `label: '...'` 提取菜单项
+- 返回扁平列表，index 0 保留给"根级"
 
-`updateMenuConfig(label: string, routeName: string, parentIndex: number): Promise<void>`
-- 读取 `menu.config.ts`
-- 如果 parentIndex === 0，追加到根级数组
-- 否则找到对应菜单项，追加到其 `children` 数组（无 children 则创建）
+`updateMenuConfig(label: string, routeName: string, parentLabel: string | null): Promise<void>`
+- 读取 `menu.config.ts` 文件内容
+- `parentLabel === null` → 根级：找到 `menuConfig: MenuConfig = [` 的数组末尾，追加 `{ label, code: routeName, routeName }`
+- `parentLabel !== null` → 子级：找到 `label: '${parentLabel}'` 所在的菜单项，在其 `}` 前插入 `children: [{ label, code, routeName }]`（已有 children 则追加）
 - 写回文件
 
 `updateMockMenus(routeName: string, name: string): Promise<void>`
 - 读取 `mock/handlers/auth.ts`
-- 在 MOCK_MENUS 数组追加 `{ code: routeName, name }`
+- 找到 `MOCK_MENUS` 数组的 `];`，在前面追加 `{ code: '${routeName}', name: '${name}' },`
 - 写回文件
 
 ## 不变
 
-- `scaffoldDomain` 流程不变（仍会调用 route-manager 和 menu-manager，但使用更新后的函数）
+- `scaffoldDomain` 流程不变（它不更新主路由文件和菜单，只生成域内文件并提示用户手动操作）
 - `io.ts`、`utils.ts`、`template.ts` 不变
 - feature 模板文件（view-list、composable、api、model 等）不变
