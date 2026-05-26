@@ -1,4 +1,5 @@
 import { ref, computed, onUnmounted, getCurrentInstance, type Ref } from 'vue';
+import { SPIN_DELAY, SPIN_MIN_DURATION } from '@/shared/constants/spin';
 
 type SpinState = 'IDLE' | 'PENDING' | 'SPINNING' | 'LINGERING';
 
@@ -8,8 +9,8 @@ export interface UseSpinOptions {
 }
 
 export function useSpin(options: UseSpinOptions = {}) {
-  const delay = options.delay ?? 300;
-  const minDuration = options.minDuration ?? 500;
+  const delay = options.delay ?? SPIN_DELAY;
+  const minDuration = options.minDuration ?? SPIN_MIN_DURATION;
 
   const state = ref<SpinState>('IDLE');
   let delayTimer: ReturnType<typeof setTimeout> | null = null;
