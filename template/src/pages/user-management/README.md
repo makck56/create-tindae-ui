@@ -1,8 +1,8 @@
-# user-management (UserManagement)
+# 用户管理 (UserManagement)
 
 ## 功能说明
 
-本域负责 **user-management** 相关的所有业务逻辑。
+本域负责 **用户管理** 相关的所有业务逻辑。
 
 ## 目录结构
 
