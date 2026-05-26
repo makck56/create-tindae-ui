@@ -6,7 +6,7 @@ import type { User, UserStatus, UserRole } from '../models/User';
 import { COPY } from '@/shared/constants/copy';
 
 export function useUserList() {
-  const filters = reactive({
+  const filters = ref({
     name: undefined as string | undefined,
     status: undefined as UserStatus | undefined,
     role: undefined as UserRole | undefined,
@@ -42,7 +42,7 @@ export function useUserList() {
           const { data: res } = await getUserList({
             page: page.currentPage,
             pageSize: page.pageSize,
-            ...filters,
+            ...filters.value,
           });
           return res.data;
         },
@@ -55,9 +55,6 @@ export function useUserList() {
   }
 
   function resetFilters() {
-    filters.name = undefined;
-    filters.status = undefined;
-    filters.role = undefined;
     handleSearch();
   }
 
