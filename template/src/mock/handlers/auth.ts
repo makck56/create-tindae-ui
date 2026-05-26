@@ -8,6 +8,7 @@ const MOCK_USER = {
 
 const MOCK_MENUS = [
   { code: 'UserManagement', name: '用户管理' },
+  { code: 'RoleManagement', name: '角色管理' },
 ]
 
 function isLoggedIn(): boolean {
