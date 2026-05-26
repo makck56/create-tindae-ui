@@ -21,6 +21,12 @@ import {
 } from "./utils";
 import { prepareTemplateData, renderTemplate } from "./template";
 import { getDomainChineseName, updateRoutes } from "./route-manager";
+import {
+  listMenuOptions,
+  askMenuParent,
+  updateMenuConfig,
+  updateMockMenus,
+} from "./menu-manager";
 import { updateDomainReadme } from "./readme-manager";
 
 // ============ Domain 脚手架 ============ 
@@ -300,34 +306,64 @@ export const scaffoldFeature = async () => {
       await renderTemplate("feature/constants.ts.hbs", templateData)
     );
 
-    // 生成 Page 文件 (路由壳)
-    const pagePath = path.join(
-      process.cwd(),
-      "src/pages",
-      domainKebab,
-      "pages",
-      `${featurePascal}List.page.vue`
+    // 询问是否创建页面
+    const createPageAnswer = await question(
+      "是否为此特性创建页面？(yes/no，默认 yes): "
     );
-    await createFile(
-      pagePath,
-      await renderTemplate("feature/page-list.vue.hbs", templateData)
-    );
+    const createPage =
+      createPageAnswer.trim() === "" ||
+      createPageAnswer.trim().toLowerCase() === "yes";
 
-    const domainPascal = toPascalCase(domainName);
+    if (createPage) {
+      // 生成 Page 文件 (路由壳)
+      const pagePath = path.join(
+        process.cwd(),
+        "src/pages",
+        domainKebab,
+        "pages",
+        `${featurePascal}List.page.vue`
+      );
+      await createFile(
+        pagePath,
+        await renderTemplate("feature/page-list.vue.hbs", templateData)
+      );
 
-    // 更新路由
-    await updateRoutes(
-      domainKebab,
-      featureKebab,
-      domainPascal,
-      featurePascal,
-      featureChineseName
-    );
+      // 更新路由
+      await updateRoutes(
+        domainKebab,
+        featureKebab,
+        featurePascal,
+        featureChineseName
+      );
+
+      // 询问是否添加菜单
+      const addMenuAnswer = await question(
+        "是否添加侧边栏菜单？(yes/no，默认 yes): "
+      );
+      const addMenu =
+        addMenuAnswer.trim() === "" ||
+        addMenuAnswer.trim().toLowerCase() === "yes";
+
+      if (addMenu) {
+        const menuOptions = await listMenuOptions();
+        const parentLabel = await askMenuParent(menuOptions);
+
+        const menuLabelAnswer = await question(
+          `请输入菜单标签 (默认: ${featureChineseName}): `
+        );
+        const menuLabel = menuLabelAnswer.trim() || featureChineseName;
+
+        await updateMenuConfig(menuLabel, featurePascal, parentLabel);
+        await updateMockMenus(featurePascal, menuLabel);
+      }
+    }
 
     // 获取 Domain 中文名并更新 README
-    const domainChineseName = await getDomainChineseName(domainKebab, domainName);
+    const domainChineseName = await getDomainChineseName(
+      domainKebab,
+      domainName
+    );
     await updateDomainReadme(domainKebab, domainChineseName);
-
   } catch (error) {
     console.error(
       "\n❌ 创建过程中出现错误:",
@@ -344,9 +380,4 @@ export const scaffoldFeature = async () => {
   }
 
   console.log("\n✨ Feature 创建完成!");
-  console.log("📝 提示:");
-  console.log(
-    `   1. 路由配置已自动更新，请检查 ${domainKebab}.routes.ts 确认无误`
-  );
-  console.log(`   2. 已生成 Page 壳文件: pages/${featurePascal}List.page.vue\n`);
 };
