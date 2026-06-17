@@ -27,6 +27,42 @@ function escapeRegex(str: string): string {
 }
 
 /**
+ * 按 routeName（菜单的 code/routeName 字段）定位其所属菜单对象的字符范围。
+ *
+ * 用括号深度精确匹配 `{ ... }`。供 findMenuLabelByRouteName / rebuildDomainMenu
+ * 复用，避免重复实现「定位对象」逻辑。找不到返回 null。
+ */
+const locateMenuObject = (
+  content: string,
+  routeName: string
+): { openIdx: number; closeIdx: number } | null => {
+  const codeRegex = new RegExp(
+    `(?:code|routeName):\\s*['"]${escapeRegex(routeName)}['"]`
+  );
+  const codeMatch = codeRegex.exec(content);
+  if (!codeMatch) return null;
+
+  const openIdx = content.lastIndexOf("{", codeMatch.index);
+  if (openIdx === -1) return null;
+
+  let depth = 0;
+  let closeIdx = -1;
+  for (let i = openIdx; i < content.length; i++) {
+    const ch = content[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        closeIdx = i;
+        break;
+      }
+    }
+  }
+  if (closeIdx === -1) return null;
+  return { openIdx, closeIdx };
+};
+
+/**
  * 把新域路由注入根路由内容：import 加在 import 锚点【上方】，
  * `...xRoutes` 加在 route 锚点【上方】。两个锚点行均保持完整。
  * 幂等：若内容已含该域 import 名则跳过。
@@ -200,4 +236,143 @@ export const injectChildMenu = (
     `${propIndent}children: [\n${childItem}\n${propIndent}],\n${propIndent}` +
     content.slice(closeIdx)
   );
+};
+
+/**
+ * 按 routeName（菜单的 code/routeName 字段）反查其所属菜单对象的 label。
+ *
+ * 用途：feature 脚手架定位域菜单；域菜单的 label 在创建时可能被自定义，
+ * 故以稳定的 routeName 反查更可靠。找不到返回 null。
+ */
+export const findMenuLabelByRouteName = (
+  content: string,
+  routeName: string
+): string | null => {
+  const located = locateMenuObject(content, routeName);
+  if (!located) return null;
+  const block = content.slice(located.openIdx, located.closeIdx + 1);
+  const labelMatch = /label:\s*['"]([^'"]+)['"]/.exec(block);
+  return labelMatch ? labelMatch[1] : null;
+};
+
+// ============ 域菜单重建（以 routes.ts 为单一真相源） ============
+
+/** routes.ts 中解析出的一条路由（name + 中文标题） */
+export interface ParsedRoute {
+  name: string;
+  title: string;
+}
+
+/**
+ * 从域 routes.ts 内容解析出全部路由的 { name, title }。
+ *
+ * 用于「以 routes.ts 为真相源」重建域菜单。name 来自 `name: 'X'`，
+ * title 来自同对象内的 `meta.title`（找不到则回退为 name）。
+ * 算法：以每个 `name:` 为锚点，取「当前 name 到下一个 name 之前」范围内的 title，
+ * 保证 title 与 name 属同一路由对象。
+ */
+export const parseRoutes = (content: string): ParsedRoute[] => {
+  const nameRegex = /name:\s*['"]([^'"]+)['"]/g;
+  const positions: Array<{ name: string; index: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = nameRegex.exec(content)) !== null) {
+    positions.push({ name: m[1], index: m.index });
+  }
+
+  return positions.map((pos, i) => {
+    const end =
+      i + 1 < positions.length ? positions[i + 1].index : content.length;
+    const slice = content.slice(pos.index, end);
+    const titleMatch = /title:\s*['"]([^'"]+)['"]/.exec(slice);
+    return { name: pos.name, title: titleMatch ? titleMatch[1] : pos.name };
+  });
+};
+
+/**
+ * 构造域菜单项文本（rebuildDomainMenu 内部使用）。
+ *
+ * - ≤1 条路由：叶子菜单（点击直接进）。
+ * - 多条路由：父级菜单（纯分组，无 routeName），children 含全部路由，
+ *   第一项为默认特性，避免「过滤掉第一个」导致默认页入口丢失。
+ *
+ * 缩进：对象用 indent（数组项缩进），属性 indent+2，children 项 indent+4。
+ */
+const buildDomainMenuItem = (
+  indent: string,
+  label: string,
+  routes: ParsedRoute[]
+): string => {
+  const propIndent = indent + "  ";
+  const childIndent = indent + "    ";
+
+  // 仅 1 条（或 0 条）：叶子
+  if (routes.length <= 1) {
+    const r = routes[0] ?? { name: label, title: label };
+    return (
+      `{\n` +
+      `${propIndent}label: '${label}',\n` +
+      `${propIndent}code: '${r.name}',\n` +
+      `${propIndent}routeName: '${r.name}',\n` +
+      `${indent}}`
+    );
+  }
+
+  // 多条：父级 + children（每条路由一项，label = 其 title）
+  const childrenLines = routes
+    .map(
+      (r) =>
+        `${childIndent}{ label: '${r.title}', code: '${r.name}', routeName: '${r.name}' },`
+    )
+    .join("\n");
+
+  return (
+    `{\n` +
+    `${propIndent}label: '${label}',\n` +
+    `${propIndent}code: '${routes[0].name}',\n` +
+    `${propIndent}children: [\n` +
+    `${childrenLines}\n` +
+    `${propIndent}],\n` +
+    `${indent}}`
+  );
+};
+
+/**
+ * 以该域 routes.ts 的全部路由，重建 menu.config.ts 中的域菜单项。
+ *
+ * - 仅 1 条路由 → 叶子菜单（点击直接进）。
+ * - 多条路由 → 父级菜单（纯分组，不保留 routeName），children 含全部路由，
+ *   第一项为默认特性，避免「过滤掉第一个」导致默认页入口丢失。
+ *
+ * 父级 label 沿用原菜单项的 label（通常是域中文名）；children 各项 label 用其
+ * routes.ts 的 meta.title。幂等：结构已正确时 changed=false，不重复写盘。
+ */
+export const rebuildDomainMenu = (
+  content: string,
+  domainRouteName: string,
+  routes: ParsedRoute[]
+): PatchOutcome => {
+  const located = locateMenuObject(content, domainRouteName);
+  if (!located) {
+    return { ok: false, changed: false, reason: "未找到域菜单项，请确认创建域时已添加菜单" };
+  }
+  const { openIdx, closeIdx } = located;
+
+  // 沿用原菜单项的 label（父级标题）
+  const block = content.slice(openIdx, closeIdx + 1);
+  const labelMatch = /label:\s*['"]([^'"]+)['"]/.exec(block);
+  const label = labelMatch ? labelMatch[1] : domainRouteName;
+
+  // 推断缩进：对象 { 所在行的前导空白
+  const lineStart = content.lastIndexOf("\n", openIdx) + 1;
+  const indent = content.slice(lineStart, openIdx);
+
+  const newItem = buildDomainMenuItem(indent, label, routes);
+
+  // 幂等：新结构若与原对象一致则跳过
+  if (content.slice(openIdx, closeIdx + 1) === newItem) {
+    return { ok: true, changed: false, reason: "域菜单结构已正确" };
+  }
+
+  const next = content.slice(0, openIdx) + newItem + content.slice(closeIdx + 1);
+  return { ok: true, changed: true, content: next };
 };

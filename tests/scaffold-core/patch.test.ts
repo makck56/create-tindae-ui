@@ -14,6 +14,9 @@ import {
   applyRootMenuPatch,
   applyMockMenuPatch,
   injectChildMenu,
+  findMenuLabelByRouteName,
+  parseRoutes,
+  rebuildDomainMenu,
 } from "../../template/scripts/scaffold-core/patch";
 
 // ============ applyDomainRouterPatch ============
@@ -164,4 +167,122 @@ test("injectChildMenu: 父对象已有 children → 追加到数组", () => {
 test("injectChildMenu: 父菜单不存在 → 返回 null", () => {
   const out = injectChildMenu(MENU_MULTI, "不存在的菜单", "子", "Sub");
   assert.equal(out, null);
+});
+
+// ============ findMenuLabelByRouteName ============
+
+test("findMenuLabelByRouteName: 按 code/routeName 命中 → 返回同对象的 label", () => {
+  assert.equal(findMenuLabelByRouteName(MENU_MULTI, "UserManagement"), "用户管理");
+  assert.equal(findMenuLabelByRouteName(MENU_MULTI, "RoleManagement"), "角色管理");
+});
+
+test("findMenuLabelByRouteName: routeName 不存在 → null", () => {
+  assert.equal(findMenuLabelByRouteName(MENU_MULTI, "NotFound"), null);
+});
+
+test("findMenuLabelByRouteName: 含 children 的父对象仍能正确定位 label", () => {
+  const nested = `[
+  {
+    label: '用户管理', code: 'UserManagement',
+    children: [{ label: '子A', code: 'SubA', routeName: 'SubA' }],
+  },
+];`;
+  assert.equal(findMenuLabelByRouteName(nested, "UserManagement"), "用户管理");
+});
+
+// ============ parseRoutes ============
+
+const ROUTES_TS = `import type { RouteRecordRaw } from 'vue-router';
+
+export const orderManagementRoutes: RouteRecordRaw[] = [
+  {
+    path: '/order-management',
+    name: 'OrderManagement',
+    component: () => import('./pages/OrderManagementList.page.vue'),
+    meta: { code: 'OrderManagement', title: '订单管理列表', keepAlive: true },
+  },
+  {
+    path: '/order-overview',
+    name: 'OrderOverview',
+    component: () => import('./pages/OrderOverviewList.page.vue'),
+    meta: { code: 'OrderOverview', title: '订单概览', keepAlive: true },
+  },
+];`;
+
+test("parseRoutes: 提取全部路由的 name 与 title", () => {
+  const routes = parseRoutes(ROUTES_TS);
+  assert.equal(routes.length, 2);
+  assert.deepEqual(routes[0], { name: "OrderManagement", title: "订单管理列表" });
+  assert.deepEqual(routes[1], { name: "OrderOverview", title: "订单概览" });
+});
+
+test("parseRoutes: title 缺失时回退为 name", () => {
+  const noTitle = `export const x = [
+  { path: '/a', name: 'Foo', component: () => import('./a.vue') },
+];`;
+  const routes = parseRoutes(noTitle);
+  assert.equal(routes[0].name, "Foo");
+  assert.equal(routes[0].title, "Foo");
+});
+
+// ============ rebuildDomainMenu ============
+
+test("rebuildDomainMenu: 多路由 → 父级 + children 含第一个（不过滤）", () => {
+  const menu = `export const menuConfig = [
+  {
+    label: '订单管理',
+    code: 'OrderManagement',
+    routeName: 'OrderManagement',
+  },
+];`;
+  const routes = [
+    { name: "OrderManagement", title: "订单管理列表" },
+    { name: "OrderOverview", title: "订单概览" },
+    { name: "OrderDetail", title: "订单详情" },
+  ];
+  const out = rebuildDomainMenu(menu, "OrderManagement", routes);
+  assert.equal(out.ok, true);
+  assert.equal(out.changed, true);
+  // 父级保留 label（域中文名）
+  assert.ok(out.content!.includes("label: '订单管理'"));
+  // children 含三项，第一个是默认特性 OrderManagement（不过滤掉）
+  assert.ok(out.content!.includes("{ label: '订单管理列表', code: 'OrderManagement', routeName: 'OrderManagement' }"));
+  assert.ok(out.content!.includes("routeName: 'OrderOverview'"));
+  assert.ok(out.content!.includes("routeName: 'OrderDetail'"));
+});
+
+test("rebuildDomainMenu: 单路由 → 降级为叶子（去掉 children）", () => {
+  // 原 menu 是父级（多 children），但 routes 只剩 1 条 → 降级为叶子
+  const menu = `export const menuConfig = [
+  {
+    label: '订单管理',
+    code: 'OrderManagement',
+    children: [
+      { label: '订单管理列表', code: 'OrderManagement', routeName: 'OrderManagement' },
+      { label: '订单概览', code: 'OrderOverview', routeName: 'OrderOverview' },
+    ],
+  },
+];`;
+  const routes = [{ name: "OrderManagement", title: "订单管理列表" }];
+  const out = rebuildDomainMenu(menu, "OrderManagement", routes);
+  assert.equal(out.changed, true);
+  assert.ok(!out.content!.includes("children:"));
+  assert.ok(out.content!.includes("routeName: 'OrderManagement'"));
+});
+
+test("rebuildDomainMenu: 幂等——已是正确结构则 changed=false", () => {
+  const routes = [
+    { name: "UserManagement", title: "用户管理列表" },
+    { name: "OrderOverview", title: "订单概览" },
+  ];
+  const once = rebuildDomainMenu(MENU_MULTI, "UserManagement", routes);
+  assert.equal(once.changed, true);
+  const twice = rebuildDomainMenu(once.content!, "UserManagement", routes);
+  assert.equal(twice.ok, true);
+  assert.equal(twice.changed, false);
+});
+
+test("rebuildDomainMenu: 找不到域菜单 → 失败", () => {
+  const out = rebuildDomainMenu("export const x = [];", "NotFound", []);
+  assert.equal(out.ok, false);
 });

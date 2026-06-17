@@ -34,6 +34,8 @@
 pnpm scaffold:domain --name=order-management --chinese=订单管理 --dry-run
 ```
 
+> 💡 配套：`scaffold:feature` 的菜单以该域 `routes.ts` 为单一真相源**自动重建**——仅 1 条路由→叶子（点击直接进），多条路由→父级 + 全部子项（第一项为默认特性，不再被「过滤掉」）。前端菜单组件无需改动（现有「叶子点击 / 有 children 展开」逻辑配合该数据结构即正确）。
+
 #### 2. `create-tindae-ui` CLI 选项（`baec2a7`）
 
 - `--package-manager=pnpm|npm|yarn`：选择依赖管理器（默认 pnpm）

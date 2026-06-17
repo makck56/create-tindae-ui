@@ -9,6 +9,8 @@ import {
   applyRootMenuPatch,
   applyMockMenuPatch,
   injectChildMenu,
+  rebuildDomainMenu,
+  type ParsedRoute,
 } from "./patch";
 
 export interface MenuOption {
@@ -148,6 +150,44 @@ export const updateMockMenus = async (
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     console.warn(`⚠️  更新 mock 权限失败: ${reason}`);
+    return { ok: false, changed: false, reason };
+  }
+};
+
+/**
+ * 以该域的全部路由，重建 menu.config.ts 中的域菜单项。
+ *
+ * - 1 条路由 → 叶子菜单；多条 → 父级 + 全部子项（含默认特性，避免「过滤掉第一个」）。
+ * - 以 routes.ts 为单一真相源，幂等；rootDir 可注入便于集成测试。
+ *
+ * 重建逻辑（纯函数）见 patch.rebuildDomainMenu。返回 PatchResult 供事务回滚。
+ */
+export const rebuildDomainMenuConfig = async (
+  domainRouteName: string,
+  routes: ParsedRoute[],
+  rootDir: string = process.cwd()
+): Promise<PatchResult> => {
+  const configPath = path.join(rootDir, PROJECT_PATHS.menuConfig);
+
+  try {
+    const originalContent = await readFile(configPath);
+    const outcome = rebuildDomainMenu(originalContent, domainRouteName, routes);
+
+    if (!outcome.ok) {
+      console.warn(`⚠️  重建域菜单失败: ${outcome.reason}`);
+      return { ok: false, changed: false, reason: outcome.reason };
+    }
+    if (!outcome.changed) {
+      console.log(`⚠️  ${outcome.reason}，跳过更新`);
+      return { ok: true, changed: false, reason: outcome.reason };
+    }
+
+    await writeFile(configPath, outcome.content!);
+    console.log(`✅ 已重建域菜单: ${configPath}`);
+    return { ok: true, changed: true, originalContent, filePath: configPath };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠️  重建域菜单失败: ${reason}`);
     return { ok: false, changed: false, reason };
   }
 };

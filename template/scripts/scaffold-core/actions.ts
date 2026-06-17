@@ -22,10 +22,11 @@ import {
   type DirEntry,
 } from "./utils";
 import { prepareTemplateData, renderTemplate } from "./template";
-import { getDomainChineseName, registerDomainToRootRouter, updateRoutes } from "./route-manager";
+import { getDomainChineseName, readDomainRoutes, registerDomainToRootRouter, updateRoutes } from "./route-manager";
 import {
   listMenuOptions,
   askMenuParent,
+  rebuildDomainMenuConfig,
   updateMenuConfig,
   updateMockMenus,
 } from "./menu-manager";
@@ -324,6 +325,7 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
   );
 
   const domainKebab = toKebabCase(domainName);
+  const domainPascal = toPascalCase(domainName);
   const featureKebab = toKebabCase(featureName);
   const featurePascal = toPascalCase(featureName);
 
@@ -345,6 +347,8 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
     await removeDirectory(basePath);
     console.log("");
   }
+
+  const patches: PatchResult[] = [];
 
   try {
     const dirs = [
@@ -448,16 +452,15 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
       }
 
       if (addMenu) {
-        const parentLabel = isNonInteractive
-          ? null
-          : await askMenuParent(await listMenuOptions());
-        const menuLabel = isNonInteractive
-          ? featureChineseName
-          : (await question(`请输入菜单标签 (默认: ${featureChineseName}): `)).trim() ||
-            featureChineseName;
+        // 以该域 routes.ts 的全部路由重建域菜单（1 条→叶子，多条→父级+全部子项），
+        // 确保加 feature 后默认特性仍作为子菜单第一项，不会被"过滤掉"。
+        const routes = await readDomainRoutes(domainKebab);
+        const menuPatch = await rebuildDomainMenuConfig(domainPascal, routes);
+        if (menuPatch.changed) patches.push(menuPatch);
 
-        await updateMenuConfig(menuLabel, featurePascal, parentLabel);
-        await updateMockMenus(featurePascal, menuLabel);
+        // 新 feature 的 mock 权限（幂等）
+        const mockPatch = await updateMockMenus(featurePascal, featureChineseName);
+        if (mockPatch.changed) patches.push(mockPatch);
       }
     }
 
@@ -472,6 +475,22 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
       "\n❌ 创建过程中出现错误:",
       error instanceof Error ? error.message : error
     );
+
+    // 事务回滚：还原已修改的配置文件（菜单 / mock 权限）
+    if (patches.length > 0) {
+      console.log("\n🔄 正在回滚已修改的配置文件...");
+      for (const patch of patches) {
+        if (patch.changed && patch.filePath && patch.originalContent !== undefined) {
+          try {
+            await writeFile(patch.filePath, patch.originalContent);
+            console.log(`↩️  已还原: ${patch.filePath}`);
+          } catch {
+            console.warn(`⚠️  还原失败，请手动检查: ${patch.filePath}`);
+          }
+        }
+      }
+    }
+
     console.log("\n🔄 正在清理已创建的文件...");
     try {
       await removeDirectory(basePath);

@@ -10,7 +10,7 @@ import {
 } from "./io";
 import type { PatchResult } from "./types";
 import { PROJECT_PATHS } from "./constants";
-import { applyDomainRouterPatch } from "./patch";
+import { applyDomainRouterPatch, parseRoutes, type ParsedRoute } from "./patch";
 import type { DirEntry } from "./utils";
 
 /**
@@ -189,5 +189,29 @@ export const registerDomainToRootRouter = async (
     const reason = error instanceof Error ? error.message : String(error);
     console.warn(`⚠️  接入根路由失败: ${reason}`);
     return { ok: false, changed: false, reason };
+  }
+};
+
+/**
+ * 读取某域 routes.ts 的全部路由（name + 中文标题）。
+ *
+ * 供「以 routes.ts 为单一真相源」重建域菜单使用：1 条路由→叶子，多条→父级+全部子项。
+ * 解析逻辑（纯函数）见 patch.parseRoutes。文件不存在 / 解析失败返回空数组。
+ */
+export const readDomainRoutes = async (
+  domainKebab: string,
+  rootDir: string = process.cwd()
+): Promise<ParsedRoute[]> => {
+  const routesPath = path.join(
+    rootDir,
+    PROJECT_PATHS.pagesDir,
+    domainKebab,
+    `${domainKebab}.routes.ts`
+  );
+  try {
+    const content = await readFile(routesPath);
+    return parseRoutes(content);
+  } catch {
+    return [];
   }
 };
