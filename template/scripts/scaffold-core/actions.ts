@@ -11,6 +11,7 @@ import {
   questionWithValidation,
   readdir,
   removeDirectory,
+  writeFile,
 } from "./io";
 import {
   validateChineseName,
@@ -18,9 +19,10 @@ import {
   toCamelCase,
   toKebabCase,
   toPascalCase,
+  type DirEntry,
 } from "./utils";
 import { prepareTemplateData, renderTemplate } from "./template";
-import { getDomainChineseName, updateRoutes } from "./route-manager";
+import { getDomainChineseName, registerDomainToRootRouter, updateRoutes } from "./route-manager";
 import {
   listMenuOptions,
   askMenuParent,
@@ -28,25 +30,35 @@ import {
   updateMockMenus,
 } from "./menu-manager";
 import { updateDomainReadme } from "./readme-manager";
+import type { PatchResult } from "./types";
+import { assertProjectRoot } from "./precheck";
+import type { DomainArgs, FeatureArgs } from "./args";
 
 // ============ Domain 脚手架 ============ 
 
-export const scaffoldDomain = async () => {
+export const scaffoldDomain = async (args: DomainArgs = {}) => {
+  assertProjectRoot();
   console.log("\n🚀 开始创建新的业务域 (Domain)...");
 
-  const domainName = await questionWithValidation(
+  // 非交互模式：提供了 --name 即跳过交互（便于 CI / 脚本化）
+  const isNonInteractive = args.name !== undefined;
+
+  const domainName = args.name ?? await questionWithValidation(
     "请输入域名 (kebab-case, 如: data-source-management): ",
     (input) => validateName(input, "domain")
   );
 
-  const chineseName = await questionWithValidation(
+  const chineseName = args.chinese ?? await questionWithValidation(
     "请输入中文名 (如: 数据源管理): ",
     validateChineseName
   );
 
-  const featureNameInput = await question(
-    "请输入默认特性名 (可选，直接回车则使用域名): "
-  );
+  const featureNameInput =
+    args.feature !== undefined
+      ? args.feature
+      : isNonInteractive
+        ? ""
+        : await question("请输入默认特性名 (可选，直接回车则使用域名): ");
   let featureName = featureNameInput.trim();
 
   if (featureName) {
@@ -60,6 +72,7 @@ export const scaffoldDomain = async () => {
 
   const domainKebab = toKebabCase(domainName);
   const domainPascal = toPascalCase(domainName);
+  const domainCamel = toCamelCase(domainName);
   const featureKebab = featureName ? toKebabCase(featureName) : domainKebab;
 
   const basePath = path.join(process.cwd(), "src/pages", domainKebab);
@@ -76,12 +89,16 @@ export const scaffoldDomain = async () => {
   }
 
   let featureChineseName = chineseName;
-  if (featureName) {
+  if (featureName && !isNonInteractive) {
     featureChineseName = await questionWithValidation(
       "请输入特性的中文名: ",
       validateChineseName
     );
   }
+
+  // 记录所有「对已存在文件的追加修改」，用于失败时事务回滚
+  const patches: PatchResult[] = [];
+  let addedMenu = false;
 
   try {
     const dirs = [
@@ -93,9 +110,6 @@ export const scaffoldDomain = async () => {
       `${basePath}/features/${featureKebab}/api`,
       `${basePath}/features/${featureKebab}/models`,
       `${basePath}/features/${featureKebab}/constants`,
-      `${basePath}/shared/components`,
-      `${basePath}/shared/utils`,
-      `${basePath}/shared/assets`,
     ];
 
     console.log("📁 创建目录结构...");
@@ -153,6 +167,49 @@ export const scaffoldDomain = async () => {
       await renderTemplate("feature/constants.ts.hbs", templateData)
     );
 
+    // 接入根路由（src/core/bootstrap/router.ts）
+    const routerPatch = await registerDomainToRootRouter(domainCamel, domainKebab);
+    if (routerPatch.changed) patches.push(routerPatch);
+    // 接入失败（如锚点被手动破坏）直接抛错，触发下方事务回滚
+    if (!routerPatch.ok) {
+      throw new Error(`接入根路由失败：${routerPatch.reason ?? "未知原因"}`);
+    }
+
+    // 是否添加侧边栏菜单：
+    //   --no-menu → 不加；非交互模式 → 默认加（根级）；交互模式 → 询问
+    let addMenu: boolean;
+    if (args.noMenu) {
+      addMenu = false;
+    } else if (isNonInteractive) {
+      addMenu = true;
+    } else {
+      const addMenuAnswer = await question(
+        "是否添加侧边栏菜单？(yes/no，默认 yes): "
+      );
+      addMenu =
+        addMenuAnswer.trim() === "" ||
+        addMenuAnswer.trim().toLowerCase() === "yes";
+    }
+
+    if (addMenu) {
+      // 非交互模式默认作为根级菜单；交互模式询问父级与标签
+      const parentLabel = isNonInteractive
+        ? null
+        : await askMenuParent(await listMenuOptions());
+      const menuLabel = isNonInteractive
+        ? chineseName
+        : (await question(`请输入菜单标签 (默认: ${chineseName}): `)).trim() ||
+          chineseName;
+
+      const menuPatch = await updateMenuConfig(menuLabel, domainPascal, parentLabel);
+      if (menuPatch.changed) patches.push(menuPatch);
+
+      const mockPatch = await updateMockMenus(domainPascal, menuLabel);
+      if (mockPatch.changed) patches.push(mockPatch);
+
+      addedMenu = true;
+    }
+
     // Update README
     await updateDomainReadme(domainKebab, chineseName);
   } catch (error) {
@@ -160,6 +217,23 @@ export const scaffoldDomain = async () => {
       "\n❌ 创建过程中出现错误:",
       error instanceof Error ? error.message : error
     );
+
+    // 事务回滚：还原对已存在文件（router/menu/mock）的追加修改
+    if (patches.length > 0) {
+      console.log("\n🔄 正在回滚已修改的配置文件...");
+      for (const patch of patches) {
+        if (patch.changed && patch.filePath && patch.originalContent !== undefined) {
+          try {
+            await writeFile(patch.filePath, patch.originalContent);
+            console.log(`↩️  已还原: ${patch.filePath}`);
+          } catch {
+            console.warn(`⚠️  还原失败，请手动检查: ${patch.filePath}`);
+          }
+        }
+      }
+    }
+
+    // 清理本次新建的 domain 目录
     console.log("\n🔄 正在清理已创建的文件...");
     try {
       await removeDirectory(basePath);
@@ -171,14 +245,15 @@ export const scaffoldDomain = async () => {
   }
 
   console.log("\n✨ Domain 创建完成!");
+  console.log("📝 已自动完成:");
+  console.log("   ✅ 生成域目录结构 + 默认特性文件");
+  console.log("   ✅ 接入根路由 (src/core/bootstrap/router.ts)");
+  if (addedMenu) {
+    console.log("   ✅ 配置侧边栏菜单 + mock 登录权限");
+  }
   console.log("📝 下一步操作:");
-  console.log(
-    `   1. 在 src/router/index.ts 中导入路由: import { ${toCamelCase(
-      domainName
-    )}Routes } from '@/pages/${domainKebab}/${domainKebab}.routes';`
-  );
-  console.log(`   2. 替换 API 路径为真实的后端接口`);
-  console.log(`   3. 根据实际需求调整数据模型\n`);
+  console.log("   1. 替换 API 路径为真实的后端接口");
+  console.log("   2. 根据实际需求调整数据模型\n");
 };
 
 // ============ Feature 脚手架 ============ 
@@ -188,7 +263,7 @@ const getExistingDomains = async (): Promise<string[]> => {
   try {
     const entries = (await readdir(pagesPath, {
       withFileTypes: true,
-    })) as any[];
+    })) as DirEntry[];
     return entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name);
@@ -198,7 +273,8 @@ const getExistingDomains = async (): Promise<string[]> => {
   }
 };
 
-export const scaffoldFeature = async () => {
+export const scaffoldFeature = async (args: FeatureArgs = {}) => {
+  assertProjectRoot();
   console.log("\n🚀 开始在现有域下创建新特性 (Feature)...");
 
   const domains = await getExistingDomains();
@@ -208,28 +284,41 @@ export const scaffoldFeature = async () => {
     return;
   }
 
-  console.log("已存在的域:");
-  domains.forEach((domain, index) => {
-    console.log(`  ${index + 1}. ${domain}`);
-  });
-  console.log();
+  const isNonInteractive = args.name !== undefined;
 
-  const domainIndexStr = await question(`请选择域 (1-${domains.length}): `);
-  const domainIndex = parseInt(domainIndexStr.trim()) - 1;
+  // 选域：非交互用 --domain（序号或域名），交互则列表选择
+  let domainName: string;
+  if (args.domain) {
+    domainName = /^\d+$/.test(args.domain)
+      ? domains[parseInt(args.domain) - 1] ?? ""
+      : args.domain;
+    if (!domainName || !domains.includes(domainName)) {
+      console.error(`❌ 无效的域: ${args.domain}（可用: ${domains.join(", ")}）`);
+      return;
+    }
+  } else {
+    console.log("已存在的域:");
+    domains.forEach((domain, index) => {
+      console.log(`  ${index + 1}. ${domain}`);
+    });
+    console.log();
 
-  if (isNaN(domainIndex) || domainIndex < 0 || domainIndex >= domains.length) {
-    console.log("❌ 无效的选择");
-    return;
+    const domainIndexStr = await question(`请选择域 (1-${domains.length}): `);
+    const domainIndex = parseInt(domainIndexStr.trim()) - 1;
+
+    if (isNaN(domainIndex) || domainIndex < 0 || domainIndex >= domains.length) {
+      console.log("❌ 无效的选择");
+      return;
+    }
+    domainName = domains[domainIndex];
   }
 
-  const domainName = domains[domainIndex];
-
-  const featureName = await questionWithValidation(
+  const featureName = args.name ?? await questionWithValidation(
     "请输入新特性名 (kebab-case): ",
     (input) => validateName(input, "feature")
   );
 
-  const featureChineseName = await questionWithValidation(
+  const featureChineseName = args.chinese ?? await questionWithValidation(
     "请输入特性中文名: ",
     validateChineseName
   );
@@ -306,13 +395,20 @@ export const scaffoldFeature = async () => {
       await renderTemplate("feature/constants.ts.hbs", templateData)
     );
 
-    // 询问是否创建页面
-    const createPageAnswer = await question(
-      "是否为此特性创建页面？(yes/no，默认 yes): "
-    );
-    const createPage =
-      createPageAnswer.trim() === "" ||
-      createPageAnswer.trim().toLowerCase() === "yes";
+    // 是否创建页面：--no-page → 不建；非交互 → 默认建；交互 → 询问
+    let createPage: boolean;
+    if (args.noPage) {
+      createPage = false;
+    } else if (isNonInteractive) {
+      createPage = true;
+    } else {
+      const createPageAnswer = await question(
+        "是否为此特性创建页面？(yes/no，默认 yes): "
+      );
+      createPage =
+        createPageAnswer.trim() === "" ||
+        createPageAnswer.trim().toLowerCase() === "yes";
+    }
 
     if (createPage) {
       // 生成 Page 文件 (路由壳)
@@ -336,22 +432,29 @@ export const scaffoldFeature = async () => {
         featureChineseName
       );
 
-      // 询问是否添加菜单
-      const addMenuAnswer = await question(
-        "是否添加侧边栏菜单？(yes/no，默认 yes): "
-      );
-      const addMenu =
-        addMenuAnswer.trim() === "" ||
-        addMenuAnswer.trim().toLowerCase() === "yes";
+      // 是否添加菜单：--no-menu → 不加；非交互 → 默认加（根级）；交互 → 询问
+      let addMenu: boolean;
+      if (args.noMenu) {
+        addMenu = false;
+      } else if (isNonInteractive) {
+        addMenu = true;
+      } else {
+        const addMenuAnswer = await question(
+          "是否添加侧边栏菜单？(yes/no，默认 yes): "
+        );
+        addMenu =
+          addMenuAnswer.trim() === "" ||
+          addMenuAnswer.trim().toLowerCase() === "yes";
+      }
 
       if (addMenu) {
-        const menuOptions = await listMenuOptions();
-        const parentLabel = await askMenuParent(menuOptions);
-
-        const menuLabelAnswer = await question(
-          `请输入菜单标签 (默认: ${featureChineseName}): `
-        );
-        const menuLabel = menuLabelAnswer.trim() || featureChineseName;
+        const parentLabel = isNonInteractive
+          ? null
+          : await askMenuParent(await listMenuOptions());
+        const menuLabel = isNonInteractive
+          ? featureChineseName
+          : (await question(`请输入菜单标签 (默认: ${featureChineseName}): `)).trim() ||
+            featureChineseName;
 
         await updateMenuConfig(menuLabel, featurePascal, parentLabel);
         await updateMockMenus(featurePascal, menuLabel);
