@@ -1,0 +1,52 @@
+import { ref, computed, onMounted } from 'vue';
+import { message } from 'ant-design-vue';
+import { get{{featurePascal}}Overview } from '../api/{{featureCamel}}.api';
+import { COPY } from '@/shared/constants/copy';
+import type { {{featurePascal}}Overview } from '../models/{{featurePascal}}';
+
+/**
+ * {{featureChineseName}}概览数据逻辑
+ *
+ * - `summary`：KPI 统计指标（computed 暴露，保持响应式）
+ * - `recentList`：近期记录列表
+ * - `loading`：加载态
+ * - `refresh`：手动刷新
+ *
+ * 注意：通过 computed 派生暴露 summary / recentList，避免直接返回 ref.value 丢失响应性。
+ */
+export function use{{featurePascal}}Overview() {
+  const overview = ref<{{featurePascal}}Overview>({
+    summary: { total: 0, todayCount: 0, activeRate: 0, pending: 0 },
+    recentList: [],
+  });
+  const loading = ref(false);
+
+  // computed 派生：模板中自动解包，统计 / 列表变化时卡片即时刷新
+  const summary = computed(() => overview.value.summary);
+  const recentList = computed(() => overview.value.recentList);
+
+  /** 近期列表的列配置（概览列表精简展示） */
+  const columns = [
+    { title: '名称', dataIndex: 'name' },
+    { title: '状态', dataIndex: 'status' },
+    { title: '创建时间', dataIndex: 'createdAt' },
+  ];
+
+  /** 拉取概览数据；失败时提示，loading 始终复位 */
+  async function loadOverview() {
+    loading.value = true;
+    try {
+      const { data: res } = await get{{featurePascal}}Overview();
+      overview.value = res.data;
+    } catch {
+      message.error(COPY.COMMON.FAILED);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // 进入页面即加载一次
+  onMounted(loadOverview);
+
+  return { summary, recentList, loading, columns, refresh: loadOverview };
+}

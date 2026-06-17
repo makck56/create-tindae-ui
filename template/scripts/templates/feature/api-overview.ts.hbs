@@ -1,0 +1,16 @@
+import axios from 'axios';
+import type { {{featurePascal}}Overview } from '../models/{{featurePascal}}';
+
+const request = axios.create({
+  baseURL: '/api',
+  timeout: 10000,
+});
+
+/**
+ * 获取 {{featureChineseName}} 概览数据（KPI 统计 + 近期列表）。
+ *
+ * 概览型为只读视图，仅需一个聚合查询接口，无 CRUD。
+ */
+export const get{{featurePascal}}Overview = () => {
+  return request.get<{ code: number; data: {{featurePascal}}Overview }>('/{{domainKebab}}/{{featureKebab}}/overview');
+};

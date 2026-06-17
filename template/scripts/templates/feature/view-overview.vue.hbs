@@ -1,0 +1,72 @@
+<script setup lang="ts">
+import { use{{featurePascal}}Overview } from '../composables/use{{featurePascal}}Overview';
+import { {{featurePascal}}SummaryCards, {{featurePascal}}StatusOptions } from '../constants';
+
+defineOptions({ name: '{{featurePascal}}Overview' });
+
+const { summary, recentList, loading, columns, refresh } = use{{featurePascal}}Overview();
+
+// 状态值 → 标签颜色 / 文案映射（供 a-tag 渲染，避免模板里写冗长三元）
+const statusColorMap = Object.fromEntries(
+  {{featurePascal}}StatusOptions.map((opt) => [opt.value, opt.color])
+);
+const statusLabelMap = Object.fromEntries(
+  {{featurePascal}}StatusOptions.map((opt) => [opt.value, opt.label])
+);
+
+// 百分比卡片：0~1 → 整数字符串，配合 a-statistic 的 % 后缀
+const formatValue = (card: { field: string; isPercentage?: boolean }) =>
+  card.isPercentage ? (summary.value[card.field as keyof typeof summary.value] * 100).toFixed(1) : summary.value[card.field as keyof typeof summary.value];
+</script>
+
+<template>
+  <div class="{{featureKebab}}-overview">
+    <!-- 顶部 KPI 统计卡片：响应式栅格（手机 1 列 / 平板 2 列 / 桌面 4 列） -->
+    <a-row :gutter="[16, 16]">
+      <a-col
+        v-for="card in {{featurePascal}}SummaryCards"
+        :key="card.field"
+        :xs="24"
+        :sm="12"
+        :lg="6"
+      >
+        <a-card :loading="loading">
+          <a-statistic
+            :title="card.title"
+            :value="formatValue(card)"
+            :suffix="card.isPercentage ? '%' : card.suffix"
+          />
+        </a-card>
+      </a-col>
+    </a-row>
+
+    <!-- 近期数据列表（只读，不分页，展示最近若干条） -->
+    <a-card title="近期数据" class="overview-recent">
+      <template #extra>
+        <a-button type="link" :loading="loading" @click="refresh">刷新</a-button>
+      </template>
+      <a-table
+        :columns="columns"
+        :data-source="recentList"
+        :loading="loading"
+        :pagination="false"
+        row-key="id"
+        size="middle"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'status'">
+            <a-tag :color="statusColorMap[record.status]">
+              \{{ statusLabelMap[record.status] }}
+            </a-tag>
+          </template>
+        </template>
+      </a-table>
+    </a-card>
+  </div>
+</template>
+
+<style scoped>
+.{{featureKebab}}-overview .overview-recent {
+  margin-top: 16px;
+}
+</style>

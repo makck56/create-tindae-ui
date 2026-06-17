@@ -35,3 +35,16 @@ test("parseFeatureArgs: --domain + --name", () => {
   assert.equal(args.name, "detail");
   assert.equal(args.noPage, true);
 });
+
+test("parseFeatureArgs: --type=list / --type=overview", () => {
+  assert.equal(parseFeatureArgs(["feature", "--type=list"]).type, "list");
+  assert.equal(parseFeatureArgs(["feature", "--type=overview"]).type, "overview");
+});
+
+test("parseFeatureArgs: 非法 --type 回退 undefined（避免渲染错误模板）", () => {
+  assert.equal(parseFeatureArgs(["feature", "--type=form"]).type, undefined);
+});
+
+test("parseFeatureArgs: 缺省 --type → undefined（交由流程按默认 list 处理）", () => {
+  assert.equal(parseFeatureArgs(["feature"]).type, undefined);
+});

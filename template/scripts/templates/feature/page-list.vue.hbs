@@ -1,18 +1,21 @@
 <template>
-  <{{featurePascal}}ListView />
+  <{{featurePascal}}{{typeSuffix}}View />
 </template>
 
 <script setup lang="ts">
 /**
- * {{featureChineseName}}列表 - 路由页 (Page Shell)
+ * {{featureChineseName}} - 路由页 (Page Shell)
  * @route /{{featureKebab}}
  *
  * 职责:
  * 1. 作为 keep-alive 的缓存锚点
  * 2. 从 $route 获取参数传递给 View
  * 3. 不包含任何业务逻辑
+ *
+ * `{{typeSuffix}}` 由脚手架按页面类型（List 表格型 / Overview 概览型）注入，
+ * 因此本模板对两种类型通用——只负责引用对应的 View 组件。
  */
-import {{featurePascal}}ListView from '../features/{{featureKebab}}/views/{{featurePascal}}List.view.vue';
+import {{featurePascal}}{{typeSuffix}}View from '../features/{{featureKebab}}/views/{{featurePascal}}{{typeSuffix}}.view.vue';
 
-defineOptions({ name: '{{featurePascal}}ListPage' });
+defineOptions({ name: '{{featurePascal}}{{typeSuffix}}Page' });
 </script>

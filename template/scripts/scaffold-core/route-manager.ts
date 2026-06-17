@@ -18,12 +18,16 @@ import type { DirEntry } from "./utils";
  *
  * 注意：feature 路由 path 为 `/<featureKebab>`（无 domain 前缀），name 为 `<featurePascal>`。
  * Vue Router 要求 name 全局唯一，因此跨域请避免同名 feature，否则会路由冲突。
+ *
+ * `typeSuffix`（List / Overview）决定 component 懒加载的 page 文件名，
+ * 与脚手架按类型生成的 `${featurePascal}${typeSuffix}.page.vue` 对齐。默认 List 兼容历史调用。
  */
 export const updateRoutes = async (
   domainKebab: string,
   featureKebab: string,
   featurePascal: string,
   featureChineseName: string,
+  typeSuffix: "List" | "Overview" = "List",
   rootDir: string = process.cwd()
 ) => {
   const routesPath = path.join(
@@ -44,7 +48,7 @@ export const updateRoutes = async (
     const newRoute = `  {
     path: '/${featureKebab}',
     name: '${featurePascal}',
-    component: () => import('./pages/${featurePascal}List.page.vue'),
+    component: () => import('./pages/${featurePascal}${typeSuffix}.page.vue'),
     meta: { code: '${featurePascal}', title: '${featureChineseName}', keepAlive: true },
   },`;
 

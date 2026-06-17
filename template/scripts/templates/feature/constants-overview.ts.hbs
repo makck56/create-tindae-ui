@@ -1,0 +1,33 @@
+/**
+ * {{featureChineseName}}概览常量
+ * @feature {{featureKebab}}
+ */
+
+/**
+ * 状态枚举
+ */
+export const {{featurePascal}}Statuses = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+} as const;
+
+export type {{featurePascal}}Status = (typeof {{featurePascal}}Statuses)[keyof typeof {{featurePascal}}Statuses];
+
+/**
+ * 状态选项（含标签 + 标签颜色，供概览列表的 a-tag 渲染）
+ */
+export const {{featurePascal}}StatusOptions = [
+  { label: '启用', value: {{featurePascal}}Statuses.ACTIVE, color: 'green' },
+  { label: '禁用', value: {{featurePascal}}Statuses.INACTIVE, color: 'red' },
+] as const;
+
+/**
+ * KPI 卡片配置（标题 / 取值字段 / 单位 / 是否百分比）。
+ * `field` 对应 {{featurePascal}}Summary 的键，便于 v-for 统一渲染。
+ */
+export const {{featurePascal}}SummaryCards = [
+  { title: '总数', field: 'total', suffix: '条' },
+  { title: '今日新增', field: 'todayCount', suffix: '条' },
+  { title: '活跃占比', field: 'activeRate', isPercentage: true },
+  { title: '待处理', field: 'pending', suffix: '条' },
+] as const;

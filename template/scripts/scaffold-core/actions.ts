@@ -33,7 +33,41 @@ import {
 import { updateDomainReadme } from "./readme-manager";
 import type { PatchResult } from "./types";
 import { assertProjectRoot } from "./precheck";
-import type { DomainArgs, FeatureArgs } from "./args";
+import type { DomainArgs, FeatureArgs, FeatureType } from "./args";
+
+/**
+ * Feature 页面类型 → 对应模板路径映射。
+ *
+ * - `list`（表格型）沿用既有模板名（向后兼容）。
+ * - `overview`（概览型）使用 `-overview` 后缀的专用模板。
+ *
+ * 集中在此，避免渲染调用处散落字符串，未来新增类型（如 form/detail）只需在此扩展。
+ */
+const FEATURE_TEMPLATE_PATHS: Record<
+  FeatureType,
+  {
+    view: string;
+    composable: string;
+    api: string;
+    model: string;
+    constants: string;
+  }
+> = {
+  list: {
+    view: "feature/view-list.vue.hbs",
+    composable: "feature/composable-list.ts.hbs",
+    api: "feature/api.ts.hbs",
+    model: "feature/model.ts.hbs",
+    constants: "feature/constants.ts.hbs",
+  },
+  overview: {
+    view: "feature/view-overview.vue.hbs",
+    composable: "feature/composable-overview.ts.hbs",
+    api: "feature/api-overview.ts.hbs",
+    model: "feature/model-overview.ts.hbs",
+    constants: "feature/constants-overview.ts.hbs",
+  },
+};
 
 // ============ Domain 脚手架 ============ 
 
@@ -329,6 +363,23 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
   const featureKebab = toKebabCase(featureName);
   const featurePascal = toPascalCase(featureName);
 
+  // 选择页面类型：非交互用 --type（默认 list），交互则列表询问。
+  // 决定后续渲染哪一套模板（表格型 CRUD / 概览型 Dashboard）。
+  let featureType: FeatureType;
+  if (args.type) {
+    featureType = args.type;
+  } else if (isNonInteractive) {
+    featureType = "list";
+  } else {
+    console.log("\n页面类型:");
+    console.log("  1. 表格型（vxe-grid 分页表格 + 增删改查）");
+    console.log("  2. 概览型（KPI 统计卡片 + 近期数据列表）");
+    const typeAnswer = await question("请选择页面类型 (1/2，默认 1): ");
+    featureType = typeAnswer.trim() === "2" ? "overview" : "list";
+  }
+  // 派生 PascalCase 后缀，用于文件名 / 组件名拼接（与模板内命名对齐）
+  const typeSuffix = featureType === "overview" ? "Overview" : "List";
+
   const basePath = path.join(
     process.cwd(),
     "src/pages",
@@ -372,23 +423,27 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
       featureName,
       chineseName: "",
       featureChineseName,
+      featureType,
     });
 
+    // 按页面类型选取模板（view/composable 内部已硬编码对应类型命名）
+    const tplPaths = FEATURE_TEMPLATE_PATHS[featureType];
+
     await createFile(
-      `${basePath}/views/${featurePascal}List.view.vue`,
-      await renderTemplate("feature/view-list.vue.hbs", templateData)
+      `${basePath}/views/${featurePascal}${typeSuffix}.view.vue`,
+      await renderTemplate(tplPaths.view, templateData)
     );
     await createFile(
-      `${basePath}/composables/use${featurePascal}List.ts`,
-      await renderTemplate("feature/composable-list.ts.hbs", templateData)
+      `${basePath}/composables/use${featurePascal}${typeSuffix}.ts`,
+      await renderTemplate(tplPaths.composable, templateData)
     );
     await createFile(
       `${basePath}/api/${toCamelCase(featureName)}.api.ts`,
-      await renderTemplate("feature/api.ts.hbs", templateData)
+      await renderTemplate(tplPaths.api, templateData)
     );
     await createFile(
       `${basePath}/models/${toPascalCase(featureName)}.ts`,
-      await renderTemplate("feature/model.ts.hbs", templateData)
+      await renderTemplate(tplPaths.model, templateData)
     );
     await createFile(
       `${basePath}/models/index.ts`,
@@ -396,7 +451,7 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
     );
     await createFile(
       `${basePath}/constants/index.ts`,
-      await renderTemplate("feature/constants.ts.hbs", templateData)
+      await renderTemplate(tplPaths.constants, templateData)
     );
 
     // 是否创建页面：--no-page → 不建；非交互 → 默认建；交互 → 询问
@@ -415,25 +470,26 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
     }
 
     if (createPage) {
-      // 生成 Page 文件 (路由壳)
+      // 生成 Page 文件 (路由壳) —— 文件名按类型后缀区分（List / Overview）
       const pagePath = path.join(
         process.cwd(),
         "src/pages",
         domainKebab,
         "pages",
-        `${featurePascal}List.page.vue`
+        `${featurePascal}${typeSuffix}.page.vue`
       );
       await createFile(
         pagePath,
         await renderTemplate("feature/page-list.vue.hbs", templateData)
       );
 
-      // 更新路由
+      // 更新路由（component 懒加载路径需带上同款 typeSuffix）
       await updateRoutes(
         domainKebab,
         featureKebab,
         featurePascal,
-        featureChineseName
+        featureChineseName,
+        typeSuffix
       );
 
       // 是否添加菜单：--no-menu → 不加；非交互 → 默认加（根级）；交互 → 询问

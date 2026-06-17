@@ -13,6 +13,24 @@
 
 ### ✨ Features（新功能）
 
+#### `scaffold:feature` 页面类型选择（概览型 / 表格型）
+
+`pnpm scaffold:feature` 流程新增一步「选择页面类型」，并支持非交互参数 `--type=list|overview`，按选择渲染不同模板：
+
+| 类型 | 适用场景 | 产物 |
+|------|----------|------|
+| **表格型**（`list`，默认） | 增删改查（CRUD）列表 | vxe-grid 分页表格 + 状态/操作列 |
+| **概览型**（`overview`） | Dashboard 看板 | KPI 统计卡片（a-statistic）+ 近期数据列表（a-table） |
+
+- **文件名按类型后缀区分**：`{Feature}List.view.vue` / `{Feature}Overview.view.vue`；同一个 `page-list.vue.hbs` 用 `typeSuffix` 变量对两类通用
+- **最小依赖**：概览型纯 Ant Design Vue 实现，不引入图表库；只读聚合接口（`get{Feature}Overview`），无 CRUD
+- 改动面：`args.ts`（新增 `FeatureType` + `--type` 解析与非法值回退）、`template.ts`（派生 `typeSuffix`）、`actions.ts`（类型选择交互 + 模板路径映射）、`route-manager.ts`（page 文件名带后缀）、新增 5 个概览模板（view/composable/api/model/constants）+ 改造 `page-list.vue.hbs`
+- 单测 **+8**：`--type` 解析（含非法回退）、`typeSuffix` 派生、概览/表格模板渲染区分、page 模板对两类通用（总计 53 用例全绿）
+
+> 默认仍为 `list`，完全向后兼容——既有 `scaffold:feature` 流程与产物不变。
+
+---
+
 #### 1. `scaffold:domain` 全自动接入 + 运行期增强（`c63d4de`）
 
 消除 README 原本记录的「三大避坑」——新域创建后**无需手改任何配置文件**：
