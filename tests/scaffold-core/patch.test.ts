@@ -15,6 +15,7 @@ import {
   applyMockMenuPatch,
   injectChildMenu,
   findMenuLabelByRouteName,
+  parseTopLevelMenuLabels,
   parseRoutes,
   rebuildDomainMenu,
 } from "../../template/scripts/scaffold-core/patch";
@@ -188,6 +189,42 @@ test("findMenuLabelByRouteName: 含 children 的父对象仍能正确定位 labe
   },
 ];`;
   assert.equal(findMenuLabelByRouteName(nested, "UserManagement"), "用户管理");
+});
+
+// ============ parseTopLevelMenuLabels ============
+
+const MENU_NESTED = `export const menuConfig = [
+  { label: '用户管理', code: 'UserManagement', routeName: 'UserManagement' },
+  {
+    label: '订单管理',
+    code: 'OrderManagement',
+    children: [
+      { label: '订单列表', code: 'OrderList', routeName: 'OrderList' },
+      { label: '订单概览', code: 'OrderOverview', routeName: 'OrderOverview' },
+    ],
+  },
+  // @scaffold:menu
+];`;
+
+test("parseTopLevelMenuLabels: 只返回一级菜单，排除 children 子项（bug 回归）", () => {
+  // 回归：旧实现用全局正则会把「订单列表 / 订单概览」也列出
+  const labels = parseTopLevelMenuLabels(MENU_NESTED);
+  assert.deepEqual(labels, ["用户管理", "订单管理"]);
+});
+
+test("parseTopLevelMenuLabels: 无 children 时返回全部顶层 label", () => {
+  assert.deepEqual(parseTopLevelMenuLabels(MENU_MULTI), ["用户管理", "角色管理"]);
+});
+
+test("parseTopLevelMenuLabels: 找不到 menuConfig → 空数组", () => {
+  assert.deepEqual(parseTopLevelMenuLabels("export const x = [];"), []);
+});
+
+test("parseTopLevelMenuLabels: label 值含 { } 字符时不被误判深度", () => {
+  const tricky = `export const menuConfig = [
+  { label: '用户{管理}', code: 'UserManagement' },
+];`;
+  assert.deepEqual(parseTopLevelMenuLabels(tricky), ["用户{管理}"]);
 });
 
 // ============ parseRoutes ============

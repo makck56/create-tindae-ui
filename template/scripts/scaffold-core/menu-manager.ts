@@ -10,6 +10,7 @@ import {
   applyMockMenuPatch,
   injectChildMenu,
   rebuildDomainMenu,
+  parseTopLevelMenuLabels,
   type ParsedRoute,
 } from "./patch";
 
@@ -19,7 +20,11 @@ export interface MenuOption {
 }
 
 /**
- * 从 menu.config.ts 提取现有菜单项
+ * 从 menu.config.ts 提取【一级菜单】作为可选父级。
+ *
+ * 只列 menuConfig 数组的直接元素（一级菜单），排除 children 内的子菜单——
+ * 父级只能是已存在的一级菜单。解析逻辑（纯函数，括号深度 + 字符串感知）见
+ * patch.parseTopLevelMenuLabels。
  */
 export const listMenuOptions = async (
   rootDir: string = process.cwd()
@@ -28,14 +33,7 @@ export const listMenuOptions = async (
 
   try {
     const content = await readFile(configPath);
-    const labels: string[] = [];
-    const regex = /label:\s*['"]([^'"]+)['"]/g;
-    let match;
-
-    while ((match = regex.exec(content)) !== null) {
-      labels.push(match[1]);
-    }
-
+    const labels = parseTopLevelMenuLabels(content);
     return labels.map((label, i) => ({ index: i + 1, label }));
   } catch {
     return [];

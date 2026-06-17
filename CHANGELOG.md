@@ -29,6 +29,16 @@
 
 > 默认仍为 `list`，完全向后兼容——既有 `scaffold:feature` 流程与产物不变。
 
+### 🐛 Fixes（修复）
+
+#### `scaffold:domain` 选择父级菜单只列一级菜单（不再混入子菜单）
+
+`listMenuOptions` 原用全局正则 `/label:\s*['"]...['"]/g` 抓取，会把 `children` 数组里的**子菜单 label 也列出来**作为可选父级——但父级只能是一级菜单。
+
+- 新增纯函数 `parseTopLevelMenuLabels`：用括号深度（对象深度=1）+ 字符串感知，只返回 `menuConfig` 数组直接元素的 label
+- `listMenuOptions` 改用该函数；单测 +4（含「children 子项不被列出」回归 + label 值含 `{}` 不误判）
+- 总计 57 用例全绿
+
 ---
 
 #### 1. `scaffold:domain` 全自动接入 + 运行期增强（`c63d4de`）
