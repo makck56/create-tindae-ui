@@ -13,6 +13,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx bin/create-tindae-ui.ts",
+    "test": "node --import tsx --test tests/cli.test.ts tests/scaffold-core/patch.test.ts tests/scaffold-core/utils.test.ts tests/scaffold-core/args.test.ts tests/scaffold-core/precheck.test.ts tests/scaffold-core/dry-run.test.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^18.19.0",
     "@types/prompts": "^2.4.9",
+    "handlebars": "^4.7.9",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0"
   },
