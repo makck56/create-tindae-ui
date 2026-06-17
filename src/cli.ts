@@ -2,13 +2,47 @@ import prompts from 'prompts';
 import { resolve } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
 
+export type PackageManager = 'pnpm' | 'npm' | 'yarn';
+
 export interface CliArgs {
   projectName: string;
   targetDir: string;
+  packageManager: PackageManager;
+  skipInstall: boolean;
+  skipGit: boolean;
+}
+
+const PACKAGE_MANAGERS: PackageManager[] = ['pnpm', 'npm', 'yarn'];
+
+function parsePackageManager(argv: string[]): PackageManager {
+  const equalsArg = argv.find((arg) => arg.startsWith('--package-manager='));
+  const packageManagerIndex = argv.indexOf('--package-manager');
+  const value = equalsArg?.split('=')[1] ?? (packageManagerIndex >= 0 ? argv[packageManagerIndex + 1] : 'pnpm');
+
+  if (!PACKAGE_MANAGERS.includes(value as PackageManager)) {
+    throw new Error(`Package manager must be one of: ${PACKAGE_MANAGERS.join(', ')}`);
+  }
+
+  return value as PackageManager;
+}
+
+function getOptionValueIndexes(argv: string[]): Set<number> {
+  const indexes = new Set<number>();
+  const packageManagerIndex = argv.indexOf('--package-manager');
+  if (packageManagerIndex >= 0) {
+    indexes.add(packageManagerIndex + 1);
+  }
+  return indexes;
 }
 
 export async function parseArgs(argv: string[]): Promise<CliArgs> {
-  const inputName = argv.find((a) => !a.startsWith('-') && a !== argv[0] && a !== argv[1]);
+  const packageManager = parsePackageManager(argv);
+  const skipInstall = argv.includes('--no-install') || argv.includes('--skip-install');
+  const skipGit = argv.includes('--skip-git');
+  const optionValueIndexes = getOptionValueIndexes(argv);
+  const inputName = argv.find((a, index) => {
+    return !a.startsWith('-') && a !== argv[0] && a !== argv[1] && !optionValueIndexes.has(index);
+  });
 
   let projectName = inputName;
 
@@ -48,5 +82,5 @@ export async function parseArgs(argv: string[]): Promise<CliArgs> {
     }
   }
 
-  return { projectName, targetDir };
+  return { projectName, targetDir, packageManager, skipInstall, skipGit };
 }
