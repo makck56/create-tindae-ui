@@ -2,6 +2,12 @@
  * 字符串与校验工具库
  */
 
+/** fs.readdir(withFileTypes) 返回的目录项结构（收敛 any 断言） */
+export interface DirEntry {
+  name: string;
+  isDirectory: () => boolean;
+}
+
 export const toPascalCase = (str: string): string => {
   return str
     .split(/[-_\s]/)
@@ -10,8 +16,17 @@ export const toPascalCase = (str: string): string => {
 };
 
 export const toCamelCase = (str: string): string => {
-  const pascal = toPascalCase(str);
-  return pascal.charAt(0).toLowerCase() + pascal.slice(1);
+  // 按分隔符拆分：首词小写开头，其余词首字母大写。
+  // 不复用 toPascalCase——它会对非首字母 toLowerCase，
+  // 导致 PascalCase 输入（如 OrderManagement）丢失中间大写变成 ordermanagement。
+  const parts = str.split(/[-_\s]/).filter(Boolean);
+  return parts
+    .map((word, i) => {
+      const head = word.charAt(0);
+      const rest = word.slice(1);
+      return i === 0 ? head.toLowerCase() + rest : head.toUpperCase() + rest;
+    })
+    .join("");
 };
 
 export const toKebabCase = (str: string): string => {

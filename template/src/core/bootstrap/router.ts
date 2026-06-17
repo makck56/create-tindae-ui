@@ -5,6 +5,7 @@ import { useAuthStore } from '@/modules/auth/stores/auth';
 import { loginRoutes } from '@/pages/login/login.routes';
 import { errorRoutes } from '@/pages/error/error.routes';
 import { userManagementRoutes } from '@/pages/user-management/user-management.routes';
+// @scaffold:domain-import ← 新域路由 import 在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
 
 const WHITE_LIST = ['/login', '/403'];
 
@@ -17,6 +18,7 @@ const routes = [
     children: [
       { path: '', redirect: '/user-management' },
       ...userManagementRoutes,
+      // @scaffold:domain-route ← 新域路由在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
     ],
   },
 ];

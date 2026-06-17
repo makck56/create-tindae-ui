@@ -3,6 +3,13 @@
  */
 import path from "path";
 import { question, readFile, writeFile } from "./io";
+import type { PatchResult } from "./types";
+import { PROJECT_PATHS } from "./constants";
+import {
+  applyRootMenuPatch,
+  applyMockMenuPatch,
+  injectChildMenu,
+} from "./patch";
 
 export interface MenuOption {
   index: number;
@@ -12,11 +19,10 @@ export interface MenuOption {
 /**
  * 从 menu.config.ts 提取现有菜单项
  */
-export const listMenuOptions = async (): Promise<MenuOption[]> => {
-  const configPath = path.join(
-    process.cwd(),
-    "src/modules/app/config/menu.config.ts"
-  );
+export const listMenuOptions = async (
+  rootDir: string = process.cwd()
+): Promise<MenuOption[]> => {
+  const configPath = path.join(rootDir, PROJECT_PATHS.menuConfig);
 
   try {
     const content = await readFile(configPath);
@@ -47,9 +53,7 @@ export const askMenuParent = async (
   });
 
   const maxIndex = options.length;
-  const answer = await question(
-    `请选择父级菜单 (0-${maxIndex}): `
-  );
+  const answer = await question(`请选择父级菜单 (0-${maxIndex}): `);
   const choice = parseInt(answer.trim());
 
   if (isNaN(choice) || choice < 0 || choice > maxIndex) {
@@ -63,147 +67,87 @@ export const askMenuParent = async (
 };
 
 /**
- * 更新 menu.config.ts，添加新菜单项
+ * 更新 menu.config.ts，添加新菜单项。
+ *
+ * - 根级：复用 patch.applyRootMenuPatch（锚点注入）。
+ * - 子级：复用 patch.injectChildMenu（括号深度匹配父对象）。
+ *
+ * 幂等；rootDir 可注入便于集成测试。返回 PatchResult 供事务回滚。
  */
 export const updateMenuConfig = async (
   label: string,
   routeName: string,
-  parentLabel: string | null
-): Promise<void> => {
-  const configPath = path.join(
-    process.cwd(),
-    "src/modules/app/config/menu.config.ts"
-  );
+  parentLabel: string | null,
+  rootDir: string = process.cwd()
+): Promise<PatchResult> => {
+  const configPath = path.join(rootDir, PROJECT_PATHS.menuConfig);
 
   try {
-    let content = await readFile(configPath);
-
-    const newMenuItem = `  {\n    label: '${label}',\n    code: '${routeName}',\n    routeName: '${routeName}',\n  }`;
+    const originalContent = await readFile(configPath);
+    let nextContent: string;
 
     if (parentLabel === null) {
-      // 根级：找到数组末尾 ];
-      const arrayCloseIndex = content.lastIndexOf("];");
-      if (arrayCloseIndex === -1) {
-        console.warn("⚠️  无法解析 menu.config.ts 结构");
-        return;
+      const outcome = applyRootMenuPatch(originalContent, label, routeName);
+      if (!outcome.ok) {
+        console.warn(`⚠️  更新菜单配置失败: ${outcome.reason}`);
+        return { ok: false, changed: false, reason: outcome.reason };
       }
-
-      const beforeClose = content.slice(0, arrayCloseIndex).trimEnd();
-      const lastChar = beforeClose.slice(-1);
-      const separator =
-        lastChar === "," || lastChar === "[" ? "\n" : ",\n";
-
-      content =
-        beforeClose + separator + newMenuItem + ",\n" + content.slice(arrayCloseIndex);
+      if (!outcome.changed) {
+        console.log(`⚠️  ${outcome.reason}，跳过更新`);
+        return { ok: true, changed: false, reason: outcome.reason };
+      }
+      nextContent = outcome.content!;
     } else {
-      // 子级：找到父菜单项
-      const parentRegex = new RegExp(
-        `(label:\\s*['"]${escapeRegex(parentLabel)}['"][\\s\\S]*?{[^}]*})`,
-        "g"
-      );
-      const parentMatch = parentRegex.exec(content);
-
-      if (!parentMatch) {
-        console.warn(`⚠️  未找到父菜单: ${parentLabel}，将作为根级菜单`);
-        return updateMenuConfig(label, routeName, null);
+      const injected = injectChildMenu(originalContent, parentLabel, label, routeName);
+      if (injected === null) {
+        console.warn(`⚠️  未找到父菜单「${parentLabel}」或解析失败，将作为根级菜单`);
+        return updateMenuConfig(label, routeName, null, rootDir);
       }
-
-      // 检查是否已有 children
-      const parentBlock = parentMatch[1];
-      if (parentBlock.includes("children:")) {
-        // 已有 children 数组，在其末尾追加
-        const childrenCloseIndex = content.indexOf(
-          "]",
-          content.indexOf("children:", parentMatch.index!)
-        );
-        if (childrenCloseIndex === -1) {
-          console.warn("⚠️  无法解析 children 数组");
-          return;
-        }
-
-        const beforeChildrenClose = content
-          .slice(0, childrenCloseIndex)
-          .trimEnd();
-        const lastChar = beforeChildrenClose.slice(-1);
-        const separator =
-          lastChar === "," || lastChar === "[" ? "\n" : ",\n";
-
-        content =
-          beforeChildrenClose +
-          separator +
-          newMenuItem +
-          "\n" +
-          content.slice(childrenCloseIndex);
-      } else {
-        // 没有 children，在父菜单项的 } 前插入 children 数组
-        const parentEndIndex =
-          parentMatch.index! + parentMatch[1].length;
-        const insertPos = content.lastIndexOf("}", parentEndIndex);
-
-        const childBlock = `,\n    children: [\n${newMenuItem},\n    ]`;
-        content =
-          content.slice(0, insertPos) +
-          childBlock +
-          content.slice(insertPos);
-      }
+      nextContent = injected;
     }
 
-    await writeFile(configPath, content);
+    await writeFile(configPath, nextContent);
     console.log(`✅ 已更新菜单配置: ${configPath}`);
+    return { ok: true, changed: true, originalContent, filePath: configPath };
   } catch (error) {
-    console.warn(
-      `⚠️  更新菜单配置失败: ${error instanceof Error ? error.message : String(error)}`
-    );
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠️  更新菜单配置失败: ${reason}`);
+    return { ok: false, changed: false, reason };
   }
 };
 
 /**
- * 更新 mock/handlers/auth.ts 的 MOCK_MENUS
+ * 更新 mock/handlers/auth.ts 的 MOCK_MENUS。
+ *
+ * 复用 patch.applyMockMenuPatch（锚点注入，不依赖分号）。
+ * 幂等；rootDir 可注入。返回 PatchResult 供事务回滚。
  */
 export const updateMockMenus = async (
   routeName: string,
-  name: string
-): Promise<void> => {
-  const mockPath = path.join(
-    process.cwd(),
-    "src/mock/handlers/auth.ts"
-  );
+  name: string,
+  rootDir: string = process.cwd()
+): Promise<PatchResult> => {
+  const mockPath = path.join(rootDir, PROJECT_PATHS.mockAuth);
 
   try {
-    let content = await readFile(mockPath);
+    const originalContent = await readFile(mockPath);
+    const outcome = applyMockMenuPatch(originalContent, routeName, name);
 
-    // 找到 MOCK_MENUS 数组的 ];
-    const menusStart = content.indexOf("MOCK_MENUS");
-    if (menusStart === -1) {
-      console.warn("⚠️  未找到 MOCK_MENUS，跳过 mock 权限更新");
-      return;
+    if (!outcome.ok) {
+      console.warn(`⚠️  更新 mock 权限失败: ${outcome.reason}`);
+      return { ok: false, changed: false, reason: outcome.reason };
+    }
+    if (!outcome.changed) {
+      console.log(`⚠️  ${outcome.reason}，跳过更新`);
+      return { ok: true, changed: false, reason: outcome.reason };
     }
 
-    const arrayCloseIndex = content.indexOf("];", menusStart);
-    if (arrayCloseIndex === -1) {
-      console.warn("⚠️  无法解析 MOCK_MENUS 数组");
-      return;
-    }
-
-    const newEntry = `  { code: '${routeName}', name: '${name}' },`;
-
-    const beforeClose = content.slice(0, arrayCloseIndex).trimEnd();
-    const lastChar = beforeClose.slice(-1);
-    const separator =
-      lastChar === "," || lastChar === "[" ? "\n" : ",\n";
-
-    content =
-      beforeClose + separator + newEntry + "\n" + content.slice(arrayCloseIndex);
-
-    await writeFile(mockPath, content);
+    await writeFile(mockPath, outcome.content!);
     console.log(`✅ 已更新 mock 权限: ${mockPath}`);
+    return { ok: true, changed: true, originalContent, filePath: mockPath };
   } catch (error) {
-    console.warn(
-      `⚠️  更新 mock 权限失败: ${error instanceof Error ? error.message : String(error)}`
-    );
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠️  更新 mock 权限失败: ${reason}`);
+    return { ok: false, changed: false, reason };
   }
 };
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
