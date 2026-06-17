@@ -3,3 +3,11 @@ dist
 *.tgz
 .npmrc
 .claude
+demo**
+
+# tsc 编译产物（正式发布产物在 dist/，源码旁的 .js 属异常输出）
+src/**/*.js
+bin/**/*.js
+
+# 本地思考草稿，不入库
+think.md

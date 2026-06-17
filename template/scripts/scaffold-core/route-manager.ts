@@ -8,25 +8,33 @@ import {
   readdir,
   writeFile,
 } from "./io";
+import type { PatchResult } from "./types";
+import { PROJECT_PATHS } from "./constants";
+import { applyDomainRouterPatch } from "./patch";
+import type { DirEntry } from "./utils";
 
 /**
- * 自动更新路由配置（扁平路由格式）
+ * 自动更新路由配置（扁平路由格式）—— 往 domain.routes.ts 追加 feature 路由。
+ *
+ * 注意：feature 路由 path 为 `/<featureKebab>`（无 domain 前缀），name 为 `<featurePascal>`。
+ * Vue Router 要求 name 全局唯一，因此跨域请避免同名 feature，否则会路由冲突。
  */
 export const updateRoutes = async (
   domainKebab: string,
   featureKebab: string,
   featurePascal: string,
-  featureChineseName: string
+  featureChineseName: string,
+  rootDir: string = process.cwd()
 ) => {
   const routesPath = path.join(
-    process.cwd(),
-    "src/pages",
+    rootDir,
+    PROJECT_PATHS.pagesDir,
     domainKebab,
     `${domainKebab}.routes.ts`
   );
 
   try {
-    let content = await readFile(routesPath);
+    const content = await readFile(routesPath);
 
     if (content.includes(`name: '${featurePascal}'`)) {
       console.log("⚠️  路由配置已存在，跳过更新");
@@ -69,9 +77,10 @@ export const updateRoutes = async (
  * 从路由文件和文件系统中获取特性信息
  */
 export const getFeatureInfoFromRoutes = async (
-  domainKebab: string
+  domainKebab: string,
+  rootDir: string = process.cwd()
 ): Promise<Array<{ kebabCase: string; chineseName: string }>> => {
-  const domainPath = path.join(process.cwd(), "src/pages", domainKebab);
+  const domainPath = path.join(rootDir, PROJECT_PATHS.pagesDir, domainKebab);
   const featuresPath = path.join(domainPath, "features");
   const routesPath = path.join(domainPath, `${domainKebab}.routes.ts`);
 
@@ -81,7 +90,7 @@ export const getFeatureInfoFromRoutes = async (
     if (await checkDirectoryExists(featuresPath)) {
       const entries = (await readdir(featuresPath, {
         withFileTypes: true,
-      })) as any[];
+      })) as DirEntry[];
       const featureDirs = entries
         .filter((entry) => entry.isDirectory())
         .map((entry) => entry.name);
@@ -125,12 +134,13 @@ export const getFeatureInfoFromRoutes = async (
  */
 export const getDomainChineseName = async (
   domainKebab: string,
-  fallbackName: string
+  fallbackName: string,
+  rootDir: string = process.cwd()
 ): Promise<string> => {
   try {
     const routesPath = path.join(
-      process.cwd(),
-      "src/pages",
+      rootDir,
+      PROJECT_PATHS.pagesDir,
       domainKebab,
       `${domainKebab}.routes.ts`
     );
@@ -143,4 +153,41 @@ export const getDomainChineseName = async (
     // ignore
   }
   return fallbackName;
+};
+
+/**
+ * 把新域的路由集合注册到根路由（src/core/bootstrap/router.ts）。
+ *
+ * 核心注入逻辑见 patch.ts 的 applyDomainRouterPatch（纯函数，可单测）。
+ * 幂等；返回 PatchResult 供事务回滚。
+ */
+export const registerDomainToRootRouter = async (
+  domainCamel: string,
+  domainKebab: string,
+  rootDir: string = process.cwd()
+): Promise<PatchResult> => {
+  const routerPath = path.join(rootDir, PROJECT_PATHS.router);
+
+  try {
+    const originalContent = await readFile(routerPath);
+    const outcome = applyDomainRouterPatch(originalContent, domainCamel, domainKebab);
+
+    if (!outcome.ok) {
+      console.warn(`⚠️  接入根路由失败: ${outcome.reason}`);
+      return { ok: false, changed: false, reason: outcome.reason };
+    }
+
+    if (!outcome.changed) {
+      console.log(`⚠️  ${outcome.reason}，跳过接入`);
+      return { ok: true, changed: false, reason: outcome.reason };
+    }
+
+    await writeFile(routerPath, outcome.content!);
+    console.log(`✅ 已接入根路由: ${routerPath}`);
+    return { ok: true, changed: true, originalContent, filePath: routerPath };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠️  接入根路由失败: ${reason}`);
+    return { ok: false, changed: false, reason };
+  }
 };

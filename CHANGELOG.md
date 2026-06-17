@@ -1,0 +1,118 @@
+# 变更记录（CHANGELOG）
+
+本文件记录 `create-tindae-ui` 脚手架项目的所有重要变更，方便回溯每次提交「做了什么、为什么做」。
+
+格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+每条均标注对应的 commit 短哈希（`git log --oneline` 可查）。
+
+---
+
+## [Unreleased] — 2026-06-17
+
+> 本次共 **6 个 commit**，主线是让 `scaffold:domain` 命令「开箱即用」（自动接入路由 / 菜单 / mock 权限），并补齐工程化护栏（dry-run、非交互、事务回滚、单测）。另含 `create-tindae-ui` CLI 包的选项增强。
+
+### ✨ Features（新功能）
+
+#### 1. `scaffold:domain` 全自动接入 + 运行期增强（`c63d4de`）
+
+消除 README 原本记录的「三大避坑」——新域创建后**无需手改任何配置文件**：
+
+- 自动接入根路由 `src/core/bootstrap/router.ts`
+- 自动配置侧边栏菜单 `src/modules/app/config/menu.config.ts`
+- 自动注入 mock 登录权限 `src/mock/handlers/auth.ts`
+
+同时新增三项运行期能力：
+
+| 能力 | 说明 | 触发方式 |
+|------|------|----------|
+| **dry-run** | 只预览写操作意图，不真正落盘 | `--dry-run` |
+| **非交互 CLI** | 跳过所有提问，适合 CI / 脚本化 | `--name` `--chinese` `--feature` `--domain` `--no-menu` `--no-page` |
+| **事务回滚** | 任一步骤失败时，自动还原已修改的配置文件并清理新建目录 | 失败自动触发 |
+
+```bash
+# 非交互 + 预览示例
+pnpm scaffold:domain --name=order-management --chinese=订单管理 --dry-run
+```
+
+#### 2. `create-tindae-ui` CLI 选项（`baec2a7`）
+
+- `--package-manager=pnpm|npm|yarn`：选择依赖管理器（默认 pnpm）
+- `--no-install` / `--skip-install`：跳过依赖安装
+- `--skip-git`：跳过 git 初始化
+- 模板目录解析改为「候选路径」机制，兼容开发态（`template/`）与发布态（`dist/template/`）两种布局
+
+### ♻️ Refactor（重构）
+
+#### 3. scaffold-core 注入逻辑重构（`60d48f6`）
+
+把过去「脆弱的文本正则匹配」统一改造为「锚点 + 纯函数」模式：
+
+- **新增 `constants.ts`**：集中所有注入锚点（`@scaffold:domain-import` 等）与项目路径，杜绝字符串散落漂移
+- **新增 `patch.ts`**：提取 4 个**纯函数**（无 IO、可单测）
+  - `applyDomainRouterPatch` — 根路由 import + children 接入
+  - `applyRootMenuPatch` — 根级菜单项插入
+  - `applyMockMenuPatch` — mock 权限码插入
+  - `injectChildMenu` — 子菜单插入（用**括号深度匹配**替代会误匹配的正则）
+- **新增 `types.ts`**：`PatchResult` 接口（含 `originalContent`）支撑事务回滚
+- `router.ts` / `menu.config.ts` / `auth.ts` 添加 `@scaffold:*` 锚点
+- 各 manager 复用 patch 纯函数、注入 `rootDir`（默认 `process.cwd()`，便于测试）
+- `utils.ts` **修复 `toCamelCase`** bug（原实现会丢失中间大写字母）；收敛 `DirEntry` 类型消除 `any`
+- `template.ts` 增加 Handlebars 编译缓存；`page-list.vue.hbs` 注释 path 对齐实际路由
+
+> 这一批重构是后面 dry-run / 非交互 / 回滚能落地的基础。
+
+### 🧪 Tests（测试）
+
+#### 4. scaffold-core 单测套件（`5035f65`）
+
+- 新增 `patch` / `utils` / `args` / `precheck` / `dry-run` 五套测试 + `cli.test`，共 **36 个用例全绿**
+- `package.json` test 脚本接入 `node --test` + `tsx`
+- 新增 `handlebars` devDependency（渲染测试依赖）
+- 单测在重构阶段立功：挖出并修复了 `toCamelCase` 的潜伏 bug
+
+### 📚 Docs（文档）
+
+#### 5. README 重写（`d59df38`）
+
+- 同步「三大避坑」已自动化的现状（不再需要手动改路由 / 菜单 / 权限）
+- 补充 `--dry-run` 与非交互用法的示例
+
+### 🔧 Chore（杂项）
+
+#### 6. `.gitignore`（`eca96f9`）
+
+- 忽略 `src/**/*.js`、`bin/**/*.js`：tsc 异常输出到源码旁的产物（正式发布产物在 `dist/`）
+- 忽略 `think.md`：本地优化草稿，不入库
+
+---
+
+## 提交顺序（依赖关系）
+
+```
+chore(.gitignore)        挡掉编译产物 / 本地草稿
+      │
+feat(cli)                create-tindae-ui 包选项（独立特性线）
+      │
+refactor(scaffold-core)  锚点 + 纯函数（基础设施层）
+      │
+feat(scaffold)           全自动接入 + dry-run + 非交互（依赖上面的重构）
+      │
+test                     单测套件（验证 feat）
+      │
+docs                     README 同步（收尾）
+```
+
+---
+
+## 如何查看本次提交
+
+```bash
+# 查看这 6 个 commit
+git log --oneline -6
+
+# 查看某次提交的完整改动（例如全自动接入那次）
+git show c63d4de
+
+# 对比「本次全部改动」相对第 6 个 commit 之前的状态
+git diff c63d4de~6 HEAD --stat
+```

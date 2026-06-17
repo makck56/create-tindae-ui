@@ -9,6 +9,7 @@ const MOCK_USER = {
 const MOCK_MENUS = [
   { code: 'UserManagement', name: '用户管理' },
   { code: 'RoleManagement', name: '角色管理' },
+  // @scaffold:mock-menu ← 新 mock 菜单在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
 ]
 
 function isLoggedIn(): boolean {

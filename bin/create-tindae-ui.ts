@@ -4,8 +4,8 @@ import { scaffold } from '../src/generator.js';
 
 async function main() {
   try {
-    const { projectName, targetDir } = await parseArgs(process.argv);
-    scaffold(targetDir, projectName);
+    const { projectName, targetDir, packageManager, skipInstall, skipGit } = await parseArgs(process.argv);
+    scaffold(targetDir, projectName, { packageManager, skipInstall, skipGit });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`\n❌ ${message}\n`);

@@ -6,24 +6,26 @@ import { renderTemplate } from "./template";
 import { getFeatureInfoFromRoutes } from "./route-manager";
 import { toPascalCase } from "./utils";
 import { writeFile } from "./io";
+import { PROJECT_PATHS } from "./constants";
 
 /**
  * 更新 Domain README
  */
 export const updateDomainReadme = async (
   domainKebab: string,
-  domainChineseName: string
+  domainChineseName: string,
+  rootDir: string = process.cwd()
 ) => {
   const readmePath = path.join(
-    process.cwd(),
-    "src/pages",
+    rootDir,
+    PROJECT_PATHS.pagesDir,
     domainKebab,
     "README.md"
   );
   const domainPascal = toPascalCase(domainKebab);
 
   try {
-    const features = await getFeatureInfoFromRoutes(domainKebab);
+    const features = await getFeatureInfoFromRoutes(domainKebab, rootDir);
 
     const templateData = {
       domainKebab,
