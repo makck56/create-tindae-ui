@@ -31,13 +31,15 @@
 
 ### 🐛 Fixes（修复）
 
-#### `scaffold:domain` 选择父级菜单只列一级菜单（不再混入子菜单）
+#### `scaffold:domain` 菜单恒为根级（不再选父级）
 
-`listMenuOptions` 原用全局正则 `/label:\s*['"]...['"]/g` 抓取，会把 `children` 数组里的**子菜单 label 也列出来**作为可选父级——但父级只能是一级菜单。
+domain 是顶级业务域，其菜单语义上必须是**一级（根级）**，挂到其它菜单下当子项是错误的。故 `scaffold:domain` 不再询问父级 / 标签，直接以**域中文名**作为根级菜单项添加（`--no-menu` 仍可跳过；非交互模式照常自动加根级菜单）。
 
-- 新增纯函数 `parseTopLevelMenuLabels`：用括号深度（对象深度=1）+ 字符串感知，只返回 `menuConfig` 数组直接元素的 label
-- `listMenuOptions` 改用该函数；单测 +4（含「children 子项不被列出」回归 + label 值含 `{}` 不误判）
-- 总计 57 用例全绿
+- 移除随之失去调用方的「选父级」交互：`askMenuParent`、`listMenuOptions`、纯函数 `parseTopLevelMenuLabels` 及其 4 个单测
+- 连带清理：`menu-manager` 不再 import `question`（仅交互函数用过）
+- 总计 53 用例全绿
+
+> 演进说明：上一版曾用 `parseTopLevelMenuLabels` 修复「选父级时混入子菜单」的列表问题；在确定 domain 不应选父级后，该能力整体移除。
 
 ---
 

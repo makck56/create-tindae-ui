@@ -2,7 +2,7 @@
  * 菜单管理模块
  */
 import path from "path";
-import { question, readFile, writeFile } from "./io";
+import { readFile, writeFile } from "./io";
 import type { PatchResult } from "./types";
 import { PROJECT_PATHS } from "./constants";
 import {
@@ -10,61 +10,8 @@ import {
   applyMockMenuPatch,
   injectChildMenu,
   rebuildDomainMenu,
-  parseTopLevelMenuLabels,
   type ParsedRoute,
 } from "./patch";
-
-export interface MenuOption {
-  index: number;
-  label: string;
-}
-
-/**
- * 从 menu.config.ts 提取【一级菜单】作为可选父级。
- *
- * 只列 menuConfig 数组的直接元素（一级菜单），排除 children 内的子菜单——
- * 父级只能是已存在的一级菜单。解析逻辑（纯函数，括号深度 + 字符串感知）见
- * patch.parseTopLevelMenuLabels。
- */
-export const listMenuOptions = async (
-  rootDir: string = process.cwd()
-): Promise<MenuOption[]> => {
-  const configPath = path.join(rootDir, PROJECT_PATHS.menuConfig);
-
-  try {
-    const content = await readFile(configPath);
-    const labels = parseTopLevelMenuLabels(content);
-    return labels.map((label, i) => ({ index: i + 1, label }));
-  } catch {
-    return [];
-  }
-};
-
-/**
- * 交互式询问菜单父级选择
- * 返回 null 表示根级，否则返回父菜单的 label
- */
-export const askMenuParent = async (
-  options: MenuOption[]
-): Promise<string | null> => {
-  console.log("\n  0. 作为根级菜单");
-  options.forEach((opt) => {
-    console.log(`  ${opt.index}. ${opt.label}`);
-  });
-
-  const maxIndex = options.length;
-  const answer = await question(`请选择父级菜单 (0-${maxIndex}): `);
-  const choice = parseInt(answer.trim());
-
-  if (isNaN(choice) || choice < 0 || choice > maxIndex) {
-    console.log("❌ 无效的选择，将作为根级菜单");
-    return null;
-  }
-
-  if (choice === 0) return null;
-
-  return options.find((opt) => opt.index === choice)?.label ?? null;
-};
 
 /**
  * 更新 menu.config.ts，添加新菜单项。

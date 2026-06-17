@@ -24,8 +24,6 @@ import {
 import { prepareTemplateData, renderTemplate } from "./template";
 import { getDomainChineseName, readDomainRoutes, registerDomainToRootRouter, updateRoutes } from "./route-manager";
 import {
-  listMenuOptions,
-  askMenuParent,
   rebuildDomainMenuConfig,
   updateMenuConfig,
   updateMockMenus,
@@ -227,19 +225,12 @@ export const scaffoldDomain = async (args: DomainArgs = {}) => {
     }
 
     if (addMenu) {
-      // 非交互模式默认作为根级菜单；交互模式询问父级与标签
-      const parentLabel = isNonInteractive
-        ? null
-        : await askMenuParent(await listMenuOptions());
-      const menuLabel = isNonInteractive
-        ? chineseName
-        : (await question(`请输入菜单标签 (默认: ${chineseName}): `)).trim() ||
-          chineseName;
-
-      const menuPatch = await updateMenuConfig(menuLabel, domainPascal, parentLabel);
+      // domain 是顶级业务域，其菜单恒为根级（不应挂到其它菜单下当子项）。
+      // 标签沿用域中文名，无需再询问父级 / 标签。
+      const menuPatch = await updateMenuConfig(chineseName, domainPascal, null);
       if (menuPatch.changed) patches.push(menuPatch);
 
-      const mockPatch = await updateMockMenus(domainPascal, menuLabel);
+      const mockPatch = await updateMockMenus(domainPascal, chineseName);
       if (mockPatch.changed) patches.push(mockPatch);
 
       addedMenu = true;
