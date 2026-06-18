@@ -5,8 +5,6 @@ import { MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined } from '@ant-desig
 import { useAppStore } from '@/modules/app/stores/app';
 import { useAuthStore } from '@/modules/auth/stores/auth';
 import { useTabStore, TabBar } from '@/layouts/tab';
-import { menuConfig } from '@/modules/app/config/menu.config';
-import type { MenuItem } from '@/modules/app/config/menuTypes';
 
 defineOptions({ name: 'DefaultLayout' });
 
@@ -16,14 +14,9 @@ const tabStore = useTabStore();
 const route = useRoute();
 const router = useRouter();
 
-function filterMenu(items: MenuItem[]): MenuItem[] {
-  return items
-    .filter((item) => !item.code || authStore.permissionCodes.has(item.code))
-    .map((item) => (item.children ? { ...item, children: filterMenu(item.children) } : item))
-    .filter((item) => !item.children || item.children.length > 0);
-}
-
-const filteredMenu = computed(() => filterMenu(menuConfig));
+// 侧边栏直接渲染后端下发的菜单树（authStore.menus 为唯一真相源）。
+// 后端按用户角色已过滤，前端不再需要本地 filterMenu / menuConfig 双源。
+const menus = computed(() => authStore.menus);
 
 const selectedKeys = computed(() => {
   const name = route.name as string;
@@ -45,7 +38,7 @@ async function handleLogout() {
     <a-layout-sider v-model:collapsed="appStore.sidebarCollapsed" collapsible :width="220">
       <div class="p-4 text-white text-center font-bold text-lg">{{ appStore.appName }}</div>
       <a-menu theme="dark" mode="inline" :selected-keys="selectedKeys" @click="handleMenuClick">
-        <template v-for="item in filteredMenu" :key="item.routeName ?? item.label">
+        <template v-for="item in menus" :key="item.routeName ?? item.label">
           <a-menu-item v-if="!item.children" :key="item.routeName">
             {{ item.label }}
           </a-menu-item>

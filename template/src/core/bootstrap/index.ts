@@ -4,6 +4,7 @@ import { message } from 'ant-design-vue';
 import App from '@/App.vue';
 import { setupRouter, router } from './router';
 import { configureHttp } from '@/core/http';
+import { vPermission } from '@/shared/directives/permission';
 import { useAuthStore } from '@/modules/auth/stores/auth';
 import { refreshAccessToken as refreshAccessTokenApi } from '@/modules/auth/api/auth.api';
 import '@/core/plugins/antd';
@@ -20,6 +21,8 @@ export function setupApp() {
 
   // 1. Core plugins (Pinia must precede Router)
   app.use(createPinia());
+  // 注册全局按钮级权限指令 v-permission（指令运行时读取 auth store，须在 Pinia 之后注册）
+  app.directive('permission', vPermission);
   setupRouter(app);
 
   // 2. 注入 HTTP 运行时依赖（含 Token 无感续期）。

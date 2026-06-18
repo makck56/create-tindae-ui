@@ -1,16 +1,32 @@
 import { http, HttpResponse } from 'msw'
+import { menuConfig } from '@/modules/app/config/menu.config'
+import type { MenuItem } from '@/modules/app/config/menuTypes'
 
-const MOCK_USER = {
-  id: '1',
-  username: 'admin',
-  avatar: '',
+// ── 演示用多角色（用于肉眼验证路由守卫与按钮级 v-permission）──────────────
+// 不同账号返回不同 menus / permissions（密码任意，mock 不校验，仅需正确验证码）：
+//   - admin：全部菜单 + 全部权限（含删除按钮 code）；
+//   - manager：仅「用户管理」、且无删除权限 → 验证路由 403（/role-management）+ 删除按钮 v-permission 隐藏；
+//   - viewer：无任何权限 → 登录后直接 403（验证默认拒绝守卫）。
+// 真实 RBAC 由后端按角色返回。
+const ROLES: Record<string, { menus: MenuItem[]; permissions: string[] }> = {
+  admin: {
+    menus: menuConfig,
+    permissions: ['UserManagement', 'RoleManagement', 'UserManagement:delete'],
+  },
+  manager: {
+    menus: menuConfig.filter((m) => m.code === 'UserManagement'),
+    permissions: ['UserManagement'],
+  },
+  viewer: {
+    menus: [],
+    permissions: [],
+  },
 }
 
-const MOCK_MENUS = [
-  { code: 'UserManagement', name: '用户管理' },
-  { code: 'RoleManagement', name: '角色管理' },
-  // @scaffold:mock-menu ← 新 mock 菜单在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
-]
+function getRole(username: string): { menus: MenuItem[]; permissions: string[] } {
+  // 未知账号回退 admin，保证向后兼容
+  return ROLES[username] ?? ROLES.admin
+}
 
 // ── Token 有效期（演示用）───────────────────────────────────
 // access 默认 2 分钟（足够肉眼观察续期），可用 .env 的 VITE_MOCK_ACCESS_TTL_SEC 覆盖；
@@ -18,19 +34,28 @@ const MOCK_MENUS = [
 const ACCESS_TTL_MS = (Number(import.meta.env.VITE_MOCK_ACCESS_TTL_SEC) || 120) * 1000
 const REFRESH_TTL_MS = 30 * 60 * 1000
 
-/** 持久化 token 状态：access / refresh token → 过期时间戳。用 sessionStorage 保证刷新页面不丢登录态。 */
+/** 持久化 token 状态：access / refresh → 过期时间戳；access → 登录用户名（getUserInfo 反查角色用）。 */
 interface TokenStore {
   access: Record<string, number>
   refresh: Record<string, number>
+  userByAccess: Record<string, string>
+  /** refresh token → 登录用户名（refresh 换新 access 时据此把用户名带到新 token，避免刷新后角色丢失） */
+  userByRefresh: Record<string, string>
 }
 
 const TOKENS_KEY = 'mock-tokens'
 
 function loadTokens(): TokenStore {
   try {
-    return JSON.parse(sessionStorage.getItem(TOKENS_KEY) ?? '') as TokenStore
+    const parsed = JSON.parse(sessionStorage.getItem(TOKENS_KEY) ?? '') as Partial<TokenStore>
+    return {
+      access: parsed.access ?? {},
+      refresh: parsed.refresh ?? {},
+      userByAccess: parsed.userByAccess ?? {},
+      userByRefresh: parsed.userByRefresh ?? {},
+    }
   } catch {
-    return { access: {}, refresh: {} }
+    return { access: {}, refresh: {}, userByAccess: {}, userByRefresh: {} }
   }
 }
 
@@ -42,14 +67,16 @@ function randomTag(): string {
   return Math.random().toString(36).slice(2, 8)
 }
 
-/** 签发一对新 token 并持久化，返回给前端。 */
-function issueTokens(): { accessToken: string; refreshToken: string; expiresIn: number } {
+/** 签发一对新 token 并持久化，同时记录登录用户名（供 getUserInfo 反查角色）。 */
+function issueTokens(username: string): { accessToken: string; refreshToken: string; expiresIn: number } {
   const now = Date.now()
   const accessToken = `mock-access-${now}-${randomTag()}`
   const refreshToken = `mock-refresh-${now}-${randomTag()}`
   const store = loadTokens()
   store.access[accessToken] = now + ACCESS_TTL_MS
   store.refresh[refreshToken] = now + REFRESH_TTL_MS
+  store.userByAccess[accessToken] = username
+  store.userByRefresh[refreshToken] = username
   saveTokens(store)
   return { accessToken, refreshToken, expiresIn: Math.floor(ACCESS_TTL_MS / 1000) }
 }
@@ -62,6 +89,10 @@ function rotateAccess(refreshToken: string): { accessToken: string; expiresIn: n
   const now = Date.now()
   const accessToken = `mock-access-${now}-${randomTag()}`
   store.access[accessToken] = now + ACCESS_TTL_MS
+  // 关键：把 refresh token 对应的用户名带到新 access token，
+  // 否则刷新后的 getUserInfo 查不到用户名 → 回退 admin → 角色错乱（viewer/manager 变 admin）
+  const username = store.userByRefresh[refreshToken]
+  if (username) store.userByAccess[accessToken] = username
   saveTokens(store)
   return { accessToken, expiresIn: Math.floor(ACCESS_TTL_MS / 1000) }
 }
@@ -77,10 +108,17 @@ function isAccessValid(token: string | null): boolean {
   return !!exp && exp > Date.now()
 }
 
+/** 由 access token 反查登录用户名（取不到则回退 admin）。 */
+function getUsernameByAccess(token: string | null): string {
+  if (!token) return 'admin'
+  return loadTokens().userByAccess[token] ?? 'admin'
+}
+
 export const authHandlers = [
-  http.post('/api/auth/login', async () => {
+  http.post('/api/auth/login', async ({ request }) => {
     // 验证码已在前端 auth.api 模拟校验，能进到这里的视为通过
-    return HttpResponse.json({ code: 0, message: 'ok', data: issueTokens() })
+    const body = (await request.json().catch(() => ({}))) as { username?: string }
+    return HttpResponse.json({ code: 0, message: 'ok', data: issueTokens(body.username ?? 'admin') })
   }),
 
   http.get('/api/user/info', ({ request }) => {
@@ -89,9 +127,15 @@ export const authHandlers = [
       // access token 缺失 / 过期：前端续期协调器会拦截此 401 自动刷新重试
       return HttpResponse.json({ code: 401, message: '登录已过期，请重新登录' }, { status: 401 })
     }
+    const username = getUsernameByAccess(token)
+    const role = getRole(username)
     return HttpResponse.json({
       code: 0,
-      data: { user: MOCK_USER, menus: MOCK_MENUS },
+      data: {
+        user: { id: '1', username, avatar: '' },
+        menus: role.menus,
+        permissions: role.permissions,
+      },
     })
   }),
 

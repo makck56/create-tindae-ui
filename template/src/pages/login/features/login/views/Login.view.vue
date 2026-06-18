@@ -42,6 +42,13 @@ const { formState, loading, handleLogin } = useLoginForm(props.redirect, refresh
           </a-button>
         </a-form-item>
       </a-form>
+      <a-alert
+        class="mt-2 text-left"
+        type="info"
+        show-icon
+        message="演示账号（密码任意，需填验证码）"
+        description="admin（全权限）· manager（无删除、无角色管理）· viewer（无任何权限，登录即 403）"
+      />
     </div>
   </div>
 </template>

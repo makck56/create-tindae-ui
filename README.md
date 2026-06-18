@@ -367,15 +367,17 @@ export const ROUTE_NAMES = {
 
 > 用法：在 `.page.vue` 里 `defineOptions({ name: ROUTE_NAMES.Xxx.YYY })`，路由 `name` 与之对应，多页签 / keep-alive 才能正常工作。
 
-### 6.3 权限系统：路由守卫 + 菜单过滤
+### 6.3 权限系统：后端菜单驱动 + 路由守卫 + 按钮指令
 
-权限**完全由后端下发**。登录后调用 `GET /api/user/info`，返回：
+权限**完全由后端下发**，前端以 `authStore.menus` 为**唯一真相源**——侧边栏与权限码都从它派生，消除了「前端 `menu.config.ts` 与后端菜单」双源对齐的维护负担。登录后 `GET /api/user/info` 返回：
 
 ```ts
-{ code: 0, data: { user: UserInfo, menus: [{ code: 'UserManagement', name: '用户管理' }, ...] } }
+{ code: 0, data: { user: UserInfo, menus: [{ label: '用户管理', code: 'UserManagement', routeName: 'UserManagement' }, ...] } }
 ```
 
-`authStore` 把 `menus[].code` 收集进 `permissionCodes`（一个 `Set<string>`）。权限校验就是查这个 Set：
+> mock 直接回吐 `src/modules/app/config/menu.config.ts` 的 `menuConfig` 作为演示单一源；生产环境由真实后端按用户角色返回**已过滤**的菜单树。`menu.config.ts` 仍是 mock 的数据来源（也是 `menu-visualizer` 插件的输入）。
+
+`authStore` 做两件事：存下完整 `menus` 树（侧边栏直接渲染）；递归收集 `menus[].code` 进 `permissionCodes`（`Set<string>`）。
 
 ```ts
 // src/modules/auth/stores/auth.ts
@@ -386,23 +388,44 @@ function hasPermission(code: string): boolean {
 
 **三道防线：**
 
-1. **路由守卫**（`router.ts` 的 `beforeEach`）：
-   - 白名单 `/login`、`/403` 直接放行；
-   - 未登录 → 跳 `/login`（带 `redirect`）；
-   - `fetchUser` 失败 / `authStore.error` → 跳 `/403`；
-   - 路由 `meta.code` 存在但 `hasPermission` 返回 false → 跳 `/403`。
+1. **路由守卫**（`router.ts` 的 `beforeEach`，**默认拒绝**模型）：
+   - `meta.public`（`/login`、`/403`、`/404`）→ 放行；已登录访问 `/login` 跳首个业务菜单；
+   - 其余一律需登录——未登录 → `/login`（带 `redirect` 回跳）；
+   - `fetchUser` 真失败 → `/403`；
+   - 路由声明了 `meta.code` 但 `hasPermission` 返回 false → `/403`；
+   - 容器 / 布局路由（无 `meta.code`，如布局壳）→ 已登录即放行；
+   - 末尾 `/:pathMatch(.*)*` catch-all → 404 页。
 
-2. **菜单过滤**（`Default.layout.vue`）：`filterMenu()` 按 `permissionCodes` 过滤侧边栏，无权限的菜单不显示。
+2. **侧边栏**（`Default.layout.vue`）：**直接渲染后端 `menus` 树**（后端已按角色过滤，前端无需 `filterMenu`），点击按 `routeName` 跳转。
 
-3. **业务内判断**：在 `.view.vue` / composable 里调用 `authStore.hasPermission('XxxManagement')` 控制按钮显隐。
+3. **按钮级 `v-permission` 指令**（全局已注册）：无权限的元素自动 `display: none` 隐藏。
 
-```ts
-import { useAuthStore } from '@/modules/auth';
-const authStore = useAuthStore();
-if (authStore.hasPermission('UserManagement')) { /* ... */ }
+```vue
+<!-- 单个 code -->
+<a-button v-permission="'UserManagement:delete'">删除</a-button>
+<!-- 传数组：任一命中即显示 -->
+<a-button v-permission="['UserManagement:edit', 'UserManagement:create']">编辑</a-button>
 ```
 
-> ⚠️ 模板当前**没有** `v-permission` 指令、没有细粒度按钮权限码体系、没有数据权限 / 字典权限。需要时按上面的 `hasPermission` 自行扩展。
+脚本逻辑里用 `usePermission()` composable（`has` / `hasAny` / `hasAll`），或直接 `authStore.hasPermission()`。
+
+```ts
+import { usePermission } from '@/shared/composables/usePermission';
+const { has, hasAny } = usePermission();
+if (has('UserManagement')) { /* ... */ }
+```
+
+> ⚠️ 前端隐藏仅为 UX，真正的权限边界**必须**在后端校验。模板当前未含数据权限 / 字段级权限，需要时在 `hasPermission` 之上扩展。
+
+> 🧪 **验证样例（多角色 mock）**：demo 内置三个演示账号（密码任意，需填验证码），用来肉眼验证守卫与 `v-permission`：
+>
+> | 账号 | 现象 |
+> |---|---|
+> | `admin` | 侧边栏全量（用户/角色管理）；列表「删除」按钮可见 |
+> | `manager` | 仅「用户管理」；**删除按钮被 `v-permission` 隐藏**；地址栏直敲 `/role-management` → **403** |
+> | `viewer` | 侧边栏空；登录后**直接 403**（默认拒绝守卫生效的铁证） |
+>
+> 切换账号登录即可观察：`manager` 缺 `UserManagement:delete` → 按钮隐藏；缺 `RoleManagement` → 路由 403。
 
 ### 6.4 认证流程（登录 / RSA / 验证码）
 
@@ -984,15 +1007,12 @@ pnpm scaffold:feature
    ```
    > 终端会提示你在 `src/router/index.ts` 导入路由——**那个路径已过时**，真实文件是 `src/core/bootstrap/router.ts`。
 
-2. **不会自动配权限 / Mock**：`scaffold:domain` **不会**自动往 `menu.config.ts` 和 `mock/handlers/auth.ts` 里加 `code`。结果：登录用户的权限码里没有 `OrderManagement` → 访问 `/order-management` 会**直接跳 403**。手动补两处：
+2. **菜单 / 权限只需维护一处**：`scaffold:domain` 默认会把新菜单加进 `menu.config.ts`（`--no-menu` 可跳过）；而 `mock/handlers/auth.ts` **直接回吐 `menuConfig`**（单一真相源），不再单独维护 mock 菜单。若跳过了菜单，登录用户权限码里没有 `OrderManagement` → 访问 `/order-management` 会**直接跳 403**，在 `menu.config.ts` 补一项即可（mock 自动生效）：
    ```ts
-   // src/modules/app/config/menu.config.ts 末尾追加
+   // src/modules/app/config/menu.config.ts 末尾追加（mock 自动回吐，无需改 mock）
    { label: '订单管理', code: 'OrderManagement', routeName: 'OrderManagement' },
-
-   // src/mock/handlers/auth.ts 的 MOCK_MENUS 追加
-   { code: 'OrderManagement', name: '订单管理' },
    ```
-   > 而 `scaffold:feature` **会**自动处理菜单和 mock 权限（见第九节）。所以更省心的姿势是：用 domain 建骨架 + 手动接路由，再用 feature 建具体页面。
+   > `scaffold:feature` 也会自动更新 `menu.config.ts`（mock 随之生效）。省心姿势：domain 建骨架 + 手动接根路由，之后每个页面用 feature。
 
 3. **API 路径是占位**：生成的 `api.ts` 里 URL 形如 `/order-management/order/list`，记得改成你的真实后端接口。
 
@@ -1166,7 +1186,7 @@ export const orderManagementRoutes: RouteRecordRaw[] = [
 ];
 ```
 
-**⑦ 接路由 + 配权限**：回到 [方式 A 的避坑 1、2](#方式-a用脚手架推荐30-秒)，把路由加入 `router.ts`、菜单加入 `menu.config.ts`、Mock 权限加入 `auth.ts`。
+**⑦ 接路由 + 配权限**：回到 [方式 A 的避坑 1、2](#方式-a用脚手架推荐30-秒)，把路由加入 `router.ts`、菜单加入 `menu.config.ts`（mock 自动回吐，无需改 mock）。
 
 **⑧（可选）补 Mock**：在 `src/mock/handlers/` 新建 `order.ts` 仿照 `user.ts`，并在 `index.ts` 聚合：
 
@@ -1218,7 +1238,7 @@ src/pages/<domain>/
 
 **生成后必须手动做**（再次强调）：
 - 在 `src/core/bootstrap/router.ts` 接入 `<domain>Routes`；
-- 在 `menu.config.ts` + `mock/handlers/auth.ts` 加 `code`，否则访问会 403。
+- 在 `menu.config.ts` 加 `code`（mock 自动回吐），否则访问会 403。
 
 ### 9.2 `pnpm scaffold:feature` — 在现有域下创建新特性
 
@@ -1238,7 +1258,7 @@ src/pages/<domain>/
 | 生成 `pages/<Feature>List.page.vue` 路由壳 | ✅（选 yes） | |
 | **更新域路由** `<domain>.routes.ts` 追加新路由项 | ✅ | `route-manager.ts` 在数组末尾插入 |
 | **更新菜单** `menu.config.ts` 追加菜单项（支持子级） | ✅（选 yes） | `menu-manager.ts` |
-| **更新 Mock 权限** `mock/handlers/auth.ts` 的 `MOCK_MENUS` | ✅（选 yes） | 保证新页面有权限可见 |
+| **Mock 菜单联动** 自动回吐 `menu.config.ts` | ✅（自动） | 新页面自动有权限可见，无需手动改 mock |
 | 更新域 `README.md` | ✅ | |
 
 > 即：feature 脚手架帮你把「路由 + 菜单 + 权限」一条龙接好。所以**推荐工作流**是：`scaffold:domain` 建域骨架 → 手动接一次根路由 → 之后每个页面都用 `scaffold:feature`。
@@ -1337,10 +1357,10 @@ VITE_API_BASE_URL=https://api.example.com
 ## 十二、常见问题 FAQ
 
 **Q1：启动后访问任何页面都跳到 `/login`，登录后又跳 `/403`？**
-A：典型的「权限码缺失」。Mock 登录后，用户权限 = `mock/handlers/auth.ts` 里 `MOCK_MENUS` 的 `code` 集合。路由 `meta.code` 不在这个集合里就会 403。检查：菜单的 `code` / `routeName` 是否与路由 `name`、Mock `code` 三者一致。
+A：典型的「权限码缺失」。Mock 登录后，用户权限 = `menu.config.ts`（mock 回吐）里各菜单的 `code` 集合。路由 `meta.code` 不在这个集合里就会 403。检查：菜单的 `code` / `routeName` 是否与路由 `name` 一致。
 
 **Q2：用 `scaffold:domain` 建了新域，访问 404 / 菜单不出现？**
-A：三个原因其一：① 没在 `src/core/bootstrap/router.ts` 接入域路由（404）；② 没在 `menu.config.ts` 加菜单（菜单不显示）；③ 没在 `mock/handlers/auth.ts` 的 `MOCK_MENUS` 加 `code`（403）。见 [8.方式 A 的避坑](#方式-a用脚手架推荐30-秒)。
+A：三个原因其一：① 没在 `src/core/bootstrap/router.ts` 接入域路由（404）；② 没在 `menu.config.ts` 加菜单（菜单不显示）；③ 菜单 `code` 与路由 `meta.code` 不一致（403）。见 [8.方式 A 的避坑](#方式-a用脚手架推荐30-秒)。
 
 **Q3：改了路由 `name`，多页签 / keep-alive 失效？**
 A：路由 `name` 必须与 `.page.vue` 里 `defineOptions({ name })` 一致，且建议用自动生成的 `ROUTE_NAMES` 常量。改完 `*.routes.ts` 后 `routeNames.ts` 会自动重新生成。

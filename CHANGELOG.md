@@ -51,6 +51,19 @@
 - **env 开关** `VITE_DEV_TOKEN_PANEL`：默认开启，设 `false` 彻底关闭（面板组件不进产物）；`App.vue` 用 `defineAsyncComponent` + 编译期常量门控，生产永不挂载
 - README ⑫ 节补「排查看不到 refresh 请求」四点指引 + DEV 面板说明
 
+#### 权限系统第二波：后端菜单驱动 + 默认拒绝守卫 + 按钮级权限
+
+把权限从「前端 menu.config 与后端菜单双源、仅路由级、默认放行」升级为生产级模型：
+
+- **后端菜单单一源**：`AuthData.menus` 升级为完整菜单树（`label/code/routeName/children`）；侧边栏 `Default.layout.vue` 直接渲染 `authStore.menus`，移除本地 `filterMenu` 与 `menu.config.ts` 双源；`authStore` 递归派生 `permissionCodes`。mock 直接回吐 `menuConfig` 作为演示单一源
+- **默认拒绝守卫**：`router.ts` 重写 `beforeEach`——除 `meta.public` 外一律需登录；带 `meta.code` 的路由必须显式通过权限校验，无 code 的仅布局壳放行；已登录访问 `/login` 跳首个业务菜单。`login/403/404` 改用 `meta.public` 声明
+- **404 兜底**：新增 `NotFound.page.vue` + `/:pathMatch(.*)*` catch-all（置于所有业务路由之后，避免抢先匹配）
+- **按钮级 `v-permission`**：新增全局指令（`display:none` 切换，支持单 code / 数组任一命中）+ `usePermission()` composable（`has/hasAny/hasAll`），`bootstrap` 注册
+- **多角色验证样例**：`AuthData` 增 `permissions` 字段（RBAC：菜单管可见、权限管可做）；mock 支持 admin / manager / viewer 三账号（密码任意），登录页列出演示账号，用户列表删除按钮加 `v-permission` 样例——切换账号即可肉眼验证路由 403 与按钮隐藏
+- **scaffold 去双源**：移除 `actions.ts` 两处 `updateMockMenus` 调用，mock 不再维护独立 `MOCK_MENUS`（菜单只维护 `menu.config.ts` 一处）
+- 路由层保持静态注册（scaffold / route-names 插件 / menu-visualizer 零改动，低风险）；README 6.3 节重写 + 6 处 FAQ 同步
+- 已知遗留：`updateMockMenus` / `applyMockMenuPatch` / `MOCK_MENU_ANCHOR` 退化为 scaffold 死导出，待后续随测试一并清理
+
 ### 🐛 Fixes（修复）
 
 #### `scaffold:domain` 菜单恒为根级（不再选父级）
