@@ -29,6 +29,18 @@
 
 > 默认仍为 `list`，完全向后兼容——既有 `scaffold:feature` 流程与产物不变。
 
+#### 统一请求层 `@/core/http`（axios 封装 + 可扩展）
+
+此前每个业务 api 文件各自 `axios.create()`，缺少拦截器、token 注入、统一错误处理与类型约束。本次新增 `src/core/http/` 统一请求层：
+
+- **按职责拆分 6 个小文件**：`types.ts`（`ApiResponse<T>` 信封 / `HttpRequestConfig` / `HttpInstance`）、`error.ts`（统一 `HttpError`，区分 HTTP 状态 / 超时 / 网络中断）、`config.ts`（`configureHttp()` 运行时依赖注入）、`interceptors.ts`（请求附 token、响应解包信封、401/超时/网络错误归一）、`instance.ts`（`createHttp()` 工厂 + 默认实例 `request`）、`index.ts`
+- **核心机制**：响应拦截器自动「解壳」，封装方法直接返回 `Promise<ApiResponse<T>>`，调用方从 `const { data: res } = await x()` 简化为 `const res = await x()`
+- **可扩展四重**：`configureHttp()` 注入 token/401/错误回调（避免 http ↔ router/pinia 循环依赖）、`createHttp()` 多实例、`withDefaultInterceptors=false` 自定义拦截器、单请求级 `skipAuth` / `skipErrorHandler` / `rawResponse`
+- **防竞态**：`cancelPrevious` 让相同请求（method+url+params+data）自动 `AbortController` 取消旧的、只留最新，消除 Race Condition；被取消请求抛 `RequestCanceledError`（静默、不触发全局回调），配套 `skipCancel` 单请求关闭。默认 opt-in，查询 / 搜索接口按需开启（避免影响 vxe-grid 的 proxyConfig）
+- **文件传输**：新增 `file-transfer.ts`，内置 `request.download` / `request.upload`。下载自动处理 blob + `content-disposition` 文件名提取（含 RFC 5987 中文）+「blob 包装的 JSON 错误」检测 + 浏览器保存 + 进度；上传支持 FormData 进度，响应走业务信封解包。配套导出 `saveBlob` / `extractFilename` 工具
+- **全量接入**：`auth` / `user` / `role` 三个 api、对应 composable 与 auth store、`bootstrap` 启动注入、scaffold feature 模板（`api.ts.hbs` / `api-overview.ts.hbs` / `composable-list.ts.hbs` / `composable-overview.ts.hbs`）全部迁移；login 持久化 token、logout 加 `skipErrorHandler` 防 401 死循环
+- 同步至 `demo/` 实例；README 6.5 节重写 + 修正多处「未提供请求层」的过时表述
+
 ### 🐛 Fixes（修复）
 
 #### `scaffold:domain` 菜单恒为根级（不再选父级）

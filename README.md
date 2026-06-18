@@ -31,7 +31,7 @@
 2. 把生成项目的 `package.json` 里的 `name` 改成你输入的项目名；
 3. 自动 `安装依赖` + `git init` + 首次提交。
 
-> ⚠️ **重要澄清**：早期版本的 README 曾描述过「minimal / standard / full 三种预设」「统一请求层 `@/core/request`」「ProTable / ProForm / 字典系统」等内容。**当前模板（v1.0.0）并未包含这些**。本章节之后的所有内容都以**真实代码**为准，请以本文档为准，避免照着不存在的模块找代码。
+> ⚠️ **重要澄清**：早期版本的 README 曾描述过「minimal / standard / full 三种预设」「ProTable / ProForm / 字典系统」等内容。**当前模板（v1.0.0）并未包含这些**。本章节之后的所有内容都以**真实代码**为准，请以本文档为准，避免照着不存在的模块找代码。（注：请求层已实装为 `@/core/http`，详见 [6.5 数据请求层](#65-数据请求层封装与使用)。）
 
 **两个概念务必分清：**
 
@@ -419,53 +419,348 @@ interface LoginParams {
 
 **Mock 行为**（`src/mock/handlers/auth.ts`）：任意账号密码 + 验证码正确即放行，登录态用 `sessionStorage['mock-auth']='1'` 标记，刷新页面后仍保持登录（直到登出或关标签页）。
 
-### 6.5 数据请求约定（重要）
+### 6.5 数据请求层封装与使用
 
-> 当前模板**没有**「统一请求层 `@/core/request`」这种集中封装。每个业务 api 文件**各自** `axios.create()`。这是当前真实状态，本节如实说明。
+模板内置统一请求层 **`@/core/http`**：基于 axios 封装单例实例 + 拦截器，自动处理 **token 注入、业务信封解包、401 跳转、超时 / 网络错误**，并提供多种自定义扩展方式。所有业务 api 文件**复用同一实例**，不再各自 `axios.create()`。
 
-**统一响应格式**（前后端约定）：
+> 本节是 `@/core/http` 的完整使用手册：从快速上手 → 日常写 api → 错误处理 → 高级扩展，按需阅读即可。
+
+#### ① 模块结构
+
+`src/core/http/` 按职责拆成 6 个小文件（高内聚、低耦合，每个文件聚焦一件事）：
+
+| 文件 | 职责 | 关键导出 |
+| :--- | :--- | :--- |
+| `types.ts` | 类型定义 | `ApiResponse<T>`、`HttpRequestConfig`、`HttpInstance`、`HttpOptions` |
+| `error.ts` | 统一错误类 | `HttpError`（含 `status` / `isTimeout` / `isNetworkError`） |
+| `config.ts` | 运行时可注入配置 | `configureHttp()`、`HttpRuntimeConfig` |
+| `interceptors.ts` | 默认拦截器 | `setupInterceptors()`、`attachAuthHeader`、`unwrapBusinessEnvelope`、`handleResponseError` |
+| `instance.ts` | 实例工厂 | `createHttp()`、`request`（默认实例） |
+| `index.ts` | 统一出口 | 汇总导出上述全部 |
+
+> 日常开发只需从 `@/core/http` 导入 `request`（发请求）和必要的类型即可，其余文件是封装实现细节，一般无需直接碰。
+
+#### ② 统一响应格式（前后端约定）
+
+所有接口最外层固定为业务信封：
 
 ```ts
-interface ApiResult<T> {
+interface ApiResponse<T = unknown> {
   code: number;            // 0 = 成功，非 0 = 业务错误
-  data: T;
-  message?: string;
+  data: T;                 // 业务数据，类型由泛型 T 决定
+  message?: string;        // 可选提示文案，常用于错误时展示
 }
 ```
 
-**典型 api 文件写法**（参考 `features/user/api/user.api.ts`）：
+#### ③ 核心机制：响应拦截器「解壳」
+
+axios 原生 `.get()` 返回 `AxiosResponse<T>`（含 `status / headers / config` 等传输层信息，业务数据藏在 `.data` 里）。本封装的响应拦截器自动剥掉这层外壳，**直接返回 `ApiResponse<T>`**：
 
 ```ts
-import axios from 'axios';
-import type { User, UserListParams, UserListResult } from '../models/User';
+// 原生 axios：要解两层
+const { data: res } = await axios.get('/users/1');  // res = ApiResponse
+const user = res.data;                              // User
 
-// 每个 feature 自建实例（baseURL 固定 /api）
-const request = axios.create({ baseURL: '/api', timeout: 10000 });
-
-export const getUserList = (params: UserListParams) =>
-  request.get<{ code: number; data: UserListResult }>('/users', { params });
-
-export const getUserDetail = (id: string) =>
-  request.get<{ code: number; data: User }>(`/users/${id}`);
-
-export const createUser = (data: Omit<User, 'id' | 'createdAt'>) =>
-  request.post<{ code: number; data: User }>('/users', data);
-
-export const updateUser = (id: string, data: Partial<User>) =>
-  request.put<{ code: number; data: User }>(`/users/${id}`, data);
-
-export const deleteUser = (id: string) =>
-  request.delete<{ code: number }>(`/users/${id}`);
+// 本封装：直接拿到业务信封
+const res = await request.get<User>('/users/1');    // res: ApiResponse<User>
+if (res.code !== 0) throw new Error(res.message);
+console.log(res.data);                              // User
 ```
 
-**调用约定：**
+> 因此调用方从 `const { data: res } = await x()` 简化为 `const res = await x()`，少一层解构、类型也更直接。
 
-- **API 层**只发请求、返回数据，**禁止**做 UI 反馈（不要在 api 里 `message.error`）。
-- **Composable 层**处理 `loading` / `error` 状态、UI 反馈（成功 / 失败提示）。
-- **View 层**只组合 composables 和组件，**不直接** `axios.get`。
-- 统一从 `res.data.code === 0` 判断成功。
+#### ④ 快速开始（三步）
 
-> 💡 想要集中式请求层？可以新建 `src/core/request/` 封装单例 axios + 拦截器（处理 token、401 跳登录、错误提示），再让各 api 复用。这是后续可演进方向，但**当前模板未提供**，请勿照着旧 README 找 `@/core/request`。
+**第 1 步** —— 写 api（复用默认实例 `request`）：
+
+```ts
+// src/pages/.../features/order/api/order.api.ts
+import { request } from '@/core/http';
+import type { Order, OrderListParams, OrderListResult } from '../models/Order';
+
+export const getOrderList = (params: OrderListParams) =>
+  request.get<OrderListResult>('/orders', { params });
+// 返回 Promise<ApiResponse<OrderListResult>>
+```
+
+**第 2 步** —— 在 composable 里调用，从 `res.data` 取业务数据：
+
+```ts
+const res = await getOrderList({ page: 1, pageSize: 10 });
+return res.data;   // { list: Order[], total: number }
+```
+
+**第 3 步** —— 完成。token 注入、错误处理、信封解包都已自动就绪（`bootstrap` 启动时已配置好，见 ⑨）。
+
+#### ⑤ 典型 api 文件（CRUD 全家桶）
+
+参考 `features/user/api/user.api.ts`：
+
+```ts
+import { request } from '@/core/http';
+import type { User, UserListParams, UserListResult } from '../models/User';
+
+export const getUserList = (params: UserListParams) =>
+  request.get<UserListResult>('/users', { params });
+
+export const getUserDetail = (id: string) =>
+  request.get<User>(`/users/${id}`);
+
+export const createUser = (data: Omit<User, 'id' | 'createdAt'>) =>
+  request.post<User>('/users', data);
+
+export const updateUser = (id: string, data: Partial<User>) =>
+  request.put<User>(`/users/${id}`, data);
+
+export const deleteUser = (id: string) =>
+  request.delete(`/users/${id}`);
+```
+
+> 泛型 `<T>` 传的是**业务数据类型**（即 `data` 字段的类型），不是整个信封——封装方法会自动包成 `ApiResponse<T>`。
+
+#### ⑥ 分层调用约定
+
+| 层 | 职责 | 禁止 |
+| :--- | :--- | :--- |
+| **API 层**（`*.api.ts`） | 只发请求、返回 `ApiResponse<T>` | ❌ 做 UI 反馈（`message.error` 等） |
+| **Composable 层**（`use*.ts`） | `const res = await getXxx()`，取 `res.data`，管 `loading` / `error` 与 UI 反馈 | ❌ 关心请求细节 |
+| **View 层**（`*.vue`） | 组合 composables + 组件 | ❌ 直接调用 `request` |
+
+#### ⑦ 错误处理
+
+封装把所有**传输层失败**归一为统一错误类 **`HttpError`**（`@/core/http` 导出），按类型区分：
+
+| 错误类型 | 判断字段 | 触发场景 | 默认行为 |
+| :--- | :--- | :--- | :--- |
+| HTTP 状态错误 | `e.status`（如 401 / 404 / 500） | 服务端返回非 2xx | 401 → `onUnauthorized`（登出 + 跳登录） |
+| 请求超时 | `e.isTimeout === true` | 超过 `timeout`（默认 10s） | `onNetworkError` 提示 |
+| 网络中断 | `e.isNetworkError === true` | 断网 / DNS / CORS | `onNetworkError` 提示 |
+
+在 composable 里 catch：
+
+```ts
+import { HttpError } from '@/core/http';
+import { message } from 'ant-design-vue';
+
+async function fetchDetail(id: string) {
+  try {
+    const res = await getOrderDetail(id);
+    if (res.code !== 0) {
+      message.error(res.message || '加载失败');   // 业务错误（HTTP 成功但 code≠0）
+      return;
+    }
+    order.value = res.data;
+  } catch (e) {
+    if (e instanceof HttpError) {
+      // 传输层错误：401 已被拦截器自动跳登录；超时 / 网络已被全局提示
+      // 这里通常只需静默或做局部兜底
+    }
+  }
+}
+```
+
+> **业务码 `code !== 0` 默认不抛错**——不同场景策略不同（登录要展示 message、列表要静默重试），故保留给调用方判断；如需全局兜底，可在 `configureHttp({ onBusinessError })` 中统一处理。
+
+#### ⑧ 单请求级开关
+
+`HttpRequestConfig`（请求方法的第 2 / 3 个参数）扩展了三个开关，按单次请求关闭默认行为：
+
+| 开关 | 作用 | 典型场景 |
+| :--- | :--- | :--- |
+| `skipAuth` | 不附加 `Authorization` 头 | 登录、验证码等匿名接口 |
+| `skipErrorHandler` | 不触发全局错误回调（401 / 网络提示），仅抛 `HttpError` | 自行 catch 定制提示；登出接口（防 401 死循环） |
+| `rawResponse` | 保留原始 `AxiosResponse`、跳过解包 | 文件下载（`blob`）、流式响应 |
+
+```ts
+// 登录接口：匿名 + 失败自行处理
+export const login = (data: LoginParams) =>
+  request.post<LoginResult>('/auth/login', data, { skipAuth: true });
+
+// 登出：跳过全局处理，避免 401 触发 onUnauthorized 与本地清态循环
+export const logout = () =>
+  request.post<void>('/auth/logout', undefined, { skipErrorHandler: true });
+
+// 文件下载：保留原始响应拿 blob
+export const exportUsers = () =>
+  request.get<Blob>('/users/export', { responseType: 'blob', rawResponse: true });
+```
+
+#### ⑨ 自定义扩展（三种方式）
+
+**方式一：运行时依赖注入 `configureHttp()`**
+
+`core/http` 刻意不 import router / pinia（否则会形成 `http → store → api → http` 循环依赖）。改为在 `src/core/bootstrap/index.ts` 启动时，把 token、跳转、提示等能力以回调注入：
+
+```ts
+// src/core/bootstrap/index.ts（模板已配好，一般无需改动）
+import { configureHttp } from '@/core/http';
+
+app.use(createPinia());      // 必须先就绪 Pinia
+setupRouter(app);
+
+configureHttp({
+  getToken: () => localStorage.getItem('token'),
+  onUnauthorized: () => {
+    useAuthStore().logout();
+    router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } });
+  },
+  onNetworkError: (e) => message.error(e.message),
+  onBusinessError: (res) => message.error(res.message || '操作失败'),  // 可选：业务错误全局兜底
+});
+```
+
+**方式二：多实例 `createHttp()`**
+
+对接不同后端 / 不同 `baseURL` 时，创建独立实例（各自独立的拦截器与配置）：
+
+```ts
+import { createHttp } from '@/core/http';
+
+const payHttp = createHttp({ baseURL: '/payment-api', timeout: 30000 });
+export const createPayment = (data) => payHttp.post<Payment>('/orders', data);
+```
+
+**方式三：自定义拦截器**
+
+需要完全控制拦截逻辑（如自定义签名、响应转换）时，关闭默认拦截器再自行组装；也可复用内置的 `attachAuthHeader` 等单件：
+
+```ts
+import { createHttp, attachAuthHeader } from '@/core/http';
+
+const http = createHttp({ withDefaultInterceptors: false });
+// 复用内置 token 注入，再追加自定义签名
+http.axios.interceptors.request.use(attachAuthHeader);
+http.axios.interceptors.request.use((config) => {
+  config.headers.set('X-Sign', sign(config.data));
+  return config;
+});
+```
+
+#### ⑩ 请求保护（防竞态与频繁触发）
+
+「一个接口被频繁触发」会带来三个问题：
+
+| 问题 | 场景 | 后果 |
+| :--- | :--- | :--- |
+| **Race Condition（竞态）** | 搜索框快速输入 `a→ab→abc`，多个请求并发 | 后到的旧响应覆盖新响应，显示过期数据 |
+| **重复请求堆积** | 连点「查询」N 次 | N 次后端查询，浪费带宽 / 服务器资源 |
+| **输入无防抖** | 每次按键都发请求 | 高频轰炸后端 |
+
+封装提供两层防护：
+
+**① cancelPrevious —— 相同请求自动取消（解决竞态 + 重复堆积）**
+
+开启后，相同 key（`method + url + params + data`）的新请求会自动 `abort` 旧的，只保留最新；不同接口 key 不同、互不影响。被取消的旧请求抛 `RequestCanceledError`（**静默**，不触发全局错误提示）。
+
+```ts
+// 单请求级开启（推荐：仅给查询 / 搜索类接口开）
+export const searchUsers = (q: string) =>
+  request.get<UserListResult>('/users/search', { params: { q }, cancelPrevious: true });
+
+// 或实例级开启：该实例所有请求都启用
+const searchHttp = createHttp({ cancelPrevious: true });
+```
+
+> 默认 `cancelPrevious: false`（opt-in）。原因是 vxe-grid 等表格的 `proxyConfig` 会接管请求结果，自动取消会让表格收到 `RequestCanceledError` 而需额外处理；故查询 / 搜索接口**按需开启**，普通 CRUD 接口保持默认。也可用 `skipCancel: true` 反向关闭某个请求。
+
+调用方处理被取消的请求：
+
+```ts
+import { RequestCanceledError } from '@/core/http';
+
+async function search(keyword: string) {
+  try {
+    const res = await searchUsers(keyword);
+    list.value = res.data.list;
+  } catch (e) {
+    if (e instanceof RequestCanceledError) return;  // 被更新的请求取代，静默忽略
+    message.error('搜索失败');
+  }
+}
+```
+
+**② 搜索框防抖（composable 层，解决输入高频）**
+
+`cancelPrevious` 解决「重复请求」，但每次按键仍会发出请求。搜索框应配合**防抖**，只在用户停止输入后再发（项目无额外依赖，自实现即可）：
+
+```ts
+// 通用防抖工具（可放入 shared/composables）
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Parameters<T>) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+const debouncedSearch = debounce((keyword: string) => search(keyword), 300);
+// 输入框 @input="debouncedSearch" —— 停止输入 300ms 后才真正请求
+```
+
+> 💡 组合最佳实践：**防抖（降低触发频率）+ cancelPrevious（兜底竞态）**，搜索体验最稳。
+
+#### ⑪ 文件上传与下载
+
+普通请求走 `{ code, data, message }` 信封，但文件传输不同：下载响应是二进制 blob、上传请求是 FormData。封装提供 `request.download` / `request.upload` 方法专门处理。
+
+**下载 `request.download(url, options?)`**
+
+- 以 `responseType: 'blob'` 请求，自动从响应头 `content-disposition` 提取文件名（支持 `filename*= UTF-8''` 中文编码）；
+- **自动检测「blob 包装的 JSON 错误」**：下载接口出错时服务端返回 `{ code, message }`，axios 也会包成 blob，封装会读取判断并转成 `HttpError` 抛出，避免把错误信息当文件保存成乱码；
+- 默认自动触发浏览器保存，返回 `{ blob, filename }` 备用（`autoSave: false` 可仅取 blob 用于预览）。
+
+```ts
+import { HttpError } from '@/core/http';
+
+// 最简：点击导出 → 自动下载
+async function handleExport() {
+  try {
+    const { filename } = await request.download('/users/export', {
+      params: { format: 'xlsx' },
+      onProgress: (p) => (progress.value = p),   // 进度 0-100
+    });
+    message.success(`已下载 ${filename}`);
+  } catch (e) {
+    if (e instanceof HttpError) message.error(e.message);
+  }
+}
+
+// 仅取 blob（如 PDF 预览，不触发保存）
+const { blob } = await request.download('/report/preview', { autoSave: false });
+previewUrl.value = URL.createObjectURL(blob);
+```
+
+**上传 `request.upload(url, data, options?)`**
+
+- 传 `FormData`，axios 自动加 `multipart/form-data` boundary（**切勿手动设 Content-Type**，否则丢失 boundary 导致解析失败）；
+- 支持 `onProgress` 上传进度；响应仍是业务信封，走正常解包返回 `ApiResponse<T>`。
+
+```ts
+async function handleUpload(file: File) {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await request.upload<{ url: string }>('/files/upload', form, {
+    onProgress: (p) => (progress.value = p),
+  });
+  if (res.code === 0) message.success('上传成功');
+}
+```
+
+> 💡 大文件上传可在 `UploadOptions` 传 `cancelPrevious: true`，配合「重新上传」按钮中断上一次未完成的上传。封装还导出 `saveBlob` / `extractFilename` 工具函数，供自定义保存 / 文件名场景使用。
+
+#### ⑫ 从旧写法迁移
+
+若你的早期副本里 api 文件还在各自 `axios.create()`，按下表迁移：
+
+| 旧写法 | 新写法 |
+| :--- | :--- |
+| `import axios from 'axios'` | `import { request } from '@/core/http'` |
+| `const request = axios.create({ baseURL: '/api', timeout: 10000 })` | 删除（复用默认实例） |
+| `request.get<{ code; data: T }>(...)` | `request.get<T>(...)`（泛型传业务数据类型） |
+| 调用方 `const { data: res } = await x()` | `const res = await x()` |
+| `res.data.data`（解两层） | `res.data`（解一层） |
+
+> 💡 一句话总结：**api 层 `request.get<业务类型>(url)`，调用层 `const res = await api()` 后用 `res.data`**。token、401、超时、网络错误全部自动处理，业务只关心「成功拿 data / 失败看 code」。
 
 ### 6.6 Mock：MSW 仅开发环境
 
@@ -677,16 +972,14 @@ export interface OrderListResult { list: Order[]; total: number; }
 **② API**（`features/order/api/order.api.ts`）
 
 ```ts
-import axios from 'axios';
+import { request } from '@/core/http';
 import type { Order, OrderListParams, OrderListResult } from '../models/Order';
 
-const request = axios.create({ baseURL: '/api', timeout: 10000 });
-
 export const getOrderList = (params: OrderListParams) =>
-  request.get<{ code: number; data: OrderListResult }>('/orders', { params });
+  request.get<OrderListResult>('/orders', { params });
 
 export const deleteOrder = (id: string) =>
-  request.delete<{ code: number }>(`/orders/${id}`);
+  request.delete(`/orders/${id}`);
 ```
 
 **③ Composable**（`features/order/composables/useOrderList.ts`）—— 用 `vxe-grid` 的 `proxyConfig` 自动管分页：
@@ -717,7 +1010,7 @@ export function useOrderList() {
       props: { result: 'list', total: 'total' },
       ajax: {
         query: async ({ page }: { page: { currentPage: number; pageSize: number } }) => {
-          const { data: res } = await getOrderList({
+          const res = await getOrderList({
             page: page.currentPage, pageSize: page.pageSize, ...filters.value,
           });
           return res.data;   // 返回 { list, total }
@@ -975,9 +1268,8 @@ VITE_API_BASE_URL=https://api.example.com
 
 模板统一约定 `{ code, data, message }` 且 `code === 0` 为成功。若你的后端用 HTTP 状态码或不同结构，需要：
 
-- 调整 `authStore.fetchUser` 里 `res.code !== 0` 的判断；
-- 在各 composable 里调整 `res.data` 的取值路径；
-- 或（推荐）封一层 `core/request` 统一转换。
+- 调整 `core/http/interceptors.ts` 的解包逻辑（`unwrapBusinessEnvelope`），或经 `configureHttp()` 注入自定义转换；
+- 调整 `authStore.fetchUser` 里 `res.code !== 0` 的判断，以及各 composable 中 `res.data` 的取值路径。
 
 ---
 

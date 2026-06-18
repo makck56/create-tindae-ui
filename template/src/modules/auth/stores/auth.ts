@@ -18,7 +18,8 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     error.value = null;
     try {
-      const { data: res } = await getUserInfo();
+      // 封装后请求直接返回 ApiResponse<AuthData>，无需再解 axios 外壳
+      const res = await getUserInfo();
       if (res.code !== 0) {
         throw new Error(`${COPY.LOGIN.API_ERROR}: ${res.code}`);
       }
@@ -26,7 +27,8 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = userInfo;
       permissionCodes.value = new Set(menus.map((m) => m.code));
     } catch (e: any) {
-      if (e?.response?.status === 401) {
+      // 响应拦截器已将 HTTP 401 归一为 HttpError（含 status 字段）
+      if (e?.status === 401) {
         user.value = null;
       } else {
         error.value = e.message || COPY.LOGIN.FETCH_USER_FAILED;
@@ -41,9 +43,13 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     error.value = null;
     try {
-      const { data: res } = await loginApi(params);
+      const res = await loginApi(params);
       if (res.code !== 0) {
         throw new Error(res.message || `${COPY.LOGIN.LOGIN_FAILED}: ${res.code}`);
+      }
+      // 登录成功：持久化 token，供请求拦截器后续自动附加 Authorization 头
+      if (res.data.token) {
+        localStorage.setItem('token', res.data.token);
       }
       initialized.value = false;
       await fetchUser();
@@ -59,8 +65,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await logoutApi();
     } catch {
-      // ignore
+      // ignore：登出接口失败不阻断本地清态
     }
+    // 清除本地 token，避免下次请求仍携带失效凭证
+    localStorage.removeItem('token');
     user.value = null;
     permissionCodes.value = new Set();
     loading.value = false;

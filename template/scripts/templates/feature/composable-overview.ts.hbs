@@ -36,7 +36,8 @@ export function use{{featurePascal}}Overview() {
   async function loadOverview() {
     loading.value = true;
     try {
-      const { data: res } = await get{{featurePascal}}Overview();
+      // 封装后直接返回 ApiResponse<{{featurePascal}}Overview>，res.data 即概览数据
+      const res = await get{{featurePascal}}Overview();
       overview.value = res.data;
     } catch {
       message.error(COPY.COMMON.FAILED);
