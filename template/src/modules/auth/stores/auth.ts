@@ -4,6 +4,11 @@ import { COPY } from '@/shared/constants/copy';
 import { getUserInfo, login as loginApi, logout as logoutApi } from '../api/auth.api';
 import type { UserInfo, LoginParams } from '../models/Auth';
 
+// 本地持久化键：与 core/http 的默认实现（getToken / isTokenExpiring）保持一致
+const TOKEN_KEY = 'token';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+const TOKEN_EXPIRES_AT_KEY = 'tokenExpiresAt';
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserInfo | null>(null);
   const permissionCodes = ref<Set<string>>(new Set());
@@ -18,7 +23,8 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     error.value = null;
     try {
-      const { data: res } = await getUserInfo();
+      // 封装后请求直接返回 ApiResponse<AuthData>，无需再解 axios 外壳
+      const res = await getUserInfo();
       if (res.code !== 0) {
         throw new Error(`${COPY.LOGIN.API_ERROR}: ${res.code}`);
       }
@@ -26,7 +32,9 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = userInfo;
       permissionCodes.value = new Set(menus.map((m) => m.code));
     } catch (e: any) {
-      if (e?.response?.status === 401) {
+      // 响应拦截器已将 HTTP 401 归一为 HttpError（含 status 字段）；
+      // 续期失败时协调器会触发 onUnauthorized，这里仅置空本地用户态
+      if (e?.status === 401) {
         user.value = null;
       } else {
         error.value = e.message || COPY.LOGIN.FETCH_USER_FAILED;
@@ -41,10 +49,18 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     error.value = null;
     try {
-      const { data: res } = await loginApi(params);
+      const res = await loginApi(params);
       if (res.code !== 0) {
         throw new Error(res.message || `${COPY.LOGIN.LOGIN_FAILED}: ${res.code}`);
       }
+      // 持久化双 token + 绝对过期时间戳：
+      // - accessToken → 请求拦截器附加 Authorization 头；
+      // - refreshToken → 续期协调器换取新 accessToken；
+      // - tokenExpiresAt → 请求拦截器判断是否临近过期、主动刷新。
+      const { accessToken, refreshToken, expiresIn } = res.data;
+      localStorage.setItem(TOKEN_KEY, accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      localStorage.setItem(TOKEN_EXPIRES_AT_KEY, String(Date.now() + expiresIn * 1000));
       initialized.value = false;
       await fetchUser();
     } catch (e: any) {
@@ -59,8 +75,12 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await logoutApi();
     } catch {
-      // ignore
+      // ignore：登出接口失败不阻断本地清态
     }
+    // 清除本地全部凭证，避免下次请求仍携带失效 token
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
     user.value = null;
     permissionCodes.value = new Set();
     loading.value = false;

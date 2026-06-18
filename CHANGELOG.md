@@ -29,6 +29,28 @@
 
 > 默认仍为 `list`，完全向后兼容——既有 `scaffold:feature` 流程与产物不变。
 
+#### 统一请求层 `@/core/http`（axios 封装 + 可扩展）
+
+此前每个业务 api 文件各自 `axios.create()`，缺少拦截器、token 注入、统一错误处理与类型约束。本次新增 `src/core/http/` 统一请求层：
+
+- **按职责拆分 6 个小文件**：`types.ts`（`ApiResponse<T>` 信封 / `HttpRequestConfig` / `HttpInstance`）、`error.ts`（统一 `HttpError`，区分 HTTP 状态 / 超时 / 网络中断）、`config.ts`（`configureHttp()` 运行时依赖注入）、`interceptors.ts`（请求附 token、响应解包信封、401/超时/网络错误归一）、`instance.ts`（`createHttp()` 工厂 + 默认实例 `request`）、`index.ts`
+- **核心机制**：响应拦截器自动「解壳」，封装方法直接返回 `Promise<ApiResponse<T>>`，调用方从 `const { data: res } = await x()` 简化为 `const res = await x()`
+- **可扩展四重**：`configureHttp()` 注入 token/401/错误回调（避免 http ↔ router/pinia 循环依赖）、`createHttp()` 多实例、`withDefaultInterceptors=false` 自定义拦截器、单请求级 `skipAuth` / `skipErrorHandler` / `rawResponse`
+- **防竞态**：`cancelPrevious` 让相同请求（method+url+params+data）自动 `AbortController` 取消旧的、只留最新，消除 Race Condition；被取消请求抛 `RequestCanceledError`（静默、不触发全局回调），配套 `skipCancel` 单请求关闭。默认 opt-in，查询 / 搜索接口按需开启（避免影响 vxe-grid 的 proxyConfig）
+- **文件传输**：新增 `file-transfer.ts`，内置 `request.download` / `request.upload`。下载自动处理 blob + `content-disposition` 文件名提取（含 RFC 5987 中文）+「blob 包装的 JSON 错误」检测 + 浏览器保存 + 进度；上传支持 FormData 进度，响应走业务信封解包。配套导出 `saveBlob` / `extractFilename` 工具
+- **Token 无感续期**：双 token（access + refresh）+ 主动刷新（B：请求前 token 临近过期先 refresh）+ 401 兜底（C：refresh 后重试原请求）。新增 `token-refresh.ts` 协调器——并发 refresh 单例去重、挂起重试队列、防递归（refresh 请求 `skipRefresh`、重试请求 `__refreshRetried`）。`configureHttp` 增 `refreshAccessToken` / `onTokenRefreshed` / `getRefreshToken` / `isTokenExpiring` 注入项；活跃用户 token 自动续期、仅真正闲置才过期。login 契约改为返回 `accessToken` / `refreshToken` / `expiresIn`，新增 `POST /auth/refresh`；mock 配套实现双 token + 过期校验（access 默认 2min，`VITE_MOCK_ACCESS_TTL_SEC` 可调）
+- **全量接入**：`auth` / `user` / `role` 三个 api、对应 composable 与 auth store、`bootstrap` 启动注入、scaffold feature 模板（`api.ts.hbs` / `api-overview.ts.hbs` / `composable-list.ts.hbs` / `composable-overview.ts.hbs`）全部迁移；login 持久化 token、logout 加 `skipErrorHandler` 防 401 死循环
+- 同步至 `demo/` 实例；README 6.5 节重写 + 修正多处「未提供请求层」的过时表述
+
+#### Token 续期 DEV 观测面板 + 可观测性增强
+
+续期是「请求驱动的后台异步动作」，闲置时既不刷新也无从观测，排查困难。本次补齐可观测性与可控性：
+
+- **协调器 DEV trace**：`token-refresh.ts` 新增 `[http:refresh]` 系列 `console.debug` 日志，覆盖「未配置续期 / token 仍新鲜(含剩余秒数) / 临近过期 / 单例复用 / 刷新成功失败 / 401 重试」全分支；生产构建 `import.meta.env.DEV` 为编译期常量，整段被 tree-shake，零运行时开销
+- **DEV 观测面板** `src/core/dev/TokenDevPanel.vue`：开发期右下角悬浮窗，实时显示剩余有效期 / 续期次数，并提供「发起测试请求 / 标记临过期 / 检查并续期 / 模拟 401」按钮——确定性验证方案 B（主动刷新）与方案 C（401 兜底），不再受「闲置无请求」限制；协调器加 `getRefreshCount()` 供面板轮询
+- **env 开关** `VITE_DEV_TOKEN_PANEL`：默认开启，设 `false` 彻底关闭（面板组件不进产物）；`App.vue` 用 `defineAsyncComponent` + 编译期常量门控，生产永不挂载
+- README ⑫ 节补「排查看不到 refresh 请求」四点指引 + DEV 面板说明
+
 ### 🐛 Fixes（修复）
 
 #### `scaffold:domain` 菜单恒为根级（不再选父级）

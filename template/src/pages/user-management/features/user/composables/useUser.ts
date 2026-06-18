@@ -39,7 +39,8 @@ export function useUserList() {
       },
       ajax: {
         query: async ({ page }: { page: { currentPage: number; pageSize: number } }) => {
-          const { data: res } = await getUserList({
+          // 封装后直接返回 ApiResponse<UserListResult>，res.data 即列表数据
+          const res = await getUserList({
             page: page.currentPage,
             pageSize: page.pageSize,
             ...filters.value,
@@ -78,7 +79,7 @@ export function useUserDetail() {
   async function fetchDetail(id: string) {
     loading.value = true;
     try {
-      const { data: res } = await getUserDetail(id);
+      const res = await getUserDetail(id);
       user.value = res.data;
     } catch {
       message.error(COPY.COMMON.FAILED);

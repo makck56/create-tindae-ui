@@ -27,7 +27,8 @@ export function useRoleList() {
       },
       ajax: {
         query: async ({ page }: { page: { currentPage: number; pageSize: number } }) => {
-          const { data: res } = await getRoleList({
+          // 封装后直接返回 ApiResponse<RoleListResult>，res.data 即列表数据
+          const res = await getRoleList({
             page: page.currentPage,
             pageSize: page.pageSize,
           });
