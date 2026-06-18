@@ -21,10 +21,20 @@ export interface LoginParams {
 }
 
 /**
- * 登录成功后后端返回的业务数据。
- * token 在「验证码错误」等失败场景下不存在，故标记为可选；
- * 调用方应先判断 code === 0 再读取 token。
+ * 登录成功后后端返回的业务数据（双 token 机制）。
+ * - accessToken: 短期访问令牌（如 30min），过期后用 refreshToken 无感续期；
+ * - refreshToken: 长期刷新令牌（如 7d），仅用于换取新 accessToken；
+ * - expiresIn: accessToken 有效期（秒），前端据此计算绝对过期时间戳。
  */
 export interface LoginResult {
-  token?: string
+  accessToken: string
+  refreshToken: string
+  expiresIn: number
+}
+
+/** refresh 接口返回的新令牌信息（rolling 模式下可顺带返回新 refreshToken）。 */
+export interface RefreshResult {
+  accessToken: string
+  refreshToken?: string
+  expiresIn: number
 }

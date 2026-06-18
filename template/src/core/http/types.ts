@@ -31,6 +31,8 @@ export interface HttpRequestConfig extends AxiosRequestConfig {
   rawResponse?: boolean
   /** 是否跳过 cancelPrevious 的自动取消（即使实例开启了 cancelPrevious，本请求也不取消旧请求） */
   skipCancel?: boolean
+  /** 是否跳过主动 token 刷新（refresh 请求自身需设置，防止递归刷新） */
+  skipRefresh?: boolean
 }
 
 /** 文件下载选项 */

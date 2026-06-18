@@ -38,6 +38,7 @@
 - **可扩展四重**：`configureHttp()` 注入 token/401/错误回调（避免 http ↔ router/pinia 循环依赖）、`createHttp()` 多实例、`withDefaultInterceptors=false` 自定义拦截器、单请求级 `skipAuth` / `skipErrorHandler` / `rawResponse`
 - **防竞态**：`cancelPrevious` 让相同请求（method+url+params+data）自动 `AbortController` 取消旧的、只留最新，消除 Race Condition；被取消请求抛 `RequestCanceledError`（静默、不触发全局回调），配套 `skipCancel` 单请求关闭。默认 opt-in，查询 / 搜索接口按需开启（避免影响 vxe-grid 的 proxyConfig）
 - **文件传输**：新增 `file-transfer.ts`，内置 `request.download` / `request.upload`。下载自动处理 blob + `content-disposition` 文件名提取（含 RFC 5987 中文）+「blob 包装的 JSON 错误」检测 + 浏览器保存 + 进度；上传支持 FormData 进度，响应走业务信封解包。配套导出 `saveBlob` / `extractFilename` 工具
+- **Token 无感续期**：双 token（access + refresh）+ 主动刷新（B：请求前 token 临近过期先 refresh）+ 401 兜底（C：refresh 后重试原请求）。新增 `token-refresh.ts` 协调器——并发 refresh 单例去重、挂起重试队列、防递归（refresh 请求 `skipRefresh`、重试请求 `__refreshRetried`）。`configureHttp` 增 `refreshAccessToken` / `onTokenRefreshed` / `getRefreshToken` / `isTokenExpiring` 注入项；活跃用户 token 自动续期、仅真正闲置才过期。login 契约改为返回 `accessToken` / `refreshToken` / `expiresIn`，新增 `POST /auth/refresh`；mock 配套实现双 token + 过期校验（access 默认 2min，`VITE_MOCK_ACCESS_TTL_SEC` 可调）
 - **全量接入**：`auth` / `user` / `role` 三个 api、对应 composable 与 auth store、`bootstrap` 启动注入、scaffold feature 模板（`api.ts.hbs` / `api-overview.ts.hbs` / `composable-list.ts.hbs` / `composable-overview.ts.hbs`）全部迁移；login 持久化 token、logout 加 `skipErrorHandler` 防 401 死循环
 - 同步至 `demo/` 实例；README 6.5 节重写 + 修正多处「未提供请求层」的过时表述
 

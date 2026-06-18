@@ -35,7 +35,9 @@ export {
 export type { InterceptorOptions } from './interceptors'
 export { HttpError, RequestCanceledError } from './error'
 export { PendingRequestManager, buildRequestKey } from './pending'
+export { tokenRefreshCoordinator, TokenRefreshCoordinator } from './token-refresh'
 export { saveBlob, extractFilename } from './file-transfer'
+export type { RefreshedTokens } from './config'
 export type {
   ApiResponse,
   HttpRequestConfig,

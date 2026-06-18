@@ -748,7 +748,60 @@ async function handleUpload(file: File) {
 
 > 💡 大文件上传可在 `UploadOptions` 传 `cancelPrevious: true`，配合「重新上传」按钮中断上一次未完成的上传。封装还导出 `saveBlob` / `extractFilename` 工具函数，供自定义保存 / 文件名场景使用。
 
-#### ⑫ 从旧写法迁移
+#### ⑫ Token 无感续期（活跃用户不过期）
+
+access token 有有效期，过期后请求会 401。封装内置「**主动刷新 + 401 兜底**」双保险，让**活跃用户的 token 自动续期、只有真正闲置才会过期**：
+
+- **B 主动刷新**：请求拦截器发送前检查 token 剩余有效期 < 5 分钟 → 先调 refresh 换新 token 再发。活跃用户（持续发请求）的 token 永不过期。
+- **C 401 兜底**：万一主动刷新没覆盖到（休眠唤醒、时钟漂移），token 真过期 → 401 → 自动 refresh + 重试原请求，用户完全无感。
+
+三个关键工程点（均已内置，业务无需关心）：
+
+- **并发去重**：多个请求同时临过期 / 同时 401，只发起**一次** refresh，其余 await 同一个 promise（`TokenRefreshCoordinator` 单例）；
+- **重试队列**：refresh 期间到来的 401 请求排队，refresh 成功后用新 token 重试；
+- **防递归**：refresh 请求自身带 `skipRefresh` 不进入续期逻辑；重试请求带 `__refreshRetried` 标记，二次 401 不再重试、直接登出。
+
+**启用方式**：在 `bootstrap` 通过 `configureHttp` 注入 `refreshAccessToken` + `onTokenRefreshed`（模板已配好）。未注入则不启用续期，401 直接 `onUnauthorized`。
+
+**本地存储约定**（与默认实现一致，auth store 登录时写入）：
+
+| 键 | 含义 |
+| :--- | :--- |
+| `token` | access token（请求头 `Authorization` 用） |
+| `refreshToken` | refresh token（续期换新 access 用） |
+| `tokenExpiresAt` | access token 绝对过期时间戳（主动刷新判断用） |
+
+> mock 已实现完整双 token 流程：access 默认 2 分钟（可用 `VITE_MOCK_ACCESS_TTL_SEC` 调）、refresh 30 分钟。登录后持续操作即可观察自动续期；闲置超过 refresh 有效期才会真正登出。
+
+##### 与后端对接清单
+
+接入真实后端时，把本节发给后端确认以下契约：
+
+**1. 登录接口** `POST /auth/login`
+- 响应 `data` 必须含三字段：
+  ```json
+  { "accessToken": "...", "refreshToken": "...", "expiresIn": 1800 }
+  ```
+- `expiresIn` 单位为**秒**（前端据此算过期时间戳）。若用 JWT，也可让前端从 `exp` 解析（需覆盖 `isTokenExpiring`）。
+
+**2. 刷新接口** `POST /auth/refresh`
+- 请求 body：`{ "refreshToken": "..." }`
+- 成功响应 `data`：`{ "accessToken": "...", "expiresIn": 1800 }`（rolling 模式可附带新 `refreshToken`）
+- **失败用 HTTP 401**（refresh token 失效）——前端据此判定「真正登出」，不再续期
+
+**3. 鉴权约定**
+- 所有需登录接口：前端发 `Authorization: Bearer <accessToken>`；
+- access token 过期 → 后端返回 **HTTP 401**（前端自动 refresh 重试，后端无需感知续期）。
+
+**4. 安全建议**
+- access token 短（15~30 分钟）、refresh token 长（7~30 天）；
+- refresh token 建议 **rolling**（每次 refresh 下发新的、旧的失效），便于吊销会话；
+- 全程 HTTPS；refresh token 可考虑 httpOnly cookie（前端读不到时需调整存储约定）；
+- refresh 接口建议做**单设备限制 / 频率限制**，防被盗用。
+
+> 若后端无法提供 refresh 接口（如某些网关方案），可退化为「滑动续期」：后端在每次鉴权响应头带 `New-Token`，前端在 `onTokenRefreshed` 里更新本地即可——主动刷新与 401 兜底可按需关闭（不注入 `refreshAccessToken`）。
+
+#### ⑬ 从旧写法迁移
 
 若你的早期副本里 api 文件还在各自 `axios.create()`，按下表迁移：
 
