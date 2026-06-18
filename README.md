@@ -773,6 +773,14 @@ access token 有有效期，过期后请求会 401。封装内置「**主动刷�
 
 > mock 已实现完整双 token 流程：access 默认 2 分钟（可用 `VITE_MOCK_ACCESS_TTL_SEC` 调）、refresh 30 分钟。登录后持续操作即可观察自动续期；闲置超过 refresh 有效期才会真正登出。
 
+> ⚠️ **排查「看不到 refresh 请求」**：
+> 1. 本机制是**请求驱动**，不是后台定时器。用户停在页面**不动**（idle）时不会刷新——必须「发请求」才会触发方案 B，或「请求收到 401」才会触发方案 C。
+> 2. 若登录后**立刻**也看不到 `/api/auth/refresh`，多半是 `localStorage.tokenExpiresAt` 残留了**旧的远期时间戳**（`isTokenExpiring` 据此判定「还很新鲜」→ 永不主动刷新）。清掉 `token` / `refreshToken` / `tokenExpiresAt` 三个 key 后重新登录即可。
+> 3. 改 `.env.development` 的 `VITE_MOCK_ACCESS_TTL_SEC` 后**必须重启 dev server**，Vite 不会热加载环境变量。
+> 4. 开发期协调器已内置 `[http:refresh]` trace 日志（`console.debug`，生产被 tree-shake），控制台可直接看到「为何没刷新 / 刷新了几次」。
+
+> 🛠 **DEV 观测面板**：开发期右下角有「Token 续期」悬浮面板，实时显示剩余有效期 / 续期次数，并提供「发起测试请求 / 标记临过期 / 检查并续期 / 模拟 401」按钮，可确定性验证方案 B/C（闲置无请求时点「发起测试请求」即可造一个请求）。设 `VITE_DEV_TOKEN_PANEL=false` 关闭；生产构建不打包。
+
 ##### 与后端对接清单
 
 接入真实后端时，把本节发给后端确认以下契约：
