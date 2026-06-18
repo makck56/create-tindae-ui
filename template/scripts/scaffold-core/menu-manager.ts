@@ -2,69 +2,16 @@
  * 菜单管理模块
  */
 import path from "path";
-import { question, readFile, writeFile } from "./io";
+import { readFile, writeFile } from "./io";
 import type { PatchResult } from "./types";
 import { PROJECT_PATHS } from "./constants";
 import {
   applyRootMenuPatch,
   applyMockMenuPatch,
   injectChildMenu,
+  rebuildDomainMenu,
+  type ParsedRoute,
 } from "./patch";
-
-export interface MenuOption {
-  index: number;
-  label: string;
-}
-
-/**
- * 从 menu.config.ts 提取现有菜单项
- */
-export const listMenuOptions = async (
-  rootDir: string = process.cwd()
-): Promise<MenuOption[]> => {
-  const configPath = path.join(rootDir, PROJECT_PATHS.menuConfig);
-
-  try {
-    const content = await readFile(configPath);
-    const labels: string[] = [];
-    const regex = /label:\s*['"]([^'"]+)['"]/g;
-    let match;
-
-    while ((match = regex.exec(content)) !== null) {
-      labels.push(match[1]);
-    }
-
-    return labels.map((label, i) => ({ index: i + 1, label }));
-  } catch {
-    return [];
-  }
-};
-
-/**
- * 交互式询问菜单父级选择
- * 返回 null 表示根级，否则返回父菜单的 label
- */
-export const askMenuParent = async (
-  options: MenuOption[]
-): Promise<string | null> => {
-  console.log("\n  0. 作为根级菜单");
-  options.forEach((opt) => {
-    console.log(`  ${opt.index}. ${opt.label}`);
-  });
-
-  const maxIndex = options.length;
-  const answer = await question(`请选择父级菜单 (0-${maxIndex}): `);
-  const choice = parseInt(answer.trim());
-
-  if (isNaN(choice) || choice < 0 || choice > maxIndex) {
-    console.log("❌ 无效的选择，将作为根级菜单");
-    return null;
-  }
-
-  if (choice === 0) return null;
-
-  return options.find((opt) => opt.index === choice)?.label ?? null;
-};
 
 /**
  * 更新 menu.config.ts，添加新菜单项。
@@ -148,6 +95,44 @@ export const updateMockMenus = async (
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     console.warn(`⚠️  更新 mock 权限失败: ${reason}`);
+    return { ok: false, changed: false, reason };
+  }
+};
+
+/**
+ * 以该域的全部路由，重建 menu.config.ts 中的域菜单项。
+ *
+ * - 1 条路由 → 叶子菜单；多条 → 父级 + 全部子项（含默认特性，避免「过滤掉第一个」）。
+ * - 以 routes.ts 为单一真相源，幂等；rootDir 可注入便于集成测试。
+ *
+ * 重建逻辑（纯函数）见 patch.rebuildDomainMenu。返回 PatchResult 供事务回滚。
+ */
+export const rebuildDomainMenuConfig = async (
+  domainRouteName: string,
+  routes: ParsedRoute[],
+  rootDir: string = process.cwd()
+): Promise<PatchResult> => {
+  const configPath = path.join(rootDir, PROJECT_PATHS.menuConfig);
+
+  try {
+    const originalContent = await readFile(configPath);
+    const outcome = rebuildDomainMenu(originalContent, domainRouteName, routes);
+
+    if (!outcome.ok) {
+      console.warn(`⚠️  重建域菜单失败: ${outcome.reason}`);
+      return { ok: false, changed: false, reason: outcome.reason };
+    }
+    if (!outcome.changed) {
+      console.log(`⚠️  ${outcome.reason}，跳过更新`);
+      return { ok: true, changed: false, reason: outcome.reason };
+    }
+
+    await writeFile(configPath, outcome.content!);
+    console.log(`✅ 已重建域菜单: ${configPath}`);
+    return { ok: true, changed: true, originalContent, filePath: configPath };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠️  重建域菜单失败: ${reason}`);
     return { ok: false, changed: false, reason };
   }
 };

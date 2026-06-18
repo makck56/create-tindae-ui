@@ -8,7 +8,7 @@
  *
  * 非交互参数（可选，便于脚本化 / CI）:
  *   scaffold:domain  --name=<kebab> --chinese=<名> [--feature=<名>] [--no-menu] [--dry-run]
- *   scaffold:feature --domain=<域|序号> --name=<kebab> --chinese=<名> [--no-page] [--no-menu] [--dry-run]
+ *   scaffold:feature --domain=<域|序号> --name=<kebab> --chinese=<名> [--type=list|overview] [--no-page] [--no-menu] [--dry-run]
  */
 import { closeRl, setDryRun } from "./scaffold-core/io";
 import { parseDomainArgs, parseFeatureArgs } from "./scaffold-core/args";
@@ -20,7 +20,7 @@ const printHelp = () => {
   console.log("  pnpm scaffold:feature  - 在现有域下创建新特性\n");
   console.log("非交互参数（可选，便于脚本化 / CI）:");
   console.log("  scaffold:domain  --name=<kebab> --chinese=<名> [--feature=<名>] [--no-menu] [--dry-run]");
-  console.log("  scaffold:feature --domain=<域|序号> --name=<kebab> --chinese=<名> [--no-page] [--no-menu] [--dry-run]\n");
+  console.log("  scaffold:feature --domain=<域|序号> --name=<kebab> --chinese=<名> [--type=list|overview] [--no-page] [--no-menu] [--dry-run]\n");
   console.log("  --dry-run  预览将创建 / 修改的文件，不落盘\n");
 };
 

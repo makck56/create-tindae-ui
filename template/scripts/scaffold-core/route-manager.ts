@@ -10,7 +10,7 @@ import {
 } from "./io";
 import type { PatchResult } from "./types";
 import { PROJECT_PATHS } from "./constants";
-import { applyDomainRouterPatch } from "./patch";
+import { applyDomainRouterPatch, parseRoutes, type ParsedRoute } from "./patch";
 import type { DirEntry } from "./utils";
 
 /**
@@ -18,12 +18,16 @@ import type { DirEntry } from "./utils";
  *
  * 注意：feature 路由 path 为 `/<featureKebab>`（无 domain 前缀），name 为 `<featurePascal>`。
  * Vue Router 要求 name 全局唯一，因此跨域请避免同名 feature，否则会路由冲突。
+ *
+ * `typeSuffix`（List / Overview）决定 component 懒加载的 page 文件名，
+ * 与脚手架按类型生成的 `${featurePascal}${typeSuffix}.page.vue` 对齐。默认 List 兼容历史调用。
  */
 export const updateRoutes = async (
   domainKebab: string,
   featureKebab: string,
   featurePascal: string,
   featureChineseName: string,
+  typeSuffix: "List" | "Overview" = "List",
   rootDir: string = process.cwd()
 ) => {
   const routesPath = path.join(
@@ -44,7 +48,7 @@ export const updateRoutes = async (
     const newRoute = `  {
     path: '/${featureKebab}',
     name: '${featurePascal}',
-    component: () => import('./pages/${featurePascal}List.page.vue'),
+    component: () => import('./pages/${featurePascal}${typeSuffix}.page.vue'),
     meta: { code: '${featurePascal}', title: '${featureChineseName}', keepAlive: true },
   },`;
 
@@ -189,5 +193,29 @@ export const registerDomainToRootRouter = async (
     const reason = error instanceof Error ? error.message : String(error);
     console.warn(`⚠️  接入根路由失败: ${reason}`);
     return { ok: false, changed: false, reason };
+  }
+};
+
+/**
+ * 读取某域 routes.ts 的全部路由（name + 中文标题）。
+ *
+ * 供「以 routes.ts 为单一真相源」重建域菜单使用：1 条路由→叶子，多条→父级+全部子项。
+ * 解析逻辑（纯函数）见 patch.parseRoutes。文件不存在 / 解析失败返回空数组。
+ */
+export const readDomainRoutes = async (
+  domainKebab: string,
+  rootDir: string = process.cwd()
+): Promise<ParsedRoute[]> => {
+  const routesPath = path.join(
+    rootDir,
+    PROJECT_PATHS.pagesDir,
+    domainKebab,
+    `${domainKebab}.routes.ts`
+  );
+  try {
+    const content = await readFile(routesPath);
+    return parseRoutes(content);
+  } catch {
+    return [];
   }
 };

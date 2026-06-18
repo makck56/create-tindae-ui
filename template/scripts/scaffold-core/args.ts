@@ -18,6 +18,19 @@ export interface DomainArgs {
   dryRun?: boolean;
 }
 
+/**
+ * Feature 的「页面类型」——决定渲染哪一套模板。
+ *
+ * - `list`：表格型（默认），vxe-grid 分页表格 + 增删改查（CRUD）。
+ * - `overview`：概览型，KPI 统计卡片 + 近期数据列表（Dashboard 风格，无 CRUD）。
+ *
+ * 保持为字符串字面量联合，方便 `--type=list|overview` 直接映射，且杜绝非法值。
+ */
+export type FeatureType = "list" | "overview";
+
+/** 合法类型取值集合（解析 --type 时用于校验） */
+export const FEATURE_TYPES: readonly FeatureType[] = ["list", "overview"] as const;
+
 export interface FeatureArgs {
   /** 域名或序号（选择已存在的域），提供则跳过域选择 */
   domain?: string;
@@ -25,6 +38,11 @@ export interface FeatureArgs {
   name?: string;
   /** 特性中文名 */
   chinese?: string;
+  /**
+   * 页面类型（list 表格型 / overview 概览型）。
+   * 提供（非交互模式）则跳过类型选择交互；缺省按 list 处理。
+   */
+  type?: FeatureType;
   /** 跳过页面创建 */
   noPage?: boolean;
   /** 跳过侧边栏菜单 */
@@ -53,11 +71,29 @@ export const parseDomainArgs = (argv: string[]): DomainArgs => ({
   dryRun: argv.includes("--dry-run"),
 });
 
+/**
+ * 解析 `--type` 为合法 FeatureType。
+ *
+ * - 未传 → undefined（交由调用方按默认 list 处理，保留「未显式指定」的语义）。
+ * - 传入但非法（如 `--type=form`）→ 同样返回 undefined 并告警，避免静默落盘成错误模板。
+ */
+const parseFeatureType = (raw: string | undefined): FeatureType | undefined => {
+  if (raw === undefined) return undefined;
+  if ((FEATURE_TYPES as readonly string[]).includes(raw)) {
+    return raw as FeatureType;
+  }
+  console.warn(
+    `⚠️  无效的 --type 值: "${raw}"（可选: ${FEATURE_TYPES.join(", ")}），将使用默认类型 list`
+  );
+  return undefined;
+};
+
 /** 解析 scaffold:feature 的参数 */
 export const parseFeatureArgs = (argv: string[]): FeatureArgs => ({
   domain: getOption(argv, "domain"),
   name: getOption(argv, "name"),
   chinese: getOption(argv, "chinese"),
+  type: parseFeatureType(getOption(argv, "type")),
   noPage: argv.includes("--no-page"),
   noMenu: argv.includes("--no-menu"),
   dryRun: argv.includes("--dry-run"),

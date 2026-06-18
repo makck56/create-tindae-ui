@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import Handlebars from "handlebars";
 import { toCamelCase, toKebabCase, toPascalCase } from "./utils";
+import type { FeatureType } from "./args";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 假设 templates 在 ../templates (相对于 scaffold-core)
@@ -14,7 +15,13 @@ const TEMPLATES_DIR = path.join(__dirname, "..", "templates");
 /** 编译后的模板缓存：避免同一模板多次 readFile + compile */
 const templateCache = new Map<string, HandlebarsTemplateDelegate>();
 
-/** 注入到 .hbs 模板的变量集合 */
+/**
+ * 注入到 .hbs 模板的变量集合。
+ *
+ * `typeSuffix`（"List" / "Overview"）由 `featureType` 派生，供模板拼接出
+ * 与类型匹配的文件名 / 组件名（如 `{{featurePascal}}{{typeSuffix}}View`），
+ * 使同一套 page 模板对「表格型 / 概览型」通用。
+ */
 export interface TemplateData {
   domainName: string;
   domainKebab: string;
@@ -26,6 +33,10 @@ export interface TemplateData {
   featureCamel: string;
   chineseName: string;
   featureChineseName: string;
+  /** 页面类型（list 表格型 / overview 概览型） */
+  featureType: FeatureType;
+  /** 类型对应的 PascalCase 后缀，用于文件名 / 组件名拼接 */
+  typeSuffix: "List" | "Overview";
 }
 
 export const loadTemplate = async (
@@ -59,8 +70,15 @@ export const prepareTemplateData = (config: {
   featureName?: string;
   chineseName: string;
   featureChineseName?: string;
+  /** 页面类型，缺省按 list（表格型）处理，保证向后兼容 */
+  featureType?: FeatureType;
 }): TemplateData => {
   const { domainName, featureName, chineseName, featureChineseName } = config;
+  // featureType 归一化：未显式传入时默认表格型（与历史行为一致）
+  const featureType: FeatureType = config.featureType ?? "list";
+  // 派生 PascalCase 后缀，模板据此拼接文件名 / 组件名
+  const typeSuffix: "List" | "Overview" =
+    featureType === "overview" ? "Overview" : "List";
 
   const domainKebab = toKebabCase(domainName);
   const domainPascal = toPascalCase(domainName);
@@ -81,5 +99,7 @@ export const prepareTemplateData = (config: {
     featureCamel,
     chineseName,
     featureChineseName: featureChineseName || chineseName,
+    featureType,
+    typeSuffix,
   };
 };

@@ -1,0 +1,40 @@
+/**
+ * {{featureChineseName}}概览 - 数据模型
+ * @feature {{featureKebab}}
+ *
+ * 概览型只关心「统计指标 + 近期记录」，不含实体的增删改查字段。
+ */
+
+/** 状态枚举（与列表型保持一致，便于标签渲染） */
+export const {{featurePascal}}Statuses = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+} as const;
+
+export type {{featurePascal}}Status = (typeof {{featurePascal}}Statuses)[keyof typeof {{featurePascal}}Statuses];
+
+/** KPI 统计指标（驱动顶部统计卡片） */
+export interface {{featurePascal}}Summary {
+  /** 总数 */
+  total: number;
+  /** 今日新增 */
+  todayCount: number;
+  /** 活跃占比（0~1，渲染时乘以 100 显示为百分比） */
+  activeRate: number;
+  /** 待处理数 */
+  pending: number;
+}
+
+/** 近期记录项（驱动下方数据列表） */
+export interface {{featurePascal}}RecentItem {
+  id: string;
+  name: string;
+  status: {{featurePascal}}Status;
+  createdAt: string;
+}
+
+/** 概览接口聚合结果：后端一次性返回统计 + 近期数据 */
+export interface {{featurePascal}}Overview {
+  summary: {{featurePascal}}Summary;
+  recentList: {{featurePascal}}RecentItem[];
+}
