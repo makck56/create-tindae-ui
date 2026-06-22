@@ -2,26 +2,26 @@ import { createRouter, createWebHistory } from 'vue-router';
 import type { App } from 'vue';
 import DefaultLayout from '@/layouts/Default.layout.vue';
 import { useAuthStore } from '@/modules/auth/stores/auth';
+import { useAppStore } from '@/modules/app/stores/app';
 import type { MenuItem } from '@/modules/app/config/menuTypes';
 import { loginRoutes } from '@/pages/login/login.routes';
-import { errorRoutes, notFoundRoute } from '@/pages/error/error.routes';
+import { errorChildRoutes } from '@/pages/error/error.routes';
 import { userManagementRoutes } from '@/pages/user-management/user-management.routes';
 // @scaffold:domain-import ← 新域路由 import 在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
 
 const routes = [
   ...loginRoutes,
-  ...errorRoutes,
   {
     path: '/',
     component: DefaultLayout,
     children: [
-      { path: '', redirect: '/user-management' },
       ...userManagementRoutes,
       // @scaffold:domain-route ← 新域路由在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
+      // 错误页子路由（403/404）置于所有业务路由之后：渲染在主内容区（保留侧边栏/顶栏/TabBar），
+      // 用户仍可导航到其他菜单，而非被错误页占满整个视口；catch-all 仅兜底未匹配路径。
+      ...errorChildRoutes,
     ],
   },
-  // ⚠️ 404 兜底必须放在所有业务路由【之后】，否则会抢先匹配 /user-management 等路径
-  ...notFoundRoute,
 ];
 
 export const router = createRouter({
@@ -56,6 +56,9 @@ function firstMenuRouteName(items: MenuItem[]): string | undefined {
  *
  * 「默认拒绝」体现在：除 `meta.public` 外都要登录，且带 code 的业务路由必须显式通过权限校验——
  * 忘了给业务路由写 meta.code 也不会静默放行（守卫仍要求登录，且容器路由仅指布局壳）。
+ *
+ * 注：/403、/404 为 DefaultLayout 的子路由，守卫 `return '/403'` 后会渲染在【主内容区】，
+ * 保留布局壳——用户仍可操作侧边栏切到其他有权限的菜单。
  */
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
@@ -95,4 +98,12 @@ router.beforeEach(async (to) => {
 
 export function setupRouter(app: App) {
   app.use(router);
+
+  // 页面标题：按路由 meta.title 动态设置浏览器标签页标题，复用应用名作为后缀。
+  // afterEach 在每次导航成功后触发（含首次进入），此时 Pinia 已就绪，可安全读取 appStore.appName。
+  router.afterEach((to) => {
+    const appName = useAppStore().appName;
+    const title = to.meta.title as string | undefined;
+    document.title = title ? `${title} - ${appName}` : appName;
+  });
 }

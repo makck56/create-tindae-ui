@@ -336,18 +336,18 @@ defineOptions({ name: ROUTE_NAMES.UserManagement.USER_MANAGEMENT });
 ```ts
 // src/core/bootstrap/router.ts（节选）
 import { loginRoutes } from '@/pages/login/login.routes';
-import { errorRoutes } from '@/pages/error/error.routes';
+import { errorChildRoutes } from '@/pages/error/error.routes';
 import { userManagementRoutes } from '@/pages/user-management/user-management.routes';
 
 const routes = [
   ...loginRoutes,
-  ...errorRoutes,
   {
     path: '/',
     component: DefaultLayout,          // 带侧边栏的布局
     children: [
       { path: '', redirect: '/user-management' },
       ...userManagementRoutes,         // 业务页都挂在 DefaultLayout 下
+      ...errorChildRoutes,             // 403/404 也挂 DefaultLayout：错误页渲染在主内容区，保留侧边栏/顶栏/TabBar
     ],
   },
 ];

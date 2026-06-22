@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { defineAsyncComponent } from 'vue';
+// Ant Design Vue 中文语言包：让分页、表格空状态、确认弹窗按钮等组件文案统一为中文。
+import zhCN from 'ant-design-vue/es/locale/zh_CN';
 
 // DEV 专属：Token 续期观测面板。
 // 开启条件：开发环境（DEV）且未被 VITE_DEV_TOKEN_PANEL 显式关闭。
@@ -13,7 +15,8 @@ const TokenDevPanel = tokenPanelEnabled
 </script>
 
 <template>
-  <a-config-provider>
+  <!-- :locale="zhCN" 全局中文化；未来主题 token / 动态 locale 也可在此扩展 -->
+  <a-config-provider :locale="zhCN">
     <router-view />
     <!-- 仅开发环境渲染的 Token 续期观测面板 -->
     <component :is="TokenDevPanel" v-if="TokenDevPanel" />

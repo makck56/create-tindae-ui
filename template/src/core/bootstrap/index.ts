@@ -19,6 +19,17 @@ export { router } from './router';
 export function setupApp() {
   const app = createApp(App);
 
+  // 0. 全局错误兜底：捕获未被 ErrorBoundary / try-catch 处理的错误
+  //    （事件回调、setup 同步异常、未捕获的 Promise reject）。
+  //    与 DefaultLayout 内的 ErrorBoundary 分工：此处兜底「非渲染期」错误，
+  //    ErrorBoundary 兜底「渲染期」错误（局部 fallback）。DEV 打印便于排查；生产可接入上报（Sentry 等）。
+  app.config.errorHandler = (err, _instance, info) => {
+    if (import.meta.env.DEV) {
+      console.error('[app:error]', err, info);
+    }
+    // TODO: 生产环境接入错误上报
+  };
+
   // 1. Core plugins (Pinia must precede Router)
   app.use(createPinia());
   // 注册全局按钮级权限指令 v-permission（指令运行时读取 auth store，须在 Pinia 之后注册）

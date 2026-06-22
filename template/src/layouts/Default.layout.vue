@@ -5,6 +5,7 @@ import { MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined } from '@ant-desig
 import { useAppStore } from '@/modules/app/stores/app';
 import { useAuthStore } from '@/modules/auth/stores/auth';
 import { useTabStore, TabBar } from '@/layouts/tab';
+import { ErrorBoundary } from '@/shared/components/error-boundary';
 
 defineOptions({ name: 'DefaultLayout' });
 
@@ -68,21 +69,24 @@ async function handleLogout() {
       </a-layout-header>
       <TabBar />
       <a-layout-content class="m-4 p-4 bg-white rounded">
-        <router-view v-slot="{ Component }">
-          <keep-alive :include="tabStore.cachedNames">
-            <component
-              :is="Component"
-              v-if="!tabStore.isExcluded($route.name as string)"
-              :key="$route.fullPath"
-            />
-          </keep-alive>
-          <div
-            v-if="tabStore.isExcluded($route.name as string)"
-            class="flex items-center justify-center py-20"
-          >
-            <a-spin tip="刷新中..." />
-          </div>
-        </router-view>
+        <!-- ErrorBoundary 包裹业务内容区：捕获页面渲染异常 → 显示 fallback，保留布局壳不白屏 -->
+        <ErrorBoundary>
+          <router-view v-slot="{ Component }">
+            <keep-alive :include="tabStore.cachedNames">
+              <component
+                :is="Component"
+                v-if="!tabStore.isExcluded($route.name as string)"
+                :key="$route.fullPath"
+              />
+            </keep-alive>
+            <div
+              v-if="tabStore.isExcluded($route.name as string)"
+              class="flex items-center justify-center py-20"
+            >
+              <a-spin tip="刷新中..." />
+            </div>
+          </router-view>
+        </ErrorBoundary>
       </a-layout-content>
     </a-layout>
   </a-layout>
