@@ -10,6 +10,7 @@ import { refreshAccessToken as refreshAccessTokenApi } from '@/modules/auth/api/
 import '@/core/plugins/antd';
 import { setupEcharts } from '@/core/plugins/echarts';
 import { setupVxeTable } from '@/core/plugins/vxeTable';
+import { setupTheme } from '@/core/theme';
 import { setupTab } from '@/layouts/tab';
 import '@/assets/styles/tailwind.css';
 import '@/assets/styles/global.css';
@@ -77,6 +78,11 @@ export function setupApp() {
   // 4. UI libraries
   setupEcharts(app);
   setupVxeTable(app);
+
+  // 5. 主题系统：mount 前预应用持久化主题（亮/暗 + 预设主色）到 :root，避免首屏闪烁（FOUC）；
+  //    同时注入 antd / vxe-table 覆盖样式，实现 Tailwind / antd / VXE 三端统一换肤。
+  //    后续主题切换由 ThemeProvider（App.vue 根处）监听 store 自动响应。
+  setupTheme();
 
   app.mount('#app');
 }

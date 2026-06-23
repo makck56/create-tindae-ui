@@ -7,6 +7,7 @@ import type { MenuItem } from '@/modules/app/config/menuTypes';
 import { loginRoutes } from '@/pages/login/login.routes';
 import { errorChildRoutes } from '@/pages/error/error.routes';
 import { userManagementRoutes } from '@/pages/user-management/user-management.routes';
+import { themePreviewRoutes } from '@/pages/theme-preview/theme-preview.routes';
 // @scaffold:domain-import ← 新域路由 import 在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
 
 const routes = [
@@ -16,6 +17,7 @@ const routes = [
     component: DefaultLayout,
     children: [
       ...userManagementRoutes,
+      ...themePreviewRoutes,
       // @scaffold:domain-route ← 新域路由在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
       // 错误页子路由（403/404）置于所有业务路由之后：渲染在主内容区（保留侧边栏/顶栏/TabBar），
       // 用户仍可导航到其他菜单，而非被错误页占满整个视口；catch-all 仅兜底未匹配路径。

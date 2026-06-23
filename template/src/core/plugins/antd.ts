@@ -1,4 +1,8 @@
-// Ant Design Vue 样式
+// Ant Design Vue 基础样式（antd v3 的字面色主色在此固化）。
+// 运行时主题（主色随品牌预设 / 亮暗模式联动）由 core/theme 统一接管：
+//   - core/theme/bridges/antd.ts 注入覆盖样式，把主色高频组件改为引用 var(--color-primary)；
+//   - core/theme 在 app.mount 前通过 setupTheme() 注入，全程靠 CSS 变量驱动。
+// 因此本文件只保留「引入 antd.css + i18n 说明」，不再放置任何配色覆盖。
 import 'ant-design-vue/dist/antd.css';
 
 // 组件文案中文化：在 App.vue 通过 <a-config-provider :locale="zhCN"> 统一注入，

@@ -11,5 +11,10 @@ export const menuConfig: MenuConfig = [
     code: 'RoleManagement',
     routeName: 'RoleManagement',
   },
+  {
+    label: '主题预览',
+    code: 'ThemePreview',
+    routeName: 'ThemePreview',
+  },
   // @scaffold:menu ← 新根级菜单在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
 ];

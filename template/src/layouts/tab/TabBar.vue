@@ -120,9 +120,11 @@ function getMenuDisabled(key: string) {
 </template>
 
 <style scoped>
+/* 多标签页栏：全部引用主题 CSS 变量，跟随亮暗 / 主色 / 全套预设。
+   注：<style scoped> 仅给选择器加 data 属性，不影响 var() 引用 :root 上的全局变量。 */
 .tab-bar {
   padding: 8px 16px 0;
-  background: #fff;
+  background: var(--bg-container);
 }
 
 .tab-bar__list {
@@ -136,6 +138,7 @@ function getMenuDisabled(key: string) {
   display: none;
 }
 
+/* 标签默认态：次级背景 + 次要文字色 */
 .tab-bar__tag {
   display: inline-flex;
   align-items: center;
@@ -145,23 +148,25 @@ function getMenuDisabled(key: string) {
   font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
   transition: background 0.2s, color 0.2s;
   user-select: none;
 }
 
+/* hover：在容器色上叠加少量前景色，亮 / 暗模式都有可见反馈 */
 .tab-bar__tag:hover {
-  background: #e8e8e8;
+  background: color-mix(in srgb, var(--text-title) 8%, var(--bg-container));
 }
 
+/* 激活标签：主色实底 + 反色文字（切主色立即跟随） */
 .tab-bar__tag--active {
-  background: #1677ff;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--text-inverse);
 }
 
 .tab-bar__tag--active:hover {
-  background: #4096ff;
+  background: var(--color-primary-hover);
 }
 
 .tab-bar__close {
@@ -172,11 +177,13 @@ function getMenuDisabled(key: string) {
   transition: background 0.2s;
 }
 
+/* 关闭按钮 hover：叠加前景色，亮 / 暗通用 */
 .tab-bar__close:hover {
-  background: rgba(0, 0, 0, 0.12);
+  background: color-mix(in srgb, var(--text-title) 12%, transparent);
 }
 
+/* 激活标签上的关闭按钮 hover：反色叠加（在主色底上可见） */
 .tab-bar__tag--active .tab-bar__close:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--text-inverse) 30%, transparent);
 }
 </style>

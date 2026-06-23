@@ -56,7 +56,7 @@
 | UI 库 | Ant Design Vue 3.2 | 按需自动导入（unplugin-vue-components） |
 | 表格 | VXE Table 4.3（`vxe-grid`） | 列表页主力 |
 | 图表 | ECharts 5.5 | |
-| CSS | Tailwind CSS 3.4 + CSS Variables | |
+| CSS | Tailwind CSS 3.4 + CSS Variables | 统一主题系统（亮暗 + 主色预设，见 [7.7](#77-主题系统与统一换肤)） |
 | Mock | MSW 2.14 | 仅开发环境启用 |
 | 测试 | Vitest 1.6 + Vue Test Utils 2.4 | |
 | 代码规范 | ESLint 8.57 + Prettier 3.3 | |
@@ -970,6 +970,31 @@ message.success(COPY.COMMON.SUCCESS);
 ### 7.6 `ROUTE_NAMES` — 路由名常量
 
 见 [6.2](#62-路由系统手动聚合--名称常量)，自动生成，配合 `defineOptions({ name })` 使用。
+
+### 7.7 主题系统与统一换肤
+
+一份 TS Token 驱动四端配色：切换亮暗或主色预设时，Tailwind 工具类、Ant Design Vue 组件、VXE Table、ECharts 图表全部自动联动，选择持久化到 `localStorage`。代码在 `src/core/theme/`。
+
+**开箱即用**：`DefaultLayout` 顶栏右侧的 `ThemeSwitcher` 可切「亮/暗」与 5 套主色预设（蓝/绿/紫/橙/红）。登录后访问侧边栏「**主题预览**」（路由 `/theme-preview`，admin 可见）可对照色板 / antd 全组件 / VXE 表格 / ECharts 图表 / 业务卡片，肉眼验证联动效果。
+
+**业务侧切换**：
+
+```ts
+import { useTheme } from '@/core/theme';
+const { isDark, toggleMode, setPreset, presets } = useTheme();
+```
+
+**画 ECharts（自动跟随主题）**：
+
+```ts
+import * as echarts from 'echarts';
+import { useEcharts } from '@/core/theme';
+const el = ref<HTMLElement>();
+const { setOption } = useEcharts(el, echarts);   // 自动：主题注入 + 容器 resize + 切主题重建回放
+onMounted(() => setOption({ series: [{ type: 'bar', data: [...] }] }));
+```
+
+> 完整机制（SSOT 架构图、模块结构、扩展预设 / 自定义 Token、antd v3 局限与升级路径、Design Token 速查表）见 [`theme.md`](./theme.md)。
 
 ---
 

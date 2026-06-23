@@ -1,10 +1,68 @@
+/**
+ * 主题 CSS 变量默认值（亮色）—— 首屏 JS 执行前的「兜底」配色。
+ *
+ * 运行时由 core/theme（setupTheme + ThemeProvider）依据用户选择（模式 / 预设）
+ * 覆盖这些变量，实现 Tailwind / VXE Table / Ant Design Vue 三端统一换肤。
+ *
+ * 维护约定：本文件值需与 core/theme/tokens.ts 的 lightTokens 保持一致。
+ * 修改默认配色时请两处同步；本文件仅作「无 JS / SSR 降级」用途。
+ */
 :root {
+  /* —— 品牌色 + 功能色（每个色阶四态）—— */
   --color-primary: #1890ff;
+  --color-primary-hover: #40a9ff;
+  --color-primary-active: #096dd9;
+  --color-primary-disabled: #91d5ff;
+
   --color-success: #52c41a;
+  --color-success-hover: #73d13d;
+  --color-success-active: #389e0d;
+  --color-success-disabled: #b7eb8f;
+
   --color-warning: #faad14;
-  --color-error: #f5222d;
-  --color-text: rgba(0, 0, 0, 0.85);
-  --color-bg: #f0f2f5;
+  --color-warning-hover: #ffc53d;
+  --color-warning-active: #d48806;
+  --color-warning-disabled: #ffe58f;
+
+  --color-danger: #f5222d;
+  --color-danger-hover: #ff4d4f;
+  --color-danger-active: #cf1322;
+  --color-danger-disabled: #ffa39e;
+
+  --color-info: #1890ff;
+  --color-info-hover: #40a9ff;
+  --color-info-active: #096dd9;
+  --color-info-disabled: #91d5ff;
+
+  /* —— 文本色阶 —— */
+  --text-title: rgba(0, 0, 0, 0.85);
+  --text-body: rgba(0, 0, 0, 0.75);
+  --text-secondary: rgba(0, 0, 0, 0.45);
+  --text-disabled: rgba(0, 0, 0, 0.25);
+  --text-inverse: rgba(255, 255, 255, 0.85);
+
+  /* —— 背景色阶 —— */
+  --bg-page: #f0f2f5;
+  --bg-container: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-white: #ffffff;
+  --bg-subtle: #fafafa;
+
+  /* —— 边框色阶 —— */
+  --border-base: #d9d9d9;
+  --border-light: #e8e8e8;
+  --border-lighter: #f0f0f0;
+  --border-extra-light: #f5f5f5;
+
+  /* —— 圆角 —— */
+  --radius-sm: 2px;
+  --radius-base: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* —— 布局尺寸 —— */
   --sidebar-width: 220px;
+  --sidebar-collapsed-width: 80px;
   --header-height: 48px;
 }

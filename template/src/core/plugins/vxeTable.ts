@@ -1,4 +1,7 @@
 import type { App } from 'vue';
+// 主题说明：vxe-table 的「主色 / 表头 / 行 hover / 选中行 / 边框 / 分页」等核心视觉，
+// 由 core/theme/bridges/vxeTable.ts 注入的覆盖样式统一接管（引用 var(--color-*) 等语义变量），
+// 与 Tailwind / Ant Design Vue 三端联动换肤。本文件只负责「按需注册组件 + i18n」，不含主题逻辑。
 import VXETable from 'vxe-table/es/v-x-e-table';
 import zhCN from 'vxe-table/es/locale/lang/zh-CN';
 import Grid from 'vxe-table/es/grid';

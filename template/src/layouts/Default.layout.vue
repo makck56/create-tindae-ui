@@ -6,6 +6,8 @@ import { useAppStore } from '@/modules/app/stores/app';
 import { useAuthStore } from '@/modules/auth/stores/auth';
 import { useTabStore, TabBar } from '@/layouts/tab';
 import { ErrorBoundary } from '@/shared/components/error-boundary';
+import { ThemeSwitcher } from '@/shared/components/theme-switcher';
+import { useTheme } from '@/core/theme';
 
 defineOptions({ name: 'DefaultLayout' });
 
@@ -14,6 +16,12 @@ const authStore = useAuthStore();
 const tabStore = useTabStore();
 const route = useRoute();
 const router = useRouter();
+
+// 侧边栏跟随全局亮 / 暗：亮色=浅色侧边栏 + light 菜单，暗色=深色侧边栏 + dark 菜单。
+// sider 容器 / trigger 的背景由 antd.ts 的 .app-sider--light / --dark 规则接管。
+const { isDark } = useTheme();
+const menuTheme = computed<'dark' | 'light'>(() => (isDark.value ? 'dark' : 'light'));
+const siderClass = computed(() => (isDark.value ? 'app-sider--dark' : 'app-sider--light'));
 
 // 侧边栏直接渲染后端下发的菜单树（authStore.menus 为唯一真相源）。
 // 后端按用户角色已过滤，前端不再需要本地 filterMenu / menuConfig 双源。
@@ -36,9 +44,16 @@ async function handleLogout() {
 
 <template>
   <a-layout class="min-h-screen">
-    <a-layout-sider v-model:collapsed="appStore.sidebarCollapsed" collapsible :width="220">
-      <div class="p-4 text-white text-center font-bold text-lg">{{ appStore.appName }}</div>
-      <a-menu theme="dark" mode="inline" :selected-keys="selectedKeys" @click="handleMenuClick">
+    <a-layout-sider
+      v-model:collapsed="appStore.sidebarCollapsed"
+      collapsible
+      :width="220"
+      :class="siderClass"
+    >
+      <div :class="['p-4 text-center font-bold text-lg', isDark ? 'text-white' : 'text-title']">
+        {{ appStore.appName }}
+      </div>
+      <a-menu :theme="menuTheme" mode="inline" :selected-keys="selectedKeys" @click="handleMenuClick">
         <template v-for="item in menus" :key="item.routeName ?? item.label">
           <a-menu-item v-if="!item.children" :key="item.routeName">
             {{ item.label }}
@@ -60,7 +75,9 @@ async function handleLogout() {
           </template>
         </a-button>
         <div class="flex items-center gap-4">
-          <span v-if="authStore.user" class="text-gray-600">{{ authStore.user.username }}</span>
+          <!-- 主题切换：主色预设 + 亮/暗模式（副作用由 ThemeProvider 统一承接） -->
+          <ThemeSwitcher />
+          <span v-if="authStore.user" class="text-secondary">{{ authStore.user.username }}</span>
           <a-button type="text" @click="handleLogout">
             <template #icon><LogoutOutlined /></template>
             登出
