@@ -11,6 +11,7 @@ import '@/core/plugins/antd';
 import { setupEcharts } from '@/core/plugins/echarts';
 import { setupVxeTable } from '@/core/plugins/vxeTable';
 import { setupTheme } from '@/core/theme';
+import { isBrowserSupported, renderUnsupportedBrowser } from '@/core/browser-support';
 import { setupTab } from '@/layouts/tab';
 import '@/assets/styles/tailwind.css';
 import '@/assets/styles/global.css';
@@ -18,6 +19,14 @@ import '@/assets/styles/global.css';
 export { router } from './router';
 
 export function setupApp() {
+  // 0. 浏览器版本门槛（A 方案）：不达标 → 渲染整页「请升级浏览器」提示、不挂载应用。
+  //    放在最前：不兼容时连 createApp / 注册插件都无需执行，直接阻断（vanilla DOM 提示，不依赖 Vue）。
+  //    下限见 core/browser-support/config.ts，调整需同步 package.json 的 browserslist。
+  if (!isBrowserSupported()) {
+    renderUnsupportedBrowser();
+    return;
+  }
+
   const app = createApp(App);
 
   // 0. 全局错误兜底：捕获未被 ErrorBoundary / try-catch 处理的错误

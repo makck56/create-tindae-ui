@@ -14,6 +14,8 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_ACCESS_TTL_SEC?: string;
   /** 是否开启「Token 续期」DEV 观测面板（右下角悬浮）；设 'true' 开启，默认关闭（不展示）。仅开发环境生效 */
   readonly VITE_DEV_TOKEN_PANEL?: string;
+  /** 是否启用 legacy 降级（B 方案，兼容更老浏览器）。设 'true' 开启；需先 pnpm add -D @vitejs/plugin-legacy terser。默认关闭 */
+  readonly VITE_LEGACY_BUILD?: string;
 }
 
 interface ImportMeta {

@@ -53,6 +53,14 @@
     "vitest": "^1.6.0",
     "vue-tsc": "^2.1.0"
   },
+  "browserslist": [
+    "Chrome >= 100",
+    "Edge >= 100",
+    "Firefox >= 100",
+    "Safari >= 15",
+    "not IE > 0",
+    "not dead"
+  ],
   "msw": {
     "workerDirectory": [
       "public"
