@@ -54,7 +54,8 @@ function firstMenuRouteName(items: MenuItem[]): string | undefined {
  * 2. 其余路由一律需登录——未登录跳 /login（带 redirect 回跳）；
  * 3. fetchUser 拉取真失败 → /403；
  * 4. 路由声明了 `meta.code` 但用户无此权限 → /403；
- * 5. 容器 / 布局路由（无 meta.code，如布局壳）→ 已登录即放行。
+ * 5. 已登录访问根 / → 跳首个业务菜单（无菜单则 /403）；/ 仅为布局壳，无默认子路由，不处理会内容区空白；
+ * 6. 其余容器 / 布局路由（无 meta.code）或已授权业务路由 → 放行。
  *
  * 「默认拒绝」体现在：除 `meta.public` 外都要登录，且带 code 的业务路由必须显式通过权限校验——
  * 忘了给业务路由写 meta.code 也不会静默放行（守卫仍要求登录，且容器路由仅指布局壳）。
@@ -94,7 +95,16 @@ router.beforeEach(async (to) => {
     return '/403';
   }
 
-  // 6) 容器 / 布局路由（无 code）或已授权业务路由 → 放行
+  // 6) 已登录访问根 /：/ 仅为布局壳（DefaultLayout 无默认子路由），跳首个业务菜单，
+  //    避免内容区空白（这正是「登录后停在 / 白屏」的根因）；若该角色无任何菜单 → /403，
+  //    既不落到 / 空白，也不与自身形成重定向死循环。
+  //    复用与「已登录访问 /login」相同的 firstMenuRouteName，保持落地页决策一致。
+  if (to.path === '/') {
+    const first = firstMenuRouteName(authStore.menus);
+    return first ? { name: first } : '/403';
+  }
+
+  // 7) 其余容器 / 布局路由（无 code）或已授权业务路由 → 放行
   return true;
 });
 
