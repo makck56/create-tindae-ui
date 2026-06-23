@@ -11,7 +11,7 @@ import type { MenuItem } from '@/modules/app/config/menuTypes'
 const ROLES: Record<string, { menus: MenuItem[]; permissions: string[] }> = {
   admin: {
     menus: menuConfig,
-    permissions: ['UserManagement', 'RoleManagement', 'UserManagement:delete', 'ThemePreview'],
+    permissions: ['UserManagement', 'RoleManagement', 'UserManagement:delete', 'ThemePreview', 'Readme'],
   },
   manager: {
     menus: menuConfig.filter((m) => m.code === 'UserManagement'),

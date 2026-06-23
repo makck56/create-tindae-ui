@@ -996,6 +996,57 @@ onMounted(() => setOption({ series: [{ type: 'bar', data: [...] }] }));
 
 > 完整机制（SSOT 架构图、模块结构、扩展预设 / 自定义 Token、antd v3 局限与升级路径、Design Token 速查表）见 [`theme.md`](./theme.md)。
 
+### 7.8 浏览器版本支持
+
+脚手架默认采用「**声明下限 + 运行时只提示、不降级**」策略（A 方案）：浏览器版本低于下限时，启动即整屏提示「请升级浏览器」并**不挂载应用**；另提供一个可选开关启用 legacy 降级（B 方案）兼容更老浏览器。代码在 `src/core/browser-support/`。
+
+**默认下限**（近 ~3 年主流浏览器）：
+
+| 浏览器 | 最低版本 | 约对应时间 |
+| :--- | :--- | :--- |
+| Chrome / Edge | ≥ 100 | 2022 |
+| Firefox | ≥ 100 | 2022 |
+| Safari | ≥ 15 | 2021 |
+| IE | 不支持 | — |
+
+**工作原理**：`bootstrap` 在 `app.mount` 之前调用 `isBrowserSupported()`，不达标时渲染原生 DOM 整页提示（刻意不依赖 Vue，极老浏览器也能显示）并直接 `return`。判定是纯函数，单测见 `detectBrowser.spec.ts` / `isSupported.spec.ts`；UA 无法识别的浏览器默认放行（不误伤）。
+
+**调整下限**：改 `src/core/browser-support/config.ts` 的 `MIN_BROWSER_VERSIONS`，并**同步** `package.json` 的 `browserslist`——前者是「运行时」判定源，后者是「构建期」声明（驱动 autoprefixer 加 CSS 前缀），两处口径必须一致，否则会出现「构建按旧范围加前缀、运行时按新范围拦截」的错位。
+
+> ⚠️ **关于 `color-mix()`**：主题 hover 态用了 CSS `color-mix()`（Safari ≥16.2 / Chrome ≥111 / Firefox ≥113）。默认下限比它宽松，在略旧浏览器上 `color-mix` 会优雅降级（声明被忽略、回退为无该样式），不阻断使用；如需严格对齐，请相应上调下限。
+
+**B 方案：兼容更老浏览器（可选，默认不开）**
+
+默认不引入任何额外依赖。需要兼容到约 2018 年浏览器时：
+
+```bash
+# 1. 安装 legacy 插件（它依赖 terser 做压缩）
+pnpm add -D @vitejs/plugin-legacy terser
+
+# 2. 在构建 env（如 .env.production）开启开关
+#    VITE_LEGACY_BUILD=true
+```
+
+开启后 `vite build` 会额外输出 SystemJS + polyfill 包，兼容到 Chrome ≥64 / Edge ≥79 / Firefox ≥67 / Safari ≥12。开关关闭或不装包时，构建与产物与 A 方案完全一致——`vite.config.ts` 用 dynamic import 按需加载，开启但未安装会抛清晰报错指引安装。
+
+### 7.9 项目文档页（应用内阅读 README）
+
+内置一个「项目文档」页（路由 `/readme`，菜单「项目文档」，admin 可见），在应用内渲染项目根 `README.md`，离线可读。代码在 `src/pages/readme/`，渲染器是通用组件 `src/shared/components/markdown/MarkdownViewer.vue`。
+
+**实现要点**：
+
+- **内容源**：构建期用 `import.meta.glob('/README.md', { query: '?raw', import: 'default', eager: true })` 把项目根 README 打包成字符串（无需运行时 fetch、不依赖网络）。换源读其他 md（如 `/docs/xxx.md`）只改这个路径。
+- **渲染**：`markdown-it` 转 HTML 后用 `v-html` 注入；样式引用主题 CSS 变量，自动跟随亮暗 / 主色；代码块统一深色背景（**未做语法高亮**，需要时可经 markdown-it 的 `highlight` 选项接入 highlight.js / shiki）。
+
+**复用渲染器**（任何「Markdown 字符串 → 排版正文」的场景）：
+
+```ts
+import MarkdownViewer from '@/shared/components/markdown/MarkdownViewer.vue';
+// <MarkdownViewer :source="markdownString" />
+```
+
+> 安全提示：`MarkdownViewer` 默认 `html:false`（转义内联 HTML），适合渲染可信文档（项目自带 README 等）；渲染外部不可信内容前请自行 sanitize。
+
 ---
 
 ## 八、开发一个新页面（完整实战）
