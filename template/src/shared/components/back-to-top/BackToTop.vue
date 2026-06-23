@@ -5,9 +5,11 @@ import { VerticalAlignTopOutlined } from '@ant-design/icons-vue';
 /**
  * 返回顶部按钮。
  *
- * - 监听 window 整页滚动（本脚手架 DefaultLayout 的内容区无独立滚动容器，长页面靠 body 滚动）；
- * - 滚动距离超过 visibilityHeight 才淡入显示，避免页面顶部时也出现按钮；
- * - 点击平滑滚动回顶部；样式为科技风（主色描边 + 发光 + 毛玻璃），跟随主题系统。
+ * 滚动容器自适应：onMounted 时从按钮向上找最近的可滚动祖先（overflow-y: auto/scroll）；
+ * 找不到（整页滚动场景）则回落到 window。这样无论布局是「整页滚动」还是「内容区独立滚动」都能工作。
+ *
+ * - 滚动距离超过 visibilityHeight 才淡入显示；
+ * - 点击平滑滚动回容器顶部；科技风样式跟随主题。
  *
  * 放在任意长页面末尾即可：<BackToTop />（fixed 定位，不占文档流）。
  */
@@ -21,28 +23,48 @@ const props = withDefaults(
   { visibilityHeight: 300 },
 );
 
+const btnRef = ref<HTMLElement>();
 const visible = ref(false);
 
+// 实际监听的滚动容器：window（整页滚动）或内容区（独立滚动）。onMounted 时确定。
+let scrollTarget: HTMLElement | Window = window;
+
+function getScrollTop(): number {
+  return scrollTarget === window ? window.scrollY : (scrollTarget as HTMLElement).scrollTop;
+}
+
 function handleScroll(): void {
-  visible.value = window.scrollY > props.visibilityHeight;
+  visible.value = getScrollTop() > props.visibilityHeight;
 }
 
 function scrollToTop(): void {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  (scrollTarget as HTMLElement | Window).scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/** 从 el 向上找第一个 overflowY 为 auto/scroll/overlay 的祖先；到 body 前未命中则回落 window。 */
+function findScrollParent(el: HTMLElement | null): HTMLElement | Window {
+  let node = el?.parentElement ?? null;
+  while (node && node !== document.body) {
+    if (/(auto|scroll|overlay)/.test(getComputedStyle(node).overflowY)) return node;
+    node = node.parentElement;
+  }
+  return window;
 }
 
 onMounted(() => {
-  // passive：只读滚动位置，不阻止滚动，提升滚动性能
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  handleScroll(); // 初始判定（刷新时若已停在页面下方也要显示）
+  scrollTarget = findScrollParent(btnRef.value);
+  // passive：只读滚动位置，不阻止滚动，提升性能
+  scrollTarget.addEventListener('scroll', handleScroll, { passive: true });
+  handleScroll(); // 初始判定（刷新时若已停在下方也要显示）
 });
-onBeforeUnmount(() => window.removeEventListener('scroll', handleScroll));
+onBeforeUnmount(() => scrollTarget.removeEventListener('scroll', handleScroll));
 </script>
 
 <template>
   <Transition name="backtop">
     <button
       v-show="visible"
+      ref="btnRef"
       class="back-to-top"
       type="button"
       aria-label="返回顶部"

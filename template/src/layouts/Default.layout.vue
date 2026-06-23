@@ -43,7 +43,9 @@ async function handleLogout() {
 </script>
 
 <template>
-  <a-layout class="min-h-screen">
+  <!-- h-screen + overflow-hidden：外层固定一屏高、禁止整页滚动；
+       配合内容区 overflow-auto，实现「侧边栏 / 顶栏 / TabBar 固定，仅内容区滚动」 -->
+  <a-layout class="h-screen overflow-hidden">
     <a-layout-sider
       v-model:collapsed="appStore.sidebarCollapsed"
       collapsible
@@ -85,7 +87,9 @@ async function handleLogout() {
         </div>
       </a-layout-header>
       <TabBar />
-      <a-layout-content class="m-4 p-4 bg-white rounded">
+      <!-- overflow-auto + min-h-0：内容区独立滚动。min-h-0 是 flex 子项能收缩+溢出滚动的关键
+           （默认 min-height:auto 会撑开父级、导致整页滚动而非本区域滚动） -->
+      <a-layout-content class="m-4 p-4 bg-white rounded overflow-auto min-h-0">
         <!-- ErrorBoundary 包裹业务内容区：捕获页面渲染异常 → 显示 fallback，保留布局壳不白屏 -->
         <ErrorBoundary>
           <router-view v-slot="{ Component }">
