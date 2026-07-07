@@ -1002,7 +1002,20 @@ message.success(COPY.COMMON.SUCCESS);
 
 ### 7.7 主题系统与统一换肤
 
-一份 TS Token 驱动四端配色：切换亮暗或主色预设时，Tailwind 工具类、Ant Design Vue 组件、VXE Table、ECharts 图表全部自动联动，选择持久化到 `localStorage`。代码在 `src/core/theme/`。
+当前主题链路分成两层：
+
+- **运行时真源**：`src/core/theme/` 里的 `ThemeTokens` 驱动 Tailwind、Ant Design Vue、VXE Table、ECharts 四端联动；现在已纳入 `colors / text / bg / border / typography / spacing / radius / layout`。
+- **设计稿导出链路**：`design.md -> theme.tokens.json -> theme.tailwind.json -> tailwind.config.js`。其中 `theme.tokens.json` 是 `@google/design.md` 的 raw 导出，`theme.tailwind.json` 是项目内适配层产物，负责把第三方导出格式映射到本项目稳定的 Tailwind 语义结构。
+
+**推荐命令**：
+
+```bash
+pnpm run tokens:export
+pnpm run tokens:check
+```
+
+- `tokens:export`：从 `design.md` 生成 `theme.tokens.json` 和 `theme.tailwind.json`
+- `tokens:check`：同时校验 raw 导出结构、Tailwind 适配结果，以及 `design.md` 与 `src/core/theme/tokens.ts` 中 `lightTokens` 默认值的一致性
 
 **开箱即用**：`DefaultLayout` 顶栏右侧的 `ThemeSwitcher` 可切「亮/暗」与 5 套主色预设（蓝/绿/紫/橙/红）。登录后访问侧边栏「**主题预览**」（路由 `/theme-preview`，admin 可见）可对照色板 / antd 全组件 / VXE 表格 / ECharts 图表 / 业务卡片，肉眼验证联动效果。
 
@@ -1058,13 +1071,14 @@ pnpm add -D @vitejs/plugin-legacy terser
 
 开启后 `vite build` 会额外输出 SystemJS + polyfill 包，兼容到 Chrome ≥64 / Edge ≥79 / Firefox ≥67 / Safari ≥12。开关关闭或不装包时，构建与产物与 A 方案完全一致——`vite.config.ts` 用 dynamic import 按需加载，开启但未安装会抛清晰报错指引安装。
 
-### 7.9 项目文档页（应用内阅读 README）
+### 7.9 项目文档页（应用内阅读项目 Markdown）
 
-内置一个「项目文档」页（路由 `/readme`，菜单「项目文档」，admin 可见），在应用内渲染项目根 `README.md`，离线可读。代码在 `src/pages/readme/`，渲染器是通用组件 `src/shared/components/markdown/MarkdownViewer.vue`。
+内置一个「项目文档」页（路由 `/readme`，菜单「项目文档」，admin 可见），在应用内离线预览项目内常用 Markdown。代码在 `src/pages/readme/`，渲染器是通用组件 `src/shared/components/markdown/MarkdownViewer.vue`。
 
 **实现要点**：
 
-- **内容源**：构建期用 `import.meta.glob('/README.md', { query: '?raw', import: 'default', eager: true })` 把项目根 README 打包成字符串（无需运行时 fetch、不依赖网络）。换源读其他 md（如 `/docs/xxx.md`）只改这个路径。
+- **内容源**：构建期用 `import.meta.glob([...], { query: '?raw', import: 'default', eager: true })` 收录项目内白名单目录下的 Markdown，目前包含根目录文档、`docs/**/*.md`、`src/**/*.md`、`build-plugins/**/*.md`、`scripts/**/*.md`，避免把 `node_modules` 之类依赖文档打包进来。
+- **切换方式**：页面顶部下拉和左侧目录共用同一份文档索引，路由仍是 `/readme`，当前文件通过查询参数传递，例如 `/readme?file=/docs/ARCHITECTURE.md`。
 - **渲染**：`markdown-it` 转 HTML 后用 `v-html` 注入；样式引用主题 CSS 变量，自动跟随亮暗 / 主色；代码块统一深色背景（**未做语法高亮**，需要时可经 markdown-it 的 `highlight` 选项接入 highlight.js / shiki）。
 
 **复用渲染器**（任何「Markdown 字符串 → 排版正文」的场景）：
@@ -1417,6 +1431,8 @@ src/pages/<domain>/
 | `pnpm lint`             | ESLint 检查并修复 + Prettier 格式化 `src/**/*.{vue,ts,css}` |
 | `pnpm test`             | `vitest run` 跑一次单测                                     |
 | `pnpm test:watch`       | Vitest 监听模式                                             |
+| `pnpm tokens:export`    | 从 `design.md` 导出 raw tokens，并生成项目内 Tailwind 适配文件 |
+| `pnpm tokens:check`     | 校验导出结构、Tailwind 适配结果，以及 `design.md` 与 `lightTokens` 默认值一致性 |
 | `pnpm scaffold`         | 显示脚手架帮助                                              |
 | `pnpm scaffold:domain`  | 交互式创建业务域                                            |
 | `pnpm scaffold:feature` | 交互式创建特性                                              |

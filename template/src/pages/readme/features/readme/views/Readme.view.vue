@@ -1,58 +1,292 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import MarkdownViewer from '@/shared/components/markdown/MarkdownViewer.vue';
 import MarkdownOutline from '@/shared/components/markdown/MarkdownOutline.vue';
 import { BackToTop } from '@/shared/components/back-to-top';
 import type { Heading } from '@/shared/components/markdown/heading';
 
-/**
- * 项目文档页：应用内阅读 README.md，左侧大纲可点击跳转（Typora / GitHub 浅色阅读风）。
- *
- * 内容来源：构建期通过 import.meta.glob 读取项目根 README.md 的原始文本（?raw）。
- *   - '/' = Vite 项目根（即 template/），故 '/README.md' 命中 template/README.md；
- *   - eager + import:'default'：构建时同步打包为字符串，无需运行时 fetch；
- *   - 换源：改下方 glob 的路径即可读取其他 md（如 '/docs/xxx.md'）。
- */
+interface MarkdownDocItem {
+  path: string;
+  label: string;
+  source: string;
+}
+
 defineOptions({ name: 'ReadmeView' });
 
-const readmeModules = import.meta.glob('/README.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
-
-const readmeRaw = readmeModules['/README.md'] ?? '';
-
-// MarkdownViewer 渲染后回传的标题列表，喂给左侧大纲
+const route = useRoute();
+const router = useRouter();
 const headings = ref<Heading[]>([]);
+
+const SIDE_WIDTH = 260;
+const SIDE_GAP = 16;
+const STORAGE_KEY = 'readme-view:panel-state';
+
+function loadPanelState(): { leftCollapsed: boolean; rightCollapsed: boolean } {
+  if (typeof window === 'undefined') {
+    return { leftCollapsed: false, rightCollapsed: false };
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return { leftCollapsed: false, rightCollapsed: false };
+    }
+
+    const parsed = JSON.parse(raw) as Partial<{
+      leftCollapsed: boolean;
+      rightCollapsed: boolean;
+    }>;
+
+    return {
+      leftCollapsed: parsed.leftCollapsed === true,
+      rightCollapsed: parsed.rightCollapsed === true,
+    };
+  } catch {
+    return { leftCollapsed: false, rightCollapsed: false };
+  }
+}
+
+const initialPanelState = loadPanelState();
+const isLeftCollapsed = ref(initialPanelState.leftCollapsed);
+const isRightCollapsed = ref(initialPanelState.rightCollapsed);
+
+const markdownModules = import.meta.glob(
+  [
+    '/README.md',
+    '/ARCHITECTURE.md',
+    '/design.md',
+    '/theme.md',
+    '/docs/**/*.md',
+    '/src/**/*.md',
+    '/build-plugins/**/*.md',
+    '/scripts/**/*.md',
+  ],
+  {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  },
+) as Record<string, string>;
+
+const ROOT_DOC_PRIORITY = ['/README.md', '/ARCHITECTURE.md', '/design.md', '/theme.md'] as const;
+const FALLBACK_DOC_PATH = '/README.md';
+
+function getDocBucket(path: string): number {
+  const rootIndex = ROOT_DOC_PRIORITY.indexOf(path as (typeof ROOT_DOC_PRIORITY)[number]);
+  if (rootIndex >= 0) {
+    return rootIndex;
+  }
+
+  if (path.startsWith('/docs/')) {
+    return 10;
+  }
+
+  if (path.startsWith('/src/')) {
+    return 20;
+  }
+
+  if (path.startsWith('/build-plugins/')) {
+    return 30;
+  }
+
+  if (path.startsWith('/scripts/')) {
+    return 40;
+  }
+
+  return 50;
+}
+
+const documents = computed<MarkdownDocItem[]>(() =>
+  Object.entries(markdownModules)
+    .map(([path, source]) => ({
+      path,
+      label: path.slice(1),
+      source,
+    }))
+    .sort((left, right) => {
+      const bucketDiff = getDocBucket(left.path) - getDocBucket(right.path);
+      if (bucketDiff !== 0) {
+        return bucketDiff;
+      }
+
+      return left.label.localeCompare(right.label);
+    }),
+);
+
+const availableDocPaths = computed(() => new Set(documents.value.map((item) => item.path)));
+
+const currentDocPath = computed(() => {
+  const file = typeof route.query.file === 'string' ? route.query.file : '';
+  if (file && availableDocPaths.value.has(file)) {
+    return file;
+  }
+
+  if (availableDocPaths.value.has(FALLBACK_DOC_PATH)) {
+    return FALLBACK_DOC_PATH;
+  }
+
+  return documents.value[0]?.path ?? '';
+});
+
+const currentDoc = computed(
+  () => documents.value.find((item) => item.path === currentDocPath.value) ?? null,
+);
+
+const contentStyle = computed(() => ({
+  paddingLeft: `${isLeftCollapsed.value ? 0 : SIDE_WIDTH + SIDE_GAP}px`,
+  paddingRight: `${isRightCollapsed.value ? 0 : SIDE_WIDTH + SIDE_GAP}px`,
+}));
+
+function updateCurrentFile(path: string) {
+  void router.replace({
+    query: {
+      ...route.query,
+      file: path,
+    },
+  });
+}
+
+function toggleLeftCollapsed() {
+  isLeftCollapsed.value = !isLeftCollapsed.value;
+}
+
+function toggleRightCollapsed() {
+  isRightCollapsed.value = !isRightCollapsed.value;
+}
+
+watch(
+  [isLeftCollapsed, isRightCollapsed],
+  ([leftCollapsed, rightCollapsed]) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        leftCollapsed,
+        rightCollapsed,
+      }),
+    );
+  },
+  { immediate: true },
+);
+
+watch(
+  [documents, currentDocPath],
+  ([nextDocs, nextPath]) => {
+    if (!nextPath || nextDocs.length === 0) {
+      return;
+    }
+
+    const queryFile = typeof route.query.file === 'string' ? route.query.file : '';
+    if (queryFile !== nextPath) {
+      updateCurrentFile(nextPath);
+    }
+  },
+  { immediate: true },
+);
+
+watch(currentDocPath, () => {
+  headings.value = [];
+});
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <!-- 顶部说明：素雅白底卡片（与 Typora 正文协调） -->
-    <div
-      class="flex items-center justify-between gap-4 flex-wrap p-5 rounded-lg bg-white border border-[#d0d7de]"
+  <div class="relative h-full min-h-0">
+    <aside
+      v-if="!isLeftCollapsed"
+      class="absolute left-0 top-0 z-10 h-full w-[260px] overflow-hidden rounded-lg border border-[#d0d7de] bg-white"
     >
-      <div class="min-w-0">
-        <h2 class="m-0 mb-1 text-2xl font-bold text-[#1f2328]">项目文档</h2>
-        <p class="m-0 text-sm leading-relaxed text-[#57606a]">
-          即项目根目录的 README.md，构建期打包进来，离线可读。左侧大纲点击可跳转到对应章节。
-        </p>
+      <div class="border-b border-[#d8dee4] px-3 py-3">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-[#1f2328]">文档目录</span>
+          <div class="flex items-center gap-2">
+            <a-tag color="blue">{{ documents.length }}</a-tag>
+            <button
+              class="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-[#57606a] transition hover:border-[#d0d7de] hover:bg-[#f6f8fa] hover:text-[#1f2328]"
+              type="button"
+              @click="toggleLeftCollapsed"
+            >
+              <span aria-hidden="true">&lt;</span>
+            </button>
+          </div>
+        </div>
+        <div class="mt-2 truncate text-xs text-[#57606a]">
+          {{ currentDoc?.label ?? '暂无文档' }}
+        </div>
       </div>
-      <a-tag color="blue">README.md</a-tag>
-    </div>
+      <div class="h-[calc(100%-57px)] overflow-y-auto p-2">
+        <a-menu
+          :selected-keys="currentDocPath ? [currentDocPath] : []"
+          mode="inline"
+          @select="({ key }) => updateCurrentFile(String(key))"
+        >
+          <a-menu-item v-for="item in documents" :key="item.path">
+            <span class="block truncate">{{ item.label }}</span>
+          </a-menu-item>
+        </a-menu>
+      </div>
+    </aside>
 
-    <!-- 左：sticky 大纲（窄屏 lg 以下隐藏）；右：Markdown 正文（自带白底卡片） -->
-    <div class="flex items-start gap-4">
-      <aside class="hidden lg:block w-60 shrink-0">
+    <aside
+      v-if="!isRightCollapsed"
+      class="absolute right-0 top-0 z-10 h-full w-[260px] overflow-hidden rounded-lg border border-[#d0d7de] bg-white"
+    >
+      <div class="border-b border-[#d8dee4] px-3 py-3">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-[#1f2328]">文档大纲</span>
+          <button
+            class="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-[#57606a] transition hover:border-[#d0d7de] hover:bg-[#f6f8fa] hover:text-[#1f2328]"
+            type="button"
+            @click="toggleRightCollapsed"
+          >
+            <span aria-hidden="true">&gt;</span>
+          </button>
+        </div>
+      </div>
+      <div class="h-[calc(100%-49px)] overflow-y-auto">
         <MarkdownOutline :headings="headings" />
-      </aside>
-      <div class="flex-1 min-w-0">
-        <MarkdownViewer :source="readmeRaw" @headings="headings = $event" />
+      </div>
+    </aside>
+
+    <div class="h-full min-h-0 transition-all duration-200" :style="contentStyle">
+      <div class="h-full min-h-0 overflow-y-auto">
+        <MarkdownViewer
+          v-if="currentDoc"
+          :source="currentDoc.source"
+          @headings="headings = $event"
+        />
+        <div
+          v-else
+          class="flex h-full items-center justify-center rounded-lg border border-dashed border-[#d0d7de] bg-white px-6 text-sm text-[#57606a]"
+        >
+          No Markdown documents are available for preview.
+        </div>
+
+        <BackToTop />
       </div>
     </div>
 
-    <!-- 文档过长时，右下角返回顶部（fixed，不占文档流） -->
-    <BackToTop />
+    <div v-if="isLeftCollapsed" class="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center">
+      <button
+        class="pointer-events-auto flex h-16 w-6 items-center justify-center rounded-r-full border border-l-0 border-[#d0d7de] bg-white/92 text-[#57606a] shadow-sm backdrop-blur transition hover:w-7 hover:text-[#1f2328]"
+        type="button"
+        @click="toggleLeftCollapsed"
+      >
+        <span aria-hidden="true">&gt;</span>
+      </button>
+    </div>
+
+    <div v-if="isRightCollapsed" class="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-center">
+      <button
+        class="pointer-events-auto flex h-16 w-6 items-center justify-center rounded-l-full border border-r-0 border-[#d0d7de] bg-white/92 text-[#57606a] shadow-sm backdrop-blur transition hover:w-7 hover:text-[#1f2328]"
+        type="button"
+        @click="toggleRightCollapsed"
+      >
+        <span aria-hidden="true">&lt;</span>
+      </button>
+    </div>
   </div>
 </template>
