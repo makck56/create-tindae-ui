@@ -21,3 +21,10 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// less 主题覆盖文件以 ?inline 形式 import：Vite 先经 less 预处理编译为 CSS，再以字符串返回（不自动注入 DOM）。
+// vite/client 默认仅声明了 *.less（注入）与 *.css?inline，未覆盖「预处理器 + ?inline」组合，此处补齐。
+declare module '*.less?inline' {
+  const css: string;
+  export default css;
+}

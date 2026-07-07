@@ -1,0 +1,110 @@
+/*
+ * antd 主题覆盖 · 反馈与状态类（Spin / Progress / Steps / Tag / Alert / Badge / Tree）。
+ * 加载机制见 ./base.less。
+ */
+
+/* ============ 加载条 Spin ============ */
+.ant-spin-dot-item {
+  background-color: var(--color-primary);
+}
+
+/* ============ 进度条 Progress ============ */
+/* 线型填充条：正常态跟随主色；success / exception 态由 antd 状态类（更高特异性）保护，仍为绿 / 红 */
+.ant-progress-bg {
+  background-color: var(--color-primary);
+}
+.ant-progress-circle .ant-progress-circle-path {
+  stroke: var(--color-primary);
+}
+
+/* ============ 步骤条 Steps ============ */
+/* 选择器对齐 antd 的 .ant-steps-item > .ant-steps-item-container > .ant-steps-item-icon
+   结构（特异性 3 class）——否则会被 antd 同结构的高特异性规则压过，导致「切预设不变色」。 */
+.ant-steps-item-process > .ant-steps-item-container > .ant-steps-item-icon {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+
+  /* 进行中步骤：数字 / 图标反色（Steps 最显眼的主色呈现）*/
+  .ant-steps-icon {
+    color: var(--text-inverse);
+  }
+  /* 小尺寸步骤（size=small）的进行中态是实心圆点 .ant-steps-icon-dot，需反色才能在主色底上可见 */
+  .ant-steps-icon-dot {
+    background-color: var(--text-inverse);
+  }
+}
+/* 已完成步骤：图标边框 + 勾主色 */
+.ant-steps-item-finish > .ant-steps-item-container > .ant-steps-item-icon {
+  border-color: var(--color-primary);
+
+  > .ant-steps-icon {
+    color: var(--color-primary);
+  }
+}
+/* 已完成步骤之后的连接线主色 */
+.ant-steps-item-finish > .ant-steps-item-container > .ant-steps-item-tail::after {
+  background-color: var(--color-primary);
+}
+
+/* ============ 标签 Tag（状态色：processing 跟主色，其余跟功能色）============ */
+/* antd 状态 Tag = 白底 + 色边框 + 色文字；只改边框与文字色，背景保持 antd 默认 */
+.ant-tag-status-processing {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.ant-tag-status-success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.ant-tag-status-warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+.ant-tag-status-error {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* ============ 警告提示 Alert（info 跟主色，其余跟功能色）============ */
+/* antd Alert = 浅 tint 背景 + 色边框 + 色图标；背景 tint 由 color-mix 现场混合，亮 / 暗皆协调 */
+.ant-alert-info {
+  background-color: color-mix(in srgb, var(--color-primary) 8%, var(--bg-container));
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--bg-container));
+
+  .ant-alert-icon {
+    color: var(--color-primary);
+  }
+}
+.ant-alert-success {
+  background-color: color-mix(in srgb, var(--color-success) 8%, var(--bg-container));
+  border-color: color-mix(in srgb, var(--color-success) 30%, var(--bg-container));
+
+  .ant-alert-icon {
+    color: var(--color-success);
+  }
+}
+.ant-alert-warning {
+  background-color: color-mix(in srgb, var(--color-warning) 8%, var(--bg-container));
+  border-color: color-mix(in srgb, var(--color-warning) 30%, var(--bg-container));
+
+  .ant-alert-icon {
+    color: var(--color-warning);
+  }
+}
+.ant-alert-error {
+  background-color: color-mix(in srgb, var(--color-danger) 8%, var(--bg-container));
+  border-color: color-mix(in srgb, var(--color-danger) 30%, var(--bg-container));
+
+  .ant-alert-icon {
+    color: var(--color-danger);
+  }
+}
+
+/* Badge 计数色 */
+.ant-badge-status-processing::after {
+  border-color: var(--color-primary);
+}
+/* 选中行 / 树选中态 */
+.ant-tree .ant-tree-node-selected {
+  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}

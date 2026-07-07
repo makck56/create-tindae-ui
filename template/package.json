@@ -19,6 +19,7 @@
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.0",
     "ant-design-vue": "^3.2.0",
+    "dayjs": "^1.11.13",
     "axios": "^1.7.0",
     "echarts": "^5.5.0",
     "jsencrypt": "^3.5.4",
@@ -47,6 +48,7 @@
     "fast-glob": "^3.3.3",
     "handlebars": "^4.7.8",
     "jsdom": "^24.0.0",
+    "less": "^4.2.0",
     "magic-string": "^0.30.21",
     "msw": "^2.14.6",
     "postcss": "^8.4.0",
