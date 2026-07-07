@@ -973,7 +973,20 @@ message.success(COPY.COMMON.SUCCESS);
 
 ### 7.7 主题系统与统一换肤
 
-一份 TS Token 驱动四端配色：切换亮暗或主色预设时，Tailwind 工具类、Ant Design Vue 组件、VXE Table、ECharts 图表全部自动联动，选择持久化到 `localStorage`。代码在 `src/core/theme/`。
+当前主题链路分成两层：
+
+- **运行时真源**：`src/core/theme/` 里的 `ThemeTokens` 驱动 Tailwind、Ant Design Vue、VXE Table、ECharts 四端联动；现在已纳入 `colors / text / bg / border / typography / spacing / radius / layout`。
+- **设计稿导出链路**：`design.md -> theme.tokens.json -> theme.tailwind.json -> tailwind.config.js`。其中 `theme.tokens.json` 是 `@google/design.md` 的 raw 导出，`theme.tailwind.json` 是项目内适配层产物，负责把第三方导出格式映射到本项目稳定的 Tailwind 语义结构。
+
+**推荐命令**：
+
+```bash
+pnpm run tokens:export
+pnpm run tokens:check
+```
+
+- `tokens:export`：从 `design.md` 生成 `theme.tokens.json` 和 `theme.tailwind.json`
+- `tokens:check`：同时校验 raw 导出结构、Tailwind 适配结果，以及 `design.md` 与 `src/core/theme/tokens.ts` 中 `lightTokens` 默认值的一致性
 
 **开箱即用**：`DefaultLayout` 顶栏右侧的 `ThemeSwitcher` 可切「亮/暗」与 5 套主色预设（蓝/绿/紫/橙/红）。登录后访问侧边栏「**主题预览**」（路由 `/theme-preview`，admin 可见）可对照色板 / antd 全组件 / VXE 表格 / ECharts 图表 / 业务卡片，肉眼验证联动效果。
 
@@ -1361,6 +1374,8 @@ src/pages/<domain>/
 | `pnpm lint` | ESLint 检查并修复 + Prettier 格式化 `src/**/*.{vue,ts,css}` |
 | `pnpm test` | `vitest run` 跑一次单测 |
 | `pnpm test:watch` | Vitest 监听模式 |
+| `pnpm tokens:export` | 从 `design.md` 导出 raw tokens，并生成项目内 Tailwind 适配文件 |
+| `pnpm tokens:check` | 校验导出结构、Tailwind 适配结果，以及 `design.md` 与 `lightTokens` 默认值一致性 |
 | `pnpm scaffold` | 显示脚手架帮助 |
 | `pnpm scaffold:domain` | 交互式创建业务域 |
 | `pnpm scaffold:feature` | 交互式创建特性 |

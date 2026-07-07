@@ -10,6 +10,8 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.ts,.tsx --fix && prettier --write \"src/**/*.{vue,ts,css}\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "tokens:check": "tsx ./scripts/check-theme-consistency.ts",
+    "tokens:export": "node ./scripts/export-theme-tokens.mjs",
     "scaffold": "tsx scripts/scaffold.ts",
     "scaffold:domain": "tsx scripts/scaffold.ts domain",
     "scaffold:feature": "tsx scripts/scaffold.ts feature"
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@babel/parser": "^7.29.3",
+    "@google/design.md": "^0.3.0",
     "@types/handlebars": "^4.1.0",
     "@types/markdown-it": "^14.0.0",
     "@types/node": "^18.19.0",

@@ -1,16 +1,63 @@
-import type { ThemeTokens, ThemeMode } from './types';
+import type { ThemeMode, ThemeTokens } from './types';
 
-/**
- * 主题 Token 默认值 —— 亮色 / 暗色两套基础配色。
- *
- * 配色取值与 Ant Design 默认色板对齐（#1890ff 为主色），
- * 这样默认状态下 antd 原生样式与 Token 驱动的覆盖层视觉一致，
- * 切换主色 / 暗色时才显式体现差异。
- *
- * 所有对象均以字面量声明，配合 types.ts 的 readonly 接口形成不可变约束。
- */
+const APP_SANS =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
-/** 亮色主题 Token：默认配色 */
+const sharedTypography = {
+  headingXl: {
+    fontFamily: APP_SANS,
+    fontSize: '28px',
+    fontWeight: '600',
+    lineHeight: '36px',
+  },
+  headingLg: {
+    fontFamily: APP_SANS,
+    fontSize: '24px',
+    fontWeight: '600',
+    lineHeight: '32px',
+  },
+  headingMd: {
+    fontFamily: APP_SANS,
+    fontSize: '20px',
+    fontWeight: '600',
+    lineHeight: '28px',
+  },
+  bodyLg: {
+    fontFamily: APP_SANS,
+    fontSize: '18px',
+    fontWeight: '400',
+    lineHeight: '28px',
+  },
+  bodyMd: {
+    fontFamily: APP_SANS,
+    fontSize: '16px',
+    fontWeight: '400',
+    lineHeight: '24px',
+  },
+  bodySm: {
+    fontFamily: APP_SANS,
+    fontSize: '14px',
+    fontWeight: '400',
+    lineHeight: '22px',
+  },
+  label: {
+    fontFamily: APP_SANS,
+    fontSize: '12px',
+    fontWeight: '500',
+    lineHeight: '20px',
+  },
+} as const;
+
+const sharedSpacing = {
+  unit: '4px',
+  xs: '4px',
+  sm: '8px',
+  md: '16px',
+  lg: '24px',
+  xl: '32px',
+  '2xl': '48px',
+} as const;
+
 export const lightTokens: ThemeTokens = {
   colors: {
     primary: { DEFAULT: '#1890ff', hover: '#40a9ff', active: '#096dd9', disabled: '#91d5ff' },
@@ -39,11 +86,12 @@ export const lightTokens: ThemeTokens = {
     lighter: '#f0f0f0',
     extraLight: '#f5f5f5',
   },
+  typography: sharedTypography,
+  spacing: sharedSpacing,
   radius: { sm: '2px', base: '4px', md: '6px', lg: '8px', xl: '12px' },
   layout: { sidebarWidth: '220px', sidebarCollapsedWidth: '80px', headerHeight: '48px' },
 };
 
-/** 暗色主题 Token：参考 antd 暗色色板（v4 dark algorithm 取色思路） */
 export const darkTokens: ThemeTokens = {
   colors: {
     primary: { DEFAULT: '#177ddc', hover: '#1890ff', active: '#096dd9', disabled: '#16486e' },
@@ -63,7 +111,6 @@ export const darkTokens: ThemeTokens = {
     page: '#141414',
     container: '#1f1f1f',
     elevated: '#262626',
-    // 暗色下「white」语义退化为容器色：业务里 bg-white 的区块不会刺眼地泛白
     white: '#1f1f1f',
     subtle: '#262626',
   },
@@ -73,17 +120,12 @@ export const darkTokens: ThemeTokens = {
     lighter: '#262626',
     extraLight: '#1f1f1f',
   },
+  typography: sharedTypography,
+  spacing: sharedSpacing,
   radius: { sm: '2px', base: '4px', md: '6px', lg: '8px', xl: '12px' },
   layout: { sidebarWidth: '220px', sidebarCollapsedWidth: '80px', headerHeight: '48px' },
 };
 
-/**
- * 根据模式获取对应 Token 集。
- * 保持纯函数 + 不可变返回（直接返回常量引用，调用方不应修改）。
- *
- * @param mode 主题模式
- * @returns 该模式下的完整 Token 集合
- */
 export function getTokensByMode(mode: ThemeMode): ThemeTokens {
   return mode === 'dark' ? darkTokens : lightTokens;
 }
