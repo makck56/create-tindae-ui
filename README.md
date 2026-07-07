@@ -1007,6 +1007,8 @@ const { setOption } = useEcharts(el, echarts);   // 自动：主题注入 + 容�
 onMounted(() => setOption({ series: [{ type: 'bar', data: [...] }] }));
 ```
 
+**调整 antd 组件的主题覆盖**：antd v3 主色在编译期固化为字面色，运行时跟随主题靠覆盖样式实现。覆盖样式按组件类别拆分为 `src/core/theme/bridges/antd/*.less`（`base` / `buttons` / `selection` / `navigation` / `inputs` / `feedback` / `containers` / `picker` / `misc`），由 `bridges/antd.ts` 用 Vite `?inline` 编译拼接后注入 `<head>`（位于 antd.css 之后，同特异性下后加载胜）。改某个组件的主题表现直接编辑对应 `.less` 即可（开发期 HMR 即时生效），新增组件覆盖按同模板追加规则。注意主题色为运行时 CSS 变量，less 仅用嵌套 / mixin 组织代码，其变量与颜色函数（`lighten` 等）对 `var()` 无效。日期类组件（DatePicker / TimePicker / Calendar）依赖 dayjs，中文 locale 已在 `core/plugins/antd.ts` 统一注入。
+
 > 完整机制（SSOT 架构图、模块结构、扩展预设 / 自定义 Token、antd v3 局限与升级路径、Design Token 速查表）见 [`theme.md`](./theme.md)。
 
 ### 7.8 浏览器版本支持
