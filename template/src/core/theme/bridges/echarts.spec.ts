@@ -1,10 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import {
-  buildEChartsTheme,
-  registerAppEChartsTheme,
-  ECHARTS_THEME_NAME,
-} from './echarts';
-import type { EChartsRuntime } from './echarts';
+import { describe, it, expect } from 'vitest';
+import { buildEChartsTheme } from './echarts';
 import { lightTokens } from '../tokens';
 
 describe('buildEChartsTheme', () => {
@@ -42,21 +37,5 @@ describe('buildEChartsTheme', () => {
     };
     expect(axis.axisLabel.color).toBe(lightTokens.text.secondary);
     expect(axis.splitLine.lineStyle.color).toBe(lightTokens.border.lighter);
-  });
-});
-
-describe('registerAppEChartsTheme', () => {
-  it('以 ECHARTS_THEME_NAME 注册，内容为 buildEChartsTheme 产物', () => {
-    const registerTheme = vi.fn();
-    const init = vi.fn();
-    const runtime: EChartsRuntime = { registerTheme, init };
-
-    registerAppEChartsTheme(runtime, lightTokens);
-
-    expect(registerTheme).toHaveBeenCalledTimes(1);
-    expect(registerTheme).toHaveBeenCalledWith(
-      ECHARTS_THEME_NAME,
-      expect.objectContaining({ backgroundColor: lightTokens.bg.container }),
-    );
   });
 });

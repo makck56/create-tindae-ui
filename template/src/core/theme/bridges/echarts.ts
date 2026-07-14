@@ -1,35 +1,15 @@
 import type { ThemeTokens } from '../types';
 
 /**
- * ECharts 主题桥接层 —— 把主题 Token 翻译成 ECharts 的主题 option。
+ * ECharts 主题桥接层 —— 把主题 Token 翻译成 ECharts 的主题 option（纯函数）。
  *
- * 与 antd / vxe 桥接不同：ECharts 是「命令式」渲染，没有 CSS 变量可用，
- * 必须通过 `echarts.registerTheme(name, option)` 注册一份主题 option，
- * 实例化时 `echarts.init(dom, name)` 应用；主题变化时需重新注册 + 刷新实例。
+ * 与 antd / vxe 桥接不同：ECharts 是「命令式」canvas 渲染，没有 CSS 变量可用，
+ * 需把主题作为数据交给 echarts 实例。本文件只负责「Token → theme option」的翻译，
+ * 不 import echarts 运行时（保持主题模块轻量、可单测、不进首屏主包）。
  *
- * 设计要点：
- * 1. 本文件是「纯数据翻译」，不 import echarts（避免主题模块强行绑定 echarts 依赖），
- *    由调用方（registerAppEChartsTheme / useEcharts）传入 echarts 运行时；
- * 2. buildEChartsTheme 为纯函数，输出标准 ECharts theme option，可直接单测；
- * 3. 颜色取自语义 Token，与 Tailwind / antd / vxe 视觉统一。
+ * 消费方式：shared/components/BaseChart 把本函数产物作为 :theme 传给 <VChart>（vue-echarts）。
+ * 切主题时 vue-echarts（配合 echarts 6+）走实例级 setTheme 热更新，不重建实例、不丢事件。
  */
-
-/** 注册到 echarts 的主题名（init 时作为第二参数传入） */
-export const ECHARTS_THEME_NAME = 'app-theme';
-
-/** ECharts 实例类型（结构化类型，避免直接 import echarts 的完整类型） */
-export interface EChartsInstance {
-  setOption(option: Record<string, unknown>, lazyUpdate?: boolean): unknown;
-  resize(): void;
-  dispose(): unknown;
-  getOption(): Record<string, unknown>;
-}
-
-/** echarts 运行时的最小结构化类型（仅声明主题桥接用到的 API） */
-export interface EChartsRuntime {
-  registerTheme(name: string, option: Record<string, unknown>): unknown;
-  init(el: HTMLElement, theme?: string): EChartsInstance;
-}
 
 /**
  * 由主题 Token 生成 ECharts 主题 option（纯函数）。
@@ -42,7 +22,7 @@ export interface EChartsRuntime {
  * - 提示框 / 图例的配色细节。
  *
  * @param tokens 当前生效的完整 Token
- * @returns 可直接传给 echarts.registerTheme 的主题 option
+ * @returns 标准 ECharts theme option，可直接作为 <VChart :theme="..."> 的对象主题
  */
 export function buildEChartsTheme(tokens: ThemeTokens): Record<string, unknown> {
   const { colors, text, bg, border } = tokens;
@@ -127,18 +107,4 @@ export function buildEChartsTheme(tokens: ThemeTokens): Record<string, unknown> 
       },
     },
   };
-}
-
-/**
- * 将当前 Token 注册为 ECharts 主题（写入 echarts 内部主题表）。
- * 主题变化时重复调用即可覆盖同名主题，实例刷新后即生效。
- *
- * @param echarts 业务按需 import 的 echarts 运行时
- * @param tokens  当前生效的完整 Token
- */
-export function registerAppEChartsTheme(
-  echarts: EChartsRuntime,
-  tokens: ThemeTokens,
-): void {
-  echarts.registerTheme(ECHARTS_THEME_NAME, buildEChartsTheme(tokens));
 }

@@ -1,23 +1,18 @@
 import type { App } from 'vue';
 
 /**
- * ECharts 运行时入口。
+ * ECharts 运行时入口（占位）。
  *
- * 主题说明：echarts 体积大，模板项目约定「由业务组件按需 import echarts」，
- * 因此本 setup 不强制引入 echarts。主题配色由 core/theme 统一接管：
- *   - core/theme/bridges/echarts.ts 提供 buildEChartsTheme（Token → ECharts 主题 option，纯函数）；
- *   - core/theme/composables/useEcharts.ts 提供 useEcharts(el, echarts)，
- *     自动完成「主题注入 + 容器 resize 自适应 + 切主题重建实例并回放 option」。
+ * 项目通过 vue-echarts 的 <VChart> + shared/components/BaseChart 使用 echarts：
+ *   - BaseChart 内部把 core/theme 的 buildEChartsTheme 产物作为 :theme 注入；
+ *   - echarts / vue-echarts 由 BaseChart（被懒加载路由的图表页引用）按需引入，不进首屏主包；
+ *   - 切主题时 vue-echarts（echarts 6+）走实例级 setTheme 热更新，不重建实例。
  *
- * 业务推荐用法（无需调用本 setup）：
- *   import * as echarts from 'echarts';
- *   import { useEcharts } from '@/core/theme';
- *   const el = ref<HTMLElement>();
- *   const { setOption } = useEcharts(el, echarts);
- *   onMounted(() => setOption({ series: [...] }));
+ * 依赖约束：vue-echarts 8 的 peerDep 为 echarts ^6，故项目锁定 echarts 6。
  *
- * 若确有「全局预注册 echarts 主题 / 组件」的需求，可在此扩展 setupEcharts（传入 echarts 运行时）。
+ * 业务用法：见 shared/components/BaseChart（声明式 <BaseChart :option="..." />）。
+ * 若确有「全局预注册 echarts 组件 / 自定义渲染器」需求，可在此扩展 setupEcharts。
  */
 export function setupEcharts(_app: App): void {
-  // 暂无全局预注册需求：主题由 core/theme 在各图表实例化时按需注入。
+  // 暂无全局预注册需求：echarts 由 BaseChart 按需引入，主题由 core/theme 提供纯函数翻译。
 }

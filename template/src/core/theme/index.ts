@@ -8,18 +8,12 @@ import { readPersistedTheme } from './stores/theme.store';
 // ============ 公开 API 重新导出 ============
 // 组合式 API / store
 export { useTheme } from './composables/useTheme';
-export { useEcharts } from './composables/useEcharts';
 export { useThemeStore, readPersistedTheme, THEME_STORAGE_KEY } from './stores/theme.store';
 // 预设与 Token 数据
 export { THEME_PRESETS, DEFAULT_PRESET_KEY, findPreset } from './presets';
 export { lightTokens, darkTokens, getTokensByMode } from './tokens';
-// ECharts 主题桥接（buildEChartsTheme 为纯函数，不依赖 echarts 运行时）
-export {
-  buildEChartsTheme,
-  registerAppEChartsTheme,
-  ECHARTS_THEME_NAME,
-} from './bridges/echarts';
-export type { EChartsInstance, EChartsRuntime } from './bridges/echarts';
+// ECharts 主题桥接（纯函数，不依赖 echarts 运行时；由 shared/components/BaseChart 消费）
+export { buildEChartsTheme } from './bridges/echarts';
 // Provider 组件
 export { default as ThemeProvider } from './ThemeProvider.vue';
 // 类型

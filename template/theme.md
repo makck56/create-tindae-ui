@@ -175,34 +175,33 @@ const {
 
 ## 四、ECharts：自动跟随主题
 
-ECharts 是命令式渲染、无 CSS 变量可用，故通过「注册主题 + 实例化注入 + 切主题重建」实现联动。用 `useEcharts` 封装，业务无需关心细节：
+ECharts 是命令式 canvas 渲染、无 CSS 变量可用，故通过 vue-echarts 的 `<VChart>` + 项目封装的 `BaseChart` 接入主题：`BaseChart` 内部把 `core/theme` 的 `buildEChartsTheme(tokens)` 产物作为 `:theme` 注入；切主题时 vue-echarts（配合 echarts 6+）走**实例级 `setTheme` 热更新**，不重建实例、不丢事件/状态。业务侧声明式使用，无需关心主题：
 
 ```vue
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import * as echarts from 'echarts';          // 业务按需 import（全量或按需 register）
-import { useEcharts } from '@/core/theme';
+import BaseChart from '@/shared/components/BaseChart/index.vue';
+import type { EChartsOption } from 'echarts';
 
-const el = ref<HTMLElement>();
-const { setOption } = useEcharts(el, echarts); // 自动：主题注入 + 容器 resize + 切主题重建回放
-
-onMounted(() => {
-  setOption({
-    xAxis: { type: 'category', data: ['周一', '周二'] },
-    yAxis: { type: 'value' },
-    series: [{ type: 'bar', data: [120, 200] }],
-  });
-});
+const option: EChartsOption = {
+  xAxis: { type: 'category', data: ['周一', '周二'] },
+  yAxis: { type: 'value' },
+  series: [{ type: 'bar', data: [120, 200] }],
+};
 </script>
 
 <template>
-  <div ref="el" class="h-80 w-full" />
+  <!-- 主题自动跟随；autoresize 默认开启；容器需给高度 -->
+  <BaseChart :option="option" class="h-80 w-full" />
 </template>
 ```
 
-切换亮暗 / 主色时，图表自动 `dispose → init(新主题) → 回放 option`，配色无缝刷新，不丢数据。容器尺寸变化由 `ResizeObserver` 自适应，无需手动 resize。
+切换亮暗 / 主色时，图表经实例级 `setTheme` 热更新配色，不重建实例、不丢数据。容器尺寸变化由 `autoresize`（默认开启）自适应，无需手动 resize。
 
-> 进阶：`buildEChartsTheme(tokens)` 是纯函数，可单独用于「预生成主题 option 落地」等场景；`registerAppEChartsTheme(echarts, tokens)` 把当前 token 注册为名为 `app-theme` 的 echarts 主题。
+> 设计约束：
+> - `buildEChartsTheme(tokens)` 是纯函数（不 import echarts 运行时），由 `BaseChart` 消费，主题模块保持轻量、不进首屏主包；
+> - echarts / vue-echarts 由 `BaseChart`（被懒加载路由引用）按需引入，首屏 0 echarts；
+> - **版本锁定**：vue-echarts 8 的 peerDep 为 echarts ^6，项目锁定 echarts 6（实例级 `setTheme` 热更新依赖此版本）；
+> - **联动图表**：`<BaseChart :option group="dashboard" />` + 一次性 `echarts.connect('dashboard')`（`group` 经 `$attrs` 透传给 VChart，主题重建后自动归回同名组）。
 
 ---
 
