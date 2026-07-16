@@ -62,9 +62,17 @@ export default defineConfig(async ({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-antd': ['ant-design-vue', '@ant-design/icons-vue'],
-            'vendor-vxe': ['vxe-table', 'xe-utils'],
+          // 函数形式：按模块路径把「已在打包图中」的依赖归类到 vendor chunk。
+          // 切勿用对象形式 { vendor: ['ant-design-vue'] }——那会按包入口(es/index.js)
+          // + 其全部依赖解析，而 antd 入口 import * as components(全组件)，
+          // 会强制把整个 antd 图拉进包，破坏 tree-shaking。
+          manualChunks(id) {
+            if (id.includes('ant-design-vue') || id.includes('@ant-design/icons-vue')) {
+              return 'vendor-antd';
+            }
+            if (id.includes('vxe-table') || id.includes('xe-utils')) {
+              return 'vendor-vxe';
+            }
           },
         },
       },

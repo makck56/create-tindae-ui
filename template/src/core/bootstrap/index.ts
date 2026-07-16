@@ -1,6 +1,6 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import { message } from 'ant-design-vue';
+import message from 'ant-design-vue/es/message';
 import App from '@/App.vue';
 import { setupRouter, router } from './router';
 import { configureHttp } from '@/core/http';

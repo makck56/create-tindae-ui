@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { message } from 'ant-design-vue';
+import message from 'ant-design-vue/es/message';
 import { getRoleList, deleteRole } from '../api/role.api';
 import { COPY } from '@/shared/constants/copy';
 

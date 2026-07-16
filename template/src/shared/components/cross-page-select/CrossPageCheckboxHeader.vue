@@ -1,7 +1,7 @@
 <script lang="tsx">
 import { defineComponent, ref, computed, type PropType } from 'vue'
 import { DownOutlined } from '@ant-design/icons-vue'
-import { Popover as APopover } from 'ant-design-vue'
+import APopover from 'ant-design-vue/es/popover'
 import { VxeCheckbox } from 'vxe-table'
 import { SELECTION_ALL_PAGES, SELECTION_NONE } from './types'
 import type { SelectionState } from './types'

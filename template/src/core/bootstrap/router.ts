@@ -18,8 +18,9 @@ const routes = [
     component: DefaultLayout,
     children: [
       ...userManagementRoutes,
-      ...readmeRoutes,
-      ...themePreviewRoutes,
+      // 预览(theme-preview)/文档(readme)页仅 dev 可用：prod 构建时 import.meta.env.DEV=false，
+      // 整段被 Vite 静态消除，其懒加载 chunk（echarts / markdown-it+highlight.js / 预览页 40+ antd 组件）不进生产包。
+      ...(import.meta.env.DEV ? [...readmeRoutes, ...themePreviewRoutes] : []),
       // @scaffold:domain-route ← 新域路由在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
       // 错误页子路由（403/404）置于所有业务路由之后：渲染在主内容区（保留侧边栏/顶栏/TabBar），
       // 用户仍可导航到其他菜单，而非被错误页占满整个视口；catch-all 仅兜底未匹配路径。

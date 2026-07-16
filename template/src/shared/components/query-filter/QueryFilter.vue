@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import {
-  Form as AForm,
-  FormItem as AFormItem,
-  Button as AButton,
-  Input as AInput,
-  Select as ASelect,
-  TreeSelect as ATreeSelect,
-  Cascader as ACascader,
-  DatePicker as ADatePicker,
-  RangePicker as ARangePicker,
-} from 'ant-design-vue';
+// 走深路径而非 'ant-design-vue' 根 barrel：根入口 es/index.js 的 install(Object.keys 遍历全组件)
+// 会破坏 tree-shaking，把全量 antd 钉进包。Form/FormItem/Button 模板用小写 <a-*>，已由 resolver 按需，无需 import。
+import AInput from 'ant-design-vue/es/input';
+import ASelect from 'ant-design-vue/es/select';
+import ATreeSelect from 'ant-design-vue/es/tree-select';
+import ACascader from 'ant-design-vue/es/cascader';
+import ADatePicker, { RangePicker as ARangePicker } from 'ant-design-vue/es/date-picker';
 import type { FilterItemConfig } from './types';
 import { COPY } from '@/shared/constants/copy';
 
