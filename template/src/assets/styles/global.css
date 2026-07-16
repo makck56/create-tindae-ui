@@ -4,6 +4,11 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
-  color: var(--color-text);
-  background-color: var(--color-bg);
+  /* 文字 / 背景统一引用主题变量（由 core/theme 运行时驱动，支持亮暗切换） */
+  color: var(--text-body);
+  background-color: var(--bg-page);
+  /* 模式切换时的过渡，避免硬切闪烁 */
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }

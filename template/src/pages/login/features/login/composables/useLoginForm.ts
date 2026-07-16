@@ -1,6 +1,6 @@
 import { reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import message from 'ant-design-vue/es/message';
 import { useAuthStore } from '@/modules/auth';
 import { COPY } from '@/shared/constants/copy';
 import { useRsaEncrypt } from './useRsaEncrypt';

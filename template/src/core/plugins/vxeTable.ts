@@ -1,10 +1,17 @@
 import type { App } from 'vue';
+// 主题说明：vxe-table 的「主色 / 表头 / 行 hover / 选中行 / 边框 / 分页」等核心视觉，
+// 由 core/theme/bridges/vxeTable.ts 注入的覆盖样式统一接管（引用 var(--color-*) 等语义变量），
+// 与 Tailwind / Ant Design Vue 三端联动换肤。本文件只负责「按需注册组件 + i18n」，不含主题逻辑。
 import VXETable from 'vxe-table/es/v-x-e-table';
 import zhCN from 'vxe-table/es/locale/lang/zh-CN';
 import Grid from 'vxe-table/es/grid';
 import Table from 'vxe-table/es/table';
 import Column from 'vxe-table/es/column';
 import Checkbox from 'vxe-table/es/checkbox';
+// 列筛选模块：vxe-grid 的 commitProxy('query') 内部会无条件调用
+// $xetable.getCheckedFilters()（无论业务是否使用列筛选），该方法由 filter 模块提供。
+// 若不注册，触发查询（如点击搜索、分页、reload）会报 "getCheckedFilters is not a function"。
+import Filter from 'vxe-table/es/filter';
 import Toolbar from 'vxe-table/es/toolbar';
 import Pager from 'vxe-table/es/vxe-pager';
 import Modal from 'vxe-table/es/vxe-modal';
@@ -15,6 +22,7 @@ import 'vxe-table/es/table/style.css';
 import 'vxe-table/es/column/style.css';
 import 'vxe-table/es/vxe-pager/style.css';
 import 'vxe-table/es/checkbox/style.css';
+import 'vxe-table/es/filter/style.css';
 import 'vxe-table/es/toolbar/style.css';
 import 'vxe-table/es/vxe-modal/style.css';
 import 'vxe-table/es/tooltip/style.css';
@@ -27,6 +35,9 @@ function getNestedValue(obj: any, path: string): string | undefined {
 
 export function setupVxeTable(app: App): void {
   VXETable.setup({ i18n: (key: string) => getNestedValue(messages, key) || key });
+  // 先注册 filter 模块：install 内部执行 VXETable.hooks.add('$tableFilter', ...)，
+  // 必须早于 grid 组件首次实例化，grid 实例才能拿到 getCheckedFilters 等方法。
+  app.use(Filter as any);
   app.component(Grid.name!, Grid);
   app.component(Table.name!, Table);
   app.component(Column.name!, Column);

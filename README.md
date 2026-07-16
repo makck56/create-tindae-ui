@@ -56,7 +56,7 @@
 | UI 库 | Ant Design Vue 3.2 | 按需自动导入（unplugin-vue-components） |
 | 表格 | VXE Table 4.3（`vxe-grid`） | 列表页主力 |
 | 图表 | ECharts 5.5 | |
-| CSS | Tailwind CSS 3.4 + CSS Variables | |
+| CSS | Tailwind CSS 3.4 + CSS Variables | 统一主题系统（亮暗 + 主色预设，见 [7.7](#77-主题系统与统一换肤)） |
 | Mock | MSW 2.14 | 仅开发环境启用 |
 | 测试 | Vitest 1.6 + Vue Test Utils 2.4 | |
 | 代码规范 | ESLint 8.57 + Prettier 3.3 | |
@@ -336,18 +336,18 @@ defineOptions({ name: ROUTE_NAMES.UserManagement.USER_MANAGEMENT });
 ```ts
 // src/core/bootstrap/router.ts（节选）
 import { loginRoutes } from '@/pages/login/login.routes';
-import { errorRoutes } from '@/pages/error/error.routes';
+import { errorChildRoutes } from '@/pages/error/error.routes';
 import { userManagementRoutes } from '@/pages/user-management/user-management.routes';
 
 const routes = [
   ...loginRoutes,
-  ...errorRoutes,
   {
     path: '/',
     component: DefaultLayout,          // 带侧边栏的布局
     children: [
       { path: '', redirect: '/user-management' },
       ...userManagementRoutes,         // 业务页都挂在 DefaultLayout 下
+      ...errorChildRoutes,             // 403/404 也挂 DefaultLayout：错误页渲染在主内容区，保留侧边栏/顶栏/TabBar
     ],
   },
 ];
@@ -367,15 +367,17 @@ export const ROUTE_NAMES = {
 
 > 用法：在 `.page.vue` 里 `defineOptions({ name: ROUTE_NAMES.Xxx.YYY })`，路由 `name` 与之对应，多页签 / keep-alive 才能正常工作。
 
-### 6.3 权限系统：路由守卫 + 菜单过滤
+### 6.3 权限系统：后端菜单驱动 + 路由守卫 + 按钮指令
 
-权限**完全由后端下发**。登录后调用 `GET /api/user/info`，返回：
+权限**完全由后端下发**，前端以 `authStore.menus` 为**唯一真相源**——侧边栏与权限码都从它派生，消除了「前端 `menu.config.ts` 与后端菜单」双源对齐的维护负担。登录后 `GET /api/user/info` 返回：
 
 ```ts
-{ code: 0, data: { user: UserInfo, menus: [{ code: 'UserManagement', name: '用户管理' }, ...] } }
+{ code: 0, data: { user: UserInfo, menus: [{ label: '用户管理', code: 'UserManagement', routeName: 'UserManagement' }, ...] } }
 ```
 
-`authStore` 把 `menus[].code` 收集进 `permissionCodes`（一个 `Set<string>`）。权限校验就是查这个 Set：
+> mock 直接回吐 `src/modules/app/config/menu.config.ts` 的 `menuConfig` 作为演示单一源；生产环境由真实后端按用户角色返回**已过滤**的菜单树。`menu.config.ts` 仍是 mock 的数据来源（也是 `menu-visualizer` 插件的输入）。
+
+`authStore` 做两件事：存下完整 `menus` 树（侧边栏直接渲染）；递归收集 `menus[].code` 进 `permissionCodes`（`Set<string>`）。
 
 ```ts
 // src/modules/auth/stores/auth.ts
@@ -386,23 +388,44 @@ function hasPermission(code: string): boolean {
 
 **三道防线：**
 
-1. **路由守卫**（`router.ts` 的 `beforeEach`）：
-   - 白名单 `/login`、`/403` 直接放行；
-   - 未登录 → 跳 `/login`（带 `redirect`）；
-   - `fetchUser` 失败 / `authStore.error` → 跳 `/403`；
-   - 路由 `meta.code` 存在但 `hasPermission` 返回 false → 跳 `/403`。
+1. **路由守卫**（`router.ts` 的 `beforeEach`，**默认拒绝**模型）：
+   - `meta.public`（`/login`、`/403`、`/404`）→ 放行；已登录访问 `/login` 跳首个业务菜单；
+   - 其余一律需登录——未登录 → `/login`（带 `redirect` 回跳）；
+   - `fetchUser` 真失败 → `/403`；
+   - 路由声明了 `meta.code` 但 `hasPermission` 返回 false → `/403`；
+   - 容器 / 布局路由（无 `meta.code`，如布局壳）→ 已登录即放行；
+   - 末尾 `/:pathMatch(.*)*` catch-all → 404 页。
 
-2. **菜单过滤**（`Default.layout.vue`）：`filterMenu()` 按 `permissionCodes` 过滤侧边栏，无权限的菜单不显示。
+2. **侧边栏**（`Default.layout.vue`）：**直接渲染后端 `menus` 树**（后端已按角色过滤，前端无需 `filterMenu`），点击按 `routeName` 跳转。
 
-3. **业务内判断**：在 `.view.vue` / composable 里调用 `authStore.hasPermission('XxxManagement')` 控制按钮显隐。
+3. **按钮级 `v-permission` 指令**（全局已注册）：无权限的元素自动 `display: none` 隐藏。
 
-```ts
-import { useAuthStore } from '@/modules/auth';
-const authStore = useAuthStore();
-if (authStore.hasPermission('UserManagement')) { /* ... */ }
+```vue
+<!-- 单个 code -->
+<a-button v-permission="'UserManagement:delete'">删除</a-button>
+<!-- 传数组：任一命中即显示 -->
+<a-button v-permission="['UserManagement:edit', 'UserManagement:create']">编辑</a-button>
 ```
 
-> ⚠️ 模板当前**没有** `v-permission` 指令、没有细粒度按钮权限码体系、没有数据权限 / 字典权限。需要时按上面的 `hasPermission` 自行扩展。
+脚本逻辑里用 `usePermission()` composable（`has` / `hasAny` / `hasAll`），或直接 `authStore.hasPermission()`。
+
+```ts
+import { usePermission } from '@/shared/composables/usePermission';
+const { has, hasAny } = usePermission();
+if (has('UserManagement')) { /* ... */ }
+```
+
+> ⚠️ 前端隐藏仅为 UX，真正的权限边界**必须**在后端校验。模板当前未含数据权限 / 字段级权限，需要时在 `hasPermission` 之上扩展。
+
+> 🧪 **验证样例（多角色 mock）**：demo 内置三个演示账号（密码任意，需填验证码），用来肉眼验证守卫与 `v-permission`：
+>
+> | 账号 | 现象 |
+> |---|---|
+> | `admin` | 侧边栏全量（用户/角色管理）；列表「删除」按钮可见 |
+> | `manager` | 仅「用户管理」；**删除按钮被 `v-permission` 隐藏**；地址栏直敲 `/role-management` → **403** |
+> | `viewer` | 侧边栏空；登录后**直接 403**（默认拒绝守卫生效的铁证） |
+>
+> 切换账号登录即可观察：`manager` 缺 `UserManagement:delete` → 按钮隐藏；缺 `RoleManagement` → 路由 403。
 
 ### 6.4 认证流程（登录 / RSA / 验证码）
 
@@ -948,6 +971,97 @@ message.success(COPY.COMMON.SUCCESS);
 
 见 [6.2](#62-路由系统手动聚合--名称常量)，自动生成，配合 `defineOptions({ name })` 使用。
 
+### 7.7 主题系统与统一换肤
+
+当前主题链路分成两层：
+
+- **运行时真源**：`src/core/theme/` 里的 `ThemeTokens` 驱动 Tailwind、Ant Design Vue、VXE Table、ECharts 四端联动；现在已纳入 `colors / text / bg / border / typography / spacing / radius / layout`。
+- **设计稿导出链路**：`design.md -> theme.tokens.json -> theme.tailwind.json -> tailwind.config.js`。其中 `theme.tokens.json` 是 `@google/design.md` 的 raw 导出，`theme.tailwind.json` 是项目内适配层产物，负责把第三方导出格式映射到本项目稳定的 Tailwind 语义结构。
+
+**推荐命令**：
+
+```bash
+pnpm run tokens:export
+pnpm run tokens:check
+```
+
+- `tokens:export`：从 `design.md` 生成 `theme.tokens.json` 和 `theme.tailwind.json`
+- `tokens:check`：同时校验 raw 导出结构、Tailwind 适配结果，以及 `design.md` 与 `src/core/theme/tokens.ts` 中 `lightTokens` 默认值的一致性
+
+**开箱即用**：`DefaultLayout` 顶栏右侧的 `ThemeSwitcher` 可切「亮/暗」与 5 套主色预设（蓝/绿/紫/橙/红）。登录后访问侧边栏「**主题预览**」（路由 `/theme-preview`，admin 可见）可对照色板 / antd 全组件 / VXE 表格 / ECharts 图表 / 业务卡片，肉眼验证联动效果。
+
+**业务侧切换**：
+
+```ts
+import { useTheme } from '@/core/theme';
+const { isDark, toggleMode, setPreset, presets } = useTheme();
+```
+
+**画 ECharts（自动跟随主题）**：
+
+```ts
+import * as echarts from 'echarts';
+import { useEcharts } from '@/core/theme';
+const el = ref<HTMLElement>();
+const { setOption } = useEcharts(el, echarts);   // 自动：主题注入 + 容器 resize + 切主题重建回放
+onMounted(() => setOption({ series: [{ type: 'bar', data: [...] }] }));
+```
+
+**调整 antd 组件的主题覆盖**：antd v3 主色在编译期固化为字面色，运行时跟随主题靠覆盖样式实现。覆盖样式按组件类别拆分为 `src/core/theme/bridges/antd/*.less`（`base` / `buttons` / `selection` / `navigation` / `inputs` / `feedback` / `containers` / `picker` / `misc`），由 `bridges/antd.ts` 用 Vite `?inline` 编译拼接后注入 `<head>`（位于 antd.css 之后，同特异性下后加载胜）。改某个组件的主题表现直接编辑对应 `.less` 即可（开发期 HMR 即时生效），新增组件覆盖按同模板追加规则。注意主题色为运行时 CSS 变量，less 仅用嵌套 / mixin 组织代码，其变量与颜色函数（`lighten` 等）对 `var()` 无效。日期类组件（DatePicker / TimePicker / Calendar）依赖 dayjs，中文 locale 已在 `core/plugins/antd.ts` 统一注入。
+
+> 完整机制（SSOT 架构图、模块结构、扩展预设 / 自定义 Token、antd v3 局限与升级路径、Design Token 速查表）见 [`theme.md`](./theme.md)。
+
+### 7.8 浏览器版本支持
+
+脚手架默认采用「**声明下限 + 运行时只提示、不降级**」策略（A 方案）：浏览器版本低于下限时，启动即整屏提示「请升级浏览器」并**不挂载应用**；另提供一个可选开关启用 legacy 降级（B 方案）兼容更老浏览器。代码在 `src/core/browser-support/`。
+
+**默认下限**（近 ~3 年主流浏览器）：
+
+| 浏览器 | 最低版本 | 约对应时间 |
+| :--- | :--- | :--- |
+| Chrome / Edge | ≥ 100 | 2022 |
+| Firefox | ≥ 100 | 2022 |
+| Safari | ≥ 15 | 2021 |
+| IE | 不支持 | — |
+
+**工作原理**：`bootstrap` 在 `app.mount` 之前调用 `isBrowserSupported()`，不达标时渲染原生 DOM 整页提示（刻意不依赖 Vue，极老浏览器也能显示）并直接 `return`。判定是纯函数，单测见 `detectBrowser.spec.ts` / `isSupported.spec.ts`；UA 无法识别的浏览器默认放行（不误伤）。
+
+**调整下限**：改 `src/core/browser-support/config.ts` 的 `MIN_BROWSER_VERSIONS`，并**同步** `package.json` 的 `browserslist`——前者是「运行时」判定源，后者是「构建期」声明（驱动 autoprefixer 加 CSS 前缀），两处口径必须一致，否则会出现「构建按旧范围加前缀、运行时按新范围拦截」的错位。
+
+> ⚠️ **关于 `color-mix()`**：主题 hover 态用了 CSS `color-mix()`（Safari ≥16.2 / Chrome ≥111 / Firefox ≥113）。默认下限比它宽松，在略旧浏览器上 `color-mix` 会优雅降级（声明被忽略、回退为无该样式），不阻断使用；如需严格对齐，请相应上调下限。
+
+**B 方案：兼容更老浏览器（可选，默认不开）**
+
+默认不引入任何额外依赖。需要兼容到约 2018 年浏览器时：
+
+```bash
+# 1. 安装 legacy 插件（它依赖 terser 做压缩）
+pnpm add -D @vitejs/plugin-legacy terser
+
+# 2. 在构建 env（如 .env.production）开启开关
+#    VITE_LEGACY_BUILD=true
+```
+
+开启后 `vite build` 会额外输出 SystemJS + polyfill 包，兼容到 Chrome ≥64 / Edge ≥79 / Firefox ≥67 / Safari ≥12。开关关闭或不装包时，构建与产物与 A 方案完全一致——`vite.config.ts` 用 dynamic import 按需加载，开启但未安装会抛清晰报错指引安装。
+
+### 7.9 项目文档页（应用内阅读 README）
+
+内置一个「项目文档」页（路由 `/readme`，菜单「项目文档」，admin 可见），在应用内渲染项目根 `README.md`，离线可读。代码在 `src/pages/readme/`，渲染器是通用组件 `src/shared/components/markdown/MarkdownViewer.vue`。
+
+**实现要点**：
+
+- **内容源**：构建期用 `import.meta.glob('/README.md', { query: '?raw', import: 'default', eager: true })` 把项目根 README 打包成字符串（无需运行时 fetch、不依赖网络）。换源读其他 md（如 `/docs/xxx.md`）只改这个路径。
+- **渲染**：`markdown-it` 转 HTML 后用 `v-html` 注入；样式引用主题 CSS 变量，自动跟随亮暗 / 主色；代码块统一深色背景（**未做语法高亮**，需要时可经 markdown-it 的 `highlight` 选项接入 highlight.js / shiki）。
+
+**复用渲染器**（任何「Markdown 字符串 → 排版正文」的场景）：
+
+```ts
+import MarkdownViewer from '@/shared/components/markdown/MarkdownViewer.vue';
+// <MarkdownViewer :source="markdownString" />
+```
+
+> 安全提示：`MarkdownViewer` 默认 `html:false`（转义内联 HTML），适合渲染可信文档（项目自带 README 等）；渲染外部不可信内容前请自行 sanitize。
+
 ---
 
 ## 八、开发一个新页面（完整实战）
@@ -984,15 +1098,12 @@ pnpm scaffold:feature
    ```
    > 终端会提示你在 `src/router/index.ts` 导入路由——**那个路径已过时**，真实文件是 `src/core/bootstrap/router.ts`。
 
-2. **不会自动配权限 / Mock**：`scaffold:domain` **不会**自动往 `menu.config.ts` 和 `mock/handlers/auth.ts` 里加 `code`。结果：登录用户的权限码里没有 `OrderManagement` → 访问 `/order-management` 会**直接跳 403**。手动补两处：
+2. **菜单 / 权限只需维护一处**：`scaffold:domain` 默认会把新菜单加进 `menu.config.ts`（`--no-menu` 可跳过）；而 `mock/handlers/auth.ts` **直接回吐 `menuConfig`**（单一真相源），不再单独维护 mock 菜单。若跳过了菜单，登录用户权限码里没有 `OrderManagement` → 访问 `/order-management` 会**直接跳 403**，在 `menu.config.ts` 补一项即可（mock 自动生效）：
    ```ts
-   // src/modules/app/config/menu.config.ts 末尾追加
+   // src/modules/app/config/menu.config.ts 末尾追加（mock 自动回吐，无需改 mock）
    { label: '订单管理', code: 'OrderManagement', routeName: 'OrderManagement' },
-
-   // src/mock/handlers/auth.ts 的 MOCK_MENUS 追加
-   { code: 'OrderManagement', name: '订单管理' },
    ```
-   > 而 `scaffold:feature` **会**自动处理菜单和 mock 权限（见第九节）。所以更省心的姿势是：用 domain 建骨架 + 手动接路由，再用 feature 建具体页面。
+   > `scaffold:feature` 也会自动更新 `menu.config.ts`（mock 随之生效）。省心姿势：domain 建骨架 + 手动接根路由，之后每个页面用 feature。
 
 3. **API 路径是占位**：生成的 `api.ts` 里 URL 形如 `/order-management/order/list`，记得改成你的真实后端接口。
 
@@ -1166,7 +1277,7 @@ export const orderManagementRoutes: RouteRecordRaw[] = [
 ];
 ```
 
-**⑦ 接路由 + 配权限**：回到 [方式 A 的避坑 1、2](#方式-a用脚手架推荐30-秒)，把路由加入 `router.ts`、菜单加入 `menu.config.ts`、Mock 权限加入 `auth.ts`。
+**⑦ 接路由 + 配权限**：回到 [方式 A 的避坑 1、2](#方式-a用脚手架推荐30-秒)，把路由加入 `router.ts`、菜单加入 `menu.config.ts`（mock 自动回吐，无需改 mock）。
 
 **⑧（可选）补 Mock**：在 `src/mock/handlers/` 新建 `order.ts` 仿照 `user.ts`，并在 `index.ts` 聚合：
 
@@ -1218,7 +1329,7 @@ src/pages/<domain>/
 
 **生成后必须手动做**（再次强调）：
 - 在 `src/core/bootstrap/router.ts` 接入 `<domain>Routes`；
-- 在 `menu.config.ts` + `mock/handlers/auth.ts` 加 `code`，否则访问会 403。
+- 在 `menu.config.ts` 加 `code`（mock 自动回吐），否则访问会 403。
 
 ### 9.2 `pnpm scaffold:feature` — 在现有域下创建新特性
 
@@ -1238,7 +1349,7 @@ src/pages/<domain>/
 | 生成 `pages/<Feature>List.page.vue` 路由壳 | ✅（选 yes） | |
 | **更新域路由** `<domain>.routes.ts` 追加新路由项 | ✅ | `route-manager.ts` 在数组末尾插入 |
 | **更新菜单** `menu.config.ts` 追加菜单项（支持子级） | ✅（选 yes） | `menu-manager.ts` |
-| **更新 Mock 权限** `mock/handlers/auth.ts` 的 `MOCK_MENUS` | ✅（选 yes） | 保证新页面有权限可见 |
+| **Mock 菜单联动** 自动回吐 `menu.config.ts` | ✅（自动） | 新页面自动有权限可见，无需手动改 mock |
 | 更新域 `README.md` | ✅ | |
 
 > 即：feature 脚手架帮你把「路由 + 菜单 + 权限」一条龙接好。所以**推荐工作流**是：`scaffold:domain` 建域骨架 → 手动接一次根路由 → 之后每个页面都用 `scaffold:feature`。
@@ -1265,6 +1376,8 @@ src/pages/<domain>/
 | `pnpm lint` | ESLint 检查并修复 + Prettier 格式化 `src/**/*.{vue,ts,css}` |
 | `pnpm test` | `vitest run` 跑一次单测 |
 | `pnpm test:watch` | Vitest 监听模式 |
+| `pnpm tokens:export` | 从 `design.md` 导出 raw tokens，并生成项目内 Tailwind 适配文件 |
+| `pnpm tokens:check` | 校验导出结构、Tailwind 适配结果，以及 `design.md` 与 `lightTokens` 默认值一致性 |
 | `pnpm scaffold` | 显示脚手架帮助 |
 | `pnpm scaffold:domain` | 交互式创建业务域 |
 | `pnpm scaffold:feature` | 交互式创建特性 |
@@ -1337,10 +1450,10 @@ VITE_API_BASE_URL=https://api.example.com
 ## 十二、常见问题 FAQ
 
 **Q1：启动后访问任何页面都跳到 `/login`，登录后又跳 `/403`？**
-A：典型的「权限码缺失」。Mock 登录后，用户权限 = `mock/handlers/auth.ts` 里 `MOCK_MENUS` 的 `code` 集合。路由 `meta.code` 不在这个集合里就会 403。检查：菜单的 `code` / `routeName` 是否与路由 `name`、Mock `code` 三者一致。
+A：典型的「权限码缺失」。Mock 登录后，用户权限 = `menu.config.ts`（mock 回吐）里各菜单的 `code` 集合。路由 `meta.code` 不在这个集合里就会 403。检查：菜单的 `code` / `routeName` 是否与路由 `name` 一致。
 
 **Q2：用 `scaffold:domain` 建了新域，访问 404 / 菜单不出现？**
-A：三个原因其一：① 没在 `src/core/bootstrap/router.ts` 接入域路由（404）；② 没在 `menu.config.ts` 加菜单（菜单不显示）；③ 没在 `mock/handlers/auth.ts` 的 `MOCK_MENUS` 加 `code`（403）。见 [8.方式 A 的避坑](#方式-a用脚手架推荐30-秒)。
+A：三个原因其一：① 没在 `src/core/bootstrap/router.ts` 接入域路由（404）；② 没在 `menu.config.ts` 加菜单（菜单不显示）；③ 菜单 `code` 与路由 `meta.code` 不一致（403）。见 [8.方式 A 的避坑](#方式-a用脚手架推荐30-秒)。
 
 **Q3：改了路由 `name`，多页签 / keep-alive 失效？**
 A：路由 `name` 必须与 `.page.vue` 里 `defineOptions({ name })` 一致，且建议用自动生成的 `ROUTE_NAMES` 常量。改完 `*.routes.ts` 后 `routeNames.ts` 会自动重新生成。

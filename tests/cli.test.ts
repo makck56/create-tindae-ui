@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolve } from 'node:path';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { parseArgs } from '../src/cli.ts';
+import { scaffold } from '../src/generator.ts';
 
 test('parseArgs enables skipInstall with --no-install', async () => {
   const args = await parseArgs(['node', 'create-tindae-ui', 'demo-app', '--no-install']);
@@ -52,3 +55,18 @@ test('parseArgs rejects missing package manager value', async () => {
     /Package manager must be one of: pnpm, npm, yarn/,
   );
 });
+
+test('scaffold copies root-level template docs such as design.md', () => {
+  const tmpRoot = mkdtempSync(join(tmpdir(), 'create-tindae-ui-'));
+  const targetDir = join(tmpRoot, 'demo-app');
+
+  try {
+    scaffold(targetDir, 'demo-app', { skipInstall: true, skipGit: true });
+
+    assert.equal(existsSync(join(targetDir, 'design.md')), true);
+    assert.equal(existsSync(join(targetDir, 'theme.md')), true);
+  } finally {
+    rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+

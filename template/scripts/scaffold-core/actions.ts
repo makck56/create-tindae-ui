@@ -26,7 +26,6 @@ import { getDomainChineseName, readDomainRoutes, registerDomainToRootRouter, upd
 import {
   rebuildDomainMenuConfig,
   updateMenuConfig,
-  updateMockMenus,
 } from "./menu-manager";
 import { updateDomainReadme } from "./readme-manager";
 import type { PatchResult } from "./types";
@@ -230,9 +229,8 @@ export const scaffoldDomain = async (args: DomainArgs = {}) => {
       const menuPatch = await updateMenuConfig(chineseName, domainPascal, null);
       if (menuPatch.changed) patches.push(menuPatch);
 
-      const mockPatch = await updateMockMenus(domainPascal, chineseName);
-      if (mockPatch.changed) patches.push(mockPatch);
-
+      // mock 菜单不再单独维护：mock/handlers/auth.ts 直接回吐 menuConfig（单一真相源），
+      // 故新增域只需更新 menu.config.ts，无需再 updateMockMenus。
       addedMenu = true;
     }
 
@@ -505,9 +503,7 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
         const menuPatch = await rebuildDomainMenuConfig(domainPascal, routes);
         if (menuPatch.changed) patches.push(menuPatch);
 
-        // 新 feature 的 mock 权限（幂等）
-        const mockPatch = await updateMockMenus(featurePascal, featureChineseName);
-        if (mockPatch.changed) patches.push(mockPatch);
+        // mock 菜单由 menu.config.ts 单一驱动，无需单独写入 mock（见 domain 分支说明）
       }
     }
 

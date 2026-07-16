@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, renameSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
@@ -28,6 +28,20 @@ function resolveTemplateDir(): string {
   return templateDir;
 }
 
+/**
+ * 将模板里的 .npmrc.template 还原为标准 .npmrc。
+ *
+ * 背景：npm 在发布包时会【硬排除】名为 .npmrc 的文件（防止凭据随包泄露），
+ *      因此模板内只能以 .npmrc.template 入库与发布；生成项目时需把它重命名
+ *      回 .npmrc，内网镜像源配置才能在目标项目里真正生效。
+ */
+function restoreNpmrc(targetDir: string): void {
+  const templatePath = resolve(targetDir, '.npmrc.template');
+  if (existsSync(templatePath)) {
+    renameSync(templatePath, resolve(targetDir, '.npmrc'));
+  }
+}
+
 function getDevCommand(packageManager: PackageManager): string {
   return packageManager === 'npm' ? 'npm run dev' : `${packageManager} dev`;
 }
@@ -39,6 +53,9 @@ export function scaffold(targetDir: string, projectName: string, options: Scaffo
   console.log(`\n✨ Scaffolding tindae-ui project in ${targetDir}...\n`);
   console.log('   ├── Copying template...');
   copyDir(templateDir, targetDir);
+
+  console.log('   ├── Restoring .npmrc (from .npmrc.template)...');
+  restoreNpmrc(targetDir);
 
   console.log('   ├── Setting project name...');
   setProjectName(targetDir, projectName);

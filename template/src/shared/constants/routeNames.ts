@@ -1,15 +1,24 @@
 /**
  * 🔒 自动生成的路由名称常量
  * ⚠️ 请勿手动修改，修改 src/pages 下的 *.routes.ts 后会自动更新
- * 🕒 生成时间: 5/26/2026, 2:10:45 AM
+ * 🕒 生成时间: 7/14/2026, 4:25:36 PM
  */
 
 export const ROUTE_NAMES = {
   Error: {
     FORBIDDEN: "Forbidden",
+    NOT_FOUND: "NotFound",
   },
   Login: {
     LOGIN: "Login",
+  },
+  Readme: {
+    /** 项目文档 */
+    README: "Readme",
+  },
+  ThemePreview: {
+    /** 主题预览 */
+    THEME_PREVIEW: "ThemePreview",
   },
   UserManagement: {
     /** 用户管理 */

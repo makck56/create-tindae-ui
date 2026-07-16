@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { COPY } from '@/shared/constants/copy';
 import { getUserInfo, login as loginApi, logout as logoutApi } from '../api/auth.api';
 import type { UserInfo, LoginParams } from '../models/Auth';
+import type { MenuItem } from '@/modules/app/config/menuTypes';
 
 // 本地持久化键：与 core/http 的默认实现（getToken / isTokenExpiring）保持一致
 const TOKEN_KEY = 'token';
@@ -11,6 +12,8 @@ const TOKEN_EXPIRES_AT_KEY = 'tokenExpiresAt';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserInfo | null>(null);
+  /** 后端下发的菜单树（侧边栏唯一渲染源，取代前端 menu.config 双源） */
+  const menus = ref<MenuItem[]>([]);
   const permissionCodes = ref<Set<string>>(new Set());
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -28,9 +31,11 @@ export const useAuthStore = defineStore('auth', () => {
       if (res.code !== 0) {
         throw new Error(`${COPY.LOGIN.API_ERROR}: ${res.code}`);
       }
-      const { user: userInfo, menus } = res.data;
+      const { user: userInfo, menus: menuTree, permissions } = res.data;
       user.value = userInfo;
-      permissionCodes.value = new Set(menus.map((m) => m.code));
+      menus.value = menuTree;
+      // permissions 含路由 code + 按钮 code，直接作为权限集合（RBAC：菜单管可见，权限管可做）
+      permissionCodes.value = new Set(permissions);
     } catch (e: any) {
       // 响应拦截器已将 HTTP 401 归一为 HttpError（含 status 字段）；
       // 续期失败时协调器会触发 onUnauthorized，这里仅置空本地用户态
@@ -82,6 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
     user.value = null;
+    menus.value = [];
     permissionCodes.value = new Set();
     loading.value = false;
     initialized.value = false;
@@ -92,5 +98,5 @@ export const useAuthStore = defineStore('auth', () => {
     return permissionCodes.value.has(code);
   }
 
-  return { user, permissionCodes, loading, error, initialized, isLoggedIn, fetchUser, login, logout, hasPermission };
+  return { user, menus, permissionCodes, loading, error, initialized, isLoggedIn, fetchUser, login, logout, hasPermission };
 });

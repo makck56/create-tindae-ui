@@ -1,6 +1,6 @@
 import { ref, reactive } from 'vue';
 import type { VxeGridInstance } from 'vxe-table';
-import { message } from 'ant-design-vue';
+import message from 'ant-design-vue/es/message';
 import { getUserList, getUserDetail, deleteUser } from '../api/user.api';
 import type { User, UserStatus, UserRole } from '../models/User';
 import { COPY } from '@/shared/constants/copy';

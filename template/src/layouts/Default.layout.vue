@@ -5,8 +5,9 @@ import { MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined } from '@ant-desig
 import { useAppStore } from '@/modules/app/stores/app';
 import { useAuthStore } from '@/modules/auth/stores/auth';
 import { useTabStore, TabBar } from '@/layouts/tab';
-import { menuConfig } from '@/modules/app/config/menu.config';
-import type { MenuItem } from '@/modules/app/config/menuTypes';
+import { ErrorBoundary } from '@/shared/components/error-boundary';
+import { ThemeSwitcher } from '@/shared/components/theme-switcher';
+import { useTheme } from '@/core/theme';
 
 defineOptions({ name: 'DefaultLayout' });
 
@@ -16,14 +17,15 @@ const tabStore = useTabStore();
 const route = useRoute();
 const router = useRouter();
 
-function filterMenu(items: MenuItem[]): MenuItem[] {
-  return items
-    .filter((item) => !item.code || authStore.permissionCodes.has(item.code))
-    .map((item) => (item.children ? { ...item, children: filterMenu(item.children) } : item))
-    .filter((item) => !item.children || item.children.length > 0);
-}
+// 侧边栏跟随全局亮 / 暗：亮色=浅色侧边栏 + light 菜单，暗色=深色侧边栏 + dark 菜单。
+// sider 容器 / trigger 的背景由 antd.ts 的 .app-sider--light / --dark 规则接管。
+const { isDark } = useTheme();
+const menuTheme = computed<'dark' | 'light'>(() => (isDark.value ? 'dark' : 'light'));
+const siderClass = computed(() => (isDark.value ? 'app-sider--dark' : 'app-sider--light'));
 
-const filteredMenu = computed(() => filterMenu(menuConfig));
+// 侧边栏直接渲染后端下发的菜单树（authStore.menus 为唯一真相源）。
+// 后端按用户角色已过滤，前端不再需要本地 filterMenu / menuConfig 双源。
+const menus = computed(() => authStore.menus);
 
 const selectedKeys = computed(() => {
   const name = route.name as string;
@@ -41,11 +43,20 @@ async function handleLogout() {
 </script>
 
 <template>
-  <a-layout class="min-h-screen">
-    <a-layout-sider v-model:collapsed="appStore.sidebarCollapsed" collapsible :width="220">
-      <div class="p-4 text-white text-center font-bold text-lg">{{ appStore.appName }}</div>
-      <a-menu theme="dark" mode="inline" :selected-keys="selectedKeys" @click="handleMenuClick">
-        <template v-for="item in filteredMenu" :key="item.routeName ?? item.label">
+  <!-- h-screen + overflow-hidden：外层固定一屏高、禁止整页滚动；
+       配合内容区 overflow-auto，实现「侧边栏 / 顶栏 / TabBar 固定，仅内容区滚动」 -->
+  <a-layout class="h-screen overflow-hidden">
+    <a-layout-sider
+      v-model:collapsed="appStore.sidebarCollapsed"
+      collapsible
+      :width="220"
+      :class="siderClass"
+    >
+      <div :class="['p-4 text-center font-bold text-lg', isDark ? 'text-white' : 'text-title']">
+        {{ appStore.appName }}
+      </div>
+      <a-menu :theme="menuTheme" mode="inline" :selected-keys="selectedKeys" @click="handleMenuClick">
+        <template v-for="item in menus" :key="item.routeName ?? item.label">
           <a-menu-item v-if="!item.children" :key="item.routeName">
             {{ item.label }}
           </a-menu-item>
@@ -66,7 +77,9 @@ async function handleLogout() {
           </template>
         </a-button>
         <div class="flex items-center gap-4">
-          <span v-if="authStore.user" class="text-gray-600">{{ authStore.user.username }}</span>
+          <!-- 主题切换：主色预设 + 亮/暗模式（副作用由 ThemeProvider 统一承接） -->
+          <ThemeSwitcher />
+          <span v-if="authStore.user" class="text-secondary">{{ authStore.user.username }}</span>
           <a-button type="text" @click="handleLogout">
             <template #icon><LogoutOutlined /></template>
             登出
@@ -74,22 +87,27 @@ async function handleLogout() {
         </div>
       </a-layout-header>
       <TabBar />
-      <a-layout-content class="m-4 p-4 bg-white rounded">
-        <router-view v-slot="{ Component }">
-          <keep-alive :include="tabStore.cachedNames">
-            <component
-              :is="Component"
-              v-if="!tabStore.isExcluded($route.name as string)"
-              :key="$route.fullPath"
-            />
-          </keep-alive>
-          <div
-            v-if="tabStore.isExcluded($route.name as string)"
-            class="flex items-center justify-center py-20"
-          >
-            <a-spin tip="刷新中..." />
-          </div>
-        </router-view>
+      <!-- overflow-auto + min-h-0：内容区独立滚动。min-h-0 是 flex 子项能收缩+溢出滚动的关键
+           （默认 min-height:auto 会撑开父级、导致整页滚动而非本区域滚动） -->
+      <a-layout-content class="m-4 p-4 bg-white rounded overflow-auto min-h-0">
+        <!-- ErrorBoundary 包裹业务内容区：捕获页面渲染异常 → 显示 fallback，保留布局壳不白屏 -->
+        <ErrorBoundary>
+          <router-view v-slot="{ Component }">
+            <keep-alive :include="tabStore.cachedNames">
+              <component
+                :is="Component"
+                v-if="!tabStore.isExcluded($route.name as string)"
+                :key="$route.fullPath"
+              />
+            </keep-alive>
+            <div
+              v-if="tabStore.isExcluded($route.name as string)"
+              class="flex items-center justify-center py-20"
+            >
+              <a-spin tip="刷新中..." />
+            </div>
+          </router-view>
+        </ErrorBoundary>
       </a-layout-content>
     </a-layout>
   </a-layout>

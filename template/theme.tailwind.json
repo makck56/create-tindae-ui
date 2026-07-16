@@ -1,0 +1,185 @@
+{
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": {
+          "DEFAULT": "var(--color-primary)",
+          "hover": "var(--color-primary-hover)",
+          "active": "var(--color-primary-active)",
+          "disabled": "var(--color-primary-disabled)"
+        },
+        "success": {
+          "DEFAULT": "var(--color-success)",
+          "hover": "var(--color-success-hover)",
+          "active": "var(--color-success-active)",
+          "disabled": "var(--color-success-disabled)"
+        },
+        "danger": {
+          "DEFAULT": "var(--color-danger)",
+          "hover": "var(--color-danger-hover)",
+          "active": "var(--color-danger-active)",
+          "disabled": "var(--color-danger-disabled)"
+        },
+        "warning": {
+          "DEFAULT": "var(--color-warning)",
+          "hover": "var(--color-warning-hover)",
+          "active": "var(--color-warning-active)",
+          "disabled": "var(--color-warning-disabled)"
+        },
+        "info": {
+          "DEFAULT": "var(--color-info)",
+          "hover": "var(--color-info-hover)",
+          "active": "var(--color-info-active)",
+          "disabled": "var(--color-info-disabled)"
+        }
+      },
+      "textColor": {
+        "title": "var(--text-title)",
+        "body": "var(--text-body)",
+        "secondary": "var(--text-secondary)",
+        "disabled": "var(--text-disabled)",
+        "inverse": "var(--text-inverse)"
+      },
+      "backgroundColor": {
+        "white": "var(--bg-white)",
+        "page": "var(--bg-page)",
+        "container": "var(--bg-container)",
+        "elevated": "var(--bg-elevated)",
+        "subtle": "var(--bg-subtle)"
+      },
+      "borderColor": {
+        "base": "var(--border-base)",
+        "light": "var(--border-light)",
+        "lighter": "var(--border-lighter)",
+        "extra-light": "var(--border-extra-light)"
+      },
+      "spacing": {
+        "1": "calc(var(--space-unit) * 1)",
+        "2": "calc(var(--space-unit) * 2)",
+        "3": "calc(var(--space-unit) * 3)",
+        "4": "calc(var(--space-unit) * 4)",
+        "5": "calc(var(--space-unit) * 5)",
+        "6": "calc(var(--space-unit) * 6)",
+        "7": "calc(var(--space-unit) * 7)",
+        "8": "calc(var(--space-unit) * 8)",
+        "9": "calc(var(--space-unit) * 9)",
+        "10": "calc(var(--space-unit) * 10)",
+        "11": "calc(var(--space-unit) * 11)",
+        "12": "calc(var(--space-unit) * 12)",
+        "14": "calc(var(--space-unit) * 14)",
+        "16": "calc(var(--space-unit) * 16)",
+        "20": "calc(var(--space-unit) * 20)",
+        "24": "calc(var(--space-unit) * 24)",
+        "28": "calc(var(--space-unit) * 28)",
+        "32": "calc(var(--space-unit) * 32)",
+        "36": "calc(var(--space-unit) * 36)",
+        "40": "calc(var(--space-unit) * 40)",
+        "44": "calc(var(--space-unit) * 44)",
+        "48": "calc(var(--space-unit) * 48)",
+        "52": "calc(var(--space-unit) * 52)",
+        "56": "calc(var(--space-unit) * 56)",
+        "60": "calc(var(--space-unit) * 60)",
+        "64": "calc(var(--space-unit) * 64)",
+        "72": "calc(var(--space-unit) * 72)",
+        "80": "calc(var(--space-unit) * 80)",
+        "96": "calc(var(--space-unit) * 96)",
+        "xs": "var(--space-xs)",
+        "sm": "var(--space-sm)",
+        "md": "var(--space-md)",
+        "lg": "var(--space-lg)",
+        "xl": "var(--space-xl)",
+        "2xl": "var(--space-2xl)"
+      },
+      "fontFamily": {
+        "sans": [
+          "var(--font-family-body-lg)"
+        ],
+        "heading": [
+          "var(--font-family-heading-xl)"
+        ],
+        "body": [
+          "var(--font-family-body-lg)"
+        ],
+        "label": [
+          "var(--font-family-label)"
+        ]
+      },
+      "fontSize": {
+        "xs": [
+          "var(--font-size-label)",
+          {
+            "lineHeight": "var(--line-height-label)",
+            "fontWeight": "var(--font-weight-label)"
+          }
+        ],
+        "sm": [
+          "var(--font-size-body-sm)",
+          {
+            "lineHeight": "var(--line-height-body-sm)",
+            "fontWeight": "var(--font-weight-body-sm)"
+          }
+        ],
+        "tiny": [
+          "var(--font-size-body-md)",
+          {
+            "lineHeight": "var(--line-height-body-md)",
+            "fontWeight": "var(--font-weight-body-md)"
+          }
+        ],
+        "base": [
+          "var(--font-size-body-lg)",
+          {
+            "lineHeight": "var(--line-height-body-lg)",
+            "fontWeight": "var(--font-weight-body-lg)"
+          }
+        ],
+        "lg": [
+          "var(--font-size-heading-md)",
+          {
+            "lineHeight": "var(--line-height-heading-md)",
+            "fontWeight": "var(--font-weight-heading-md)"
+          }
+        ],
+        "xl": [
+          "var(--font-size-heading-lg)",
+          {
+            "lineHeight": "var(--line-height-heading-lg)",
+            "fontWeight": "var(--font-weight-heading-lg)"
+          }
+        ],
+        "2xl": [
+          "var(--font-size-heading-xl)",
+          {
+            "lineHeight": "var(--line-height-heading-xl)",
+            "fontWeight": "var(--font-weight-heading-xl)"
+          }
+        ],
+        "3xl": [
+          "32px",
+          {
+            "lineHeight": "40px"
+          }
+        ],
+        "4xl": [
+          "36px",
+          {
+            "lineHeight": "44px"
+          }
+        ],
+        "5xl": [
+          "40px",
+          {
+            "lineHeight": "48px"
+          }
+        ]
+      },
+      "borderRadius": {
+        "sm": "var(--radius-sm)",
+        "DEFAULT": "var(--radius-base)",
+        "md": "var(--radius-md)",
+        "lg": "var(--radius-lg)",
+        "xl": "var(--radius-xl)"
+      }
+    }
+  }
+}

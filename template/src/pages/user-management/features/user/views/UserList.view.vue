@@ -46,7 +46,7 @@ function getStatusLabel(status: string) {
         <a-button type="link" size="small" @click="$router.push(`/user-management/${row.id}`)">
           {{ COPY.COMMON.EDIT }}
         </a-button>
-        <a-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
+        <a-popconfirm v-permission="'UserManagement:delete'" title="确定删除？" @confirm="handleDelete(row.id)">
           <a-button type="link" danger size="small">{{ COPY.COMMON.DELETE }}</a-button>
         </a-popconfirm>
       </template>

@@ -1,10 +1,94 @@
+/**
+ * Default CSS variables before ThemeProvider mounts.
+ * Keep these values in sync with lightTokens.
+ */
 :root {
   --color-primary: #1890ff;
+  --color-primary-hover: #40a9ff;
+  --color-primary-active: #096dd9;
+  --color-primary-disabled: #91d5ff;
+
   --color-success: #52c41a;
+  --color-success-hover: #73d13d;
+  --color-success-active: #389e0d;
+  --color-success-disabled: #b7eb8f;
+
   --color-warning: #faad14;
-  --color-error: #f5222d;
-  --color-text: rgba(0, 0, 0, 0.85);
-  --color-bg: #f0f2f5;
+  --color-warning-hover: #ffc53d;
+  --color-warning-active: #d48806;
+  --color-warning-disabled: #ffe58f;
+
+  --color-danger: #f5222d;
+  --color-danger-hover: #ff4d4f;
+  --color-danger-active: #cf1322;
+  --color-danger-disabled: #ffa39e;
+
+  --color-info: #1890ff;
+  --color-info-hover: #40a9ff;
+  --color-info-active: #096dd9;
+  --color-info-disabled: #91d5ff;
+
+  --text-title: rgba(0, 0, 0, 0.85);
+  --text-body: rgba(0, 0, 0, 0.75);
+  --text-secondary: rgba(0, 0, 0, 0.45);
+  --text-disabled: rgba(0, 0, 0, 0.25);
+  --text-inverse: rgba(255, 255, 255, 0.85);
+
+  --bg-page: #f0f2f5;
+  --bg-container: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-white: #ffffff;
+  --bg-subtle: #fafafa;
+
+  --border-base: #d9d9d9;
+  --border-light: #e8e8e8;
+  --border-lighter: #f0f0f0;
+  --border-extra-light: #f5f5f5;
+
+  --font-family-heading-xl: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-heading-xl: 28px;
+  --font-weight-heading-xl: 600;
+  --line-height-heading-xl: 36px;
+  --font-family-heading-lg: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-heading-lg: 24px;
+  --font-weight-heading-lg: 600;
+  --line-height-heading-lg: 32px;
+  --font-family-heading-md: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-heading-md: 20px;
+  --font-weight-heading-md: 600;
+  --line-height-heading-md: 28px;
+  --font-family-body-lg: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-body-lg: 18px;
+  --font-weight-body-lg: 400;
+  --line-height-body-lg: 28px;
+  --font-family-body-md: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-body-md: 16px;
+  --font-weight-body-md: 400;
+  --line-height-body-md: 24px;
+  --font-family-body-sm: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-body-sm: 14px;
+  --font-weight-body-sm: 400;
+  --line-height-body-sm: 22px;
+  --font-family-label: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-label: 12px;
+  --font-weight-label: 500;
+  --line-height-label: 20px;
+
+  --space-unit: 4px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  --radius-sm: 2px;
+  --radius-base: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
   --sidebar-width: 220px;
+  --sidebar-collapsed-width: 80px;
   --header-height: 48px;
 }

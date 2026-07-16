@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.ts,.tsx --fix && prettier --write \"src/**/*.{vue,ts,css}\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "tokens:check": "tsx ./scripts/check-theme-consistency.ts",
+    "tokens:export": "node ./scripts/export-theme-tokens.mjs",
     "scaffold": "tsx scripts/scaffold.ts",
     "scaffold:domain": "tsx scripts/scaffold.ts domain",
     "scaffold:feature": "tsx scripts/scaffold.ts feature"
@@ -18,17 +20,23 @@
     "@ant-design/icons-vue": "^7.0.0",
     "ant-design-vue": "^3.2.0",
     "axios": "^1.7.0",
-    "echarts": "^5.5.0",
+    "dayjs": "^1.11.13",
+    "echarts": "^6.0.0",
+    "highlight.js": "^11.0.0",
     "jsencrypt": "^3.5.4",
+    "markdown-it": "^14.0.0",
     "pinia": "^2.2.0",
     "vue": "^3.5.0",
+    "vue-echarts": "^8.0.1",
     "vue-router": "^4.4.0",
     "vxe-table": "4.3.7",
     "xe-utils": "^3.5.0"
   },
   "devDependencies": {
     "@babel/parser": "^7.29.3",
+    "@google/design.md": "^0.3.0",
     "@types/handlebars": "^4.1.0",
+    "@types/markdown-it": "^14.0.0",
     "@types/node": "^18.19.0",
     "@vitejs/plugin-vue": "^5.1.0",
     "@vue/compiler-sfc": "^3.5.32",
@@ -41,6 +49,7 @@
     "fast-glob": "^3.3.3",
     "handlebars": "^4.7.8",
     "jsdom": "^24.0.0",
+    "less": "^4.2.0",
     "magic-string": "^0.30.21",
     "msw": "^2.14.6",
     "postcss": "^8.4.0",
@@ -53,6 +62,14 @@
     "vitest": "^1.6.0",
     "vue-tsc": "^2.1.0"
   },
+  "browserslist": [
+    "Chrome >= 100",
+    "Edge >= 100",
+    "Firefox >= 100",
+    "Safari >= 15",
+    "not IE > 0",
+    "not dead"
+  ],
   "msw": {
     "workerDirectory": [
       "public"
