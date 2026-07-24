@@ -99,3 +99,47 @@ VXE 插件 SHALL 避免从 `vxe-table@4.20.7` 包文件清单中不存在的深�
 - **WHEN** 运行根目录 `pnpm build`
 - **THEN** CLI 构建 MUST 通过
 
+### Requirement: 升级具备明确测试案例覆盖
+
+升级 SHALL 增加或调整能覆盖 VXE 运行时注册、grid 数据流、跨页选择、脚手架输出和内部路径约束的测试案例。
+
+#### Scenario: 用户列表 composable 测试覆盖 grid 查询契约
+
+- **WHEN** 运行 `template/src/pages/user-management/features/user/composables/useUser.spec.ts`
+- **THEN** 测试 MUST 验证 `useUserList` 返回 `gridOptions.columns`
+- **AND** 测试 MUST 验证 `gridOptions.pagerConfig.pageSize`
+- **AND** 测试 MUST 验证 `gridOptions.proxyConfig.ajax.query` 是函数
+- **AND** 测试 MUST 验证 `gridRef` 可用于触发 `commitProxy('query')`
+
+#### Scenario: 角色列表 composable 测试覆盖 grid 查询契约
+
+- **WHEN** 运行角色列表 composable 测试
+- **THEN** 测试 MUST 验证 `useRoleList` 返回表格列配置、分页配置和 `proxyConfig.ajax.query`
+- **AND** 测试 MUST 验证删除处理函数存在且保持 UI 反馈行为
+
+#### Scenario: 跨页选择 grid 集成测试覆盖 checkbox 同步
+
+- **WHEN** 运行 `useCrossPageGrid` 相关测试
+- **THEN** 测试 MUST 使用模拟 gridRef 验证 `clearCheckboxRow()` 被调用
+- **AND** 测试 MUST 验证已选中行会传给 `setCheckboxRow(rows, true)`
+- **AND** 测试 MUST 验证 `handleCheckboxChange` 与 `handleCheckboxAll` 在同步保护期间不会重复写入选择状态
+
+#### Scenario: VXE 插件测试覆盖组件注册
+
+- **WHEN** 运行 VXE 插件测试
+- **THEN** 测试 MUST 验证 `setupVxeTable(app)` 注册模板使用的 VXE 组件
+- **AND** 测试 MUST 验证中文 locale 设置仍被调用
+
+#### Scenario: 脚手架模板测试覆盖生成结果
+
+- **WHEN** 运行根目录脚手架模板测试
+- **THEN** 表格型 view 模板 MUST 输出 `<vxe-grid`
+- **AND** composable 模板 MUST 输出 `gridOptions`
+- **AND** composable 模板 MUST 输出 `proxyConfig` 和 `ajax.query`
+
+#### Scenario: 静态测试禁止 VXE 内部路径回归
+
+- **WHEN** 运行 VXE 升级专项静态测试
+- **THEN** 测试 MUST 断言 `template/src` 中不存在 `vxe-table/types/grid`
+- **AND** 测试 MUST 断言 `template/src` 中不存在 `vxe-table/types/table`
+- **AND** 测试 MUST 断言 `template/src/core/plugins/vxeTable.ts` 中不存在已移除的 VXE 深路径导入

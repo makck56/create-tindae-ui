@@ -44,3 +44,13 @@
 - [ ] 6.3 运行根目录 `pnpm test`。
 - [ ] 6.4 运行根目录 `pnpm build`。
 - [ ] 6.5 检查最终 diff，确认依赖变更、兼容修复和主题校准都限制在本 OpenSpec change 范围内。
+
+## 7. 测试案例补充
+
+- [ ] 7.1 更新 `template/src/pages/user-management/features/user/composables/useUser.spec.ts`，覆盖 `gridOptions.columns`、`pagerConfig`、`proxyConfig.ajax.query`、`gridRef.commitProxy('query')`。
+- [ ] 7.2 新增或更新 `template/src/pages/user-management/features/role/composables/useRoleList.spec.ts`，覆盖角色列表 `gridOptions`、分页、proxy 查询和删除处理函数。
+- [ ] 7.3 新增或更新 `template/src/shared/components/cross-page-select/__tests__/useCrossPageGrid.test.ts`，用模拟 gridRef 覆盖 `clearCheckboxRow()`、`setCheckboxRow(rows, true)` 和同步保护逻辑。
+- [ ] 7.4 新增或更新 `template/src/core/plugins/vxeTable.spec.ts`，mock Vue app 和 VXE 安装入口，验证 `setupVxeTable(app)` 注册所需组件并设置中文 locale。
+- [ ] 7.5 扩展 `tests/scaffold-core/template.test.ts`，断言表格型 feature 模板输出 `<vxe-grid`、`gridOptions`、`proxyConfig`、`ajax.query`。
+- [ ] 7.6 新增 VXE 升级专项静态测试，断言 `template/src` 不再包含 `vxe-table/types/grid`、`vxe-table/types/table`，且 `vxeTable.ts` 不再包含已移除的 VXE 深路径导入。
+- [ ] 7.7 将以上测试纳入最终门禁，确保 `cd template && pnpm test` 与根目录 `pnpm test` 都能覆盖升级风险点。

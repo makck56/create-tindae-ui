@@ -132,6 +132,20 @@
 
 回滚策略是正常 revert 依赖升级和兼容修复提交。实现时应尽量让依赖变更与兼容修复在 review 中容易区分。
 
+## 测试案例矩阵
+
+| 层级 | 测试位置 | 测试案例 | 验证目标 |
+|---|---|---|---|
+| 单元测试 | `template/src/pages/user-management/features/user/composables/useUser.spec.ts` | `useUserList` 返回 `gridOptions`、`pagerConfig`、`proxyConfig.ajax.query`、`gridRef` | 确认升级后用户列表仍能通过 VXE proxy 查询 |
+| 单元测试 | `template/src/pages/user-management/features/role/composables/useRoleList.spec.ts`（如不存在则新增） | `useRoleList` 返回包含列、分页、proxy 查询和删除处理函数的 `gridOptions` | 补齐角色列表与用户列表的同级覆盖 |
+| 单元测试 | `template/src/shared/components/cross-page-select/__tests__/useCrossPageGrid.test.ts`（如不存在则新增） | 模拟 gridRef 的 `clearCheckboxRow`、`setCheckboxRow`，验证跨页选择同步 | 确认替换 VXE 内部类型后，跨页选择行为不退化 |
+| 单元测试 | `template/src/core/plugins/vxeTable.spec.ts`（如测试环境可稳定 mock VXE，则新增） | mock Vue `app`，验证 `setupVxeTable` 会注册模板需要的 VXE 组件，并设置中文 locale | 防止运行时注册遗漏组件 |
+| 脚手架测试 | `tests/scaffold-core/template.test.ts` | 表格型 feature 模板继续输出 `<vxe-grid>`、`gridOptions`、`proxyConfig.ajax.query` | 防止未来生成页面偏离 VXE grid 契约 |
+| 静态回归测试 | 新增或扩展 VXE 升级专项测试 | 搜索 `template/src`，断言不再出现 `vxe-table/types/grid`、`vxe-table/types/table` 和已移除深路径导入 | 防止内部路径重新进入代码 |
+| 构建测试 | `cd template && pnpm build` | TypeScript + Vite 构建 | 验证 VXE 导入、类型、CSS 路径在真实构建中可用 |
+| 根目录测试 | 根目录 `pnpm test`、`pnpm build` | CLI 与脚手架测试 | 验证模板升级没有破坏生成器 |
+| 手动冒烟 | `UserList`、`RoleList`、`ThemePreview` | 搜索、重置、分页、排序、checkbox、删除刷新、主题状态 | 覆盖 jsdom 难以模拟的真实 VXE DOM 与视觉行为 |
+
 ## 未决问题
 
 - `vxe-table@4.20.7` 的根安装方式是否会注册模板使用的所有组件，包括 pager、checkbox、modal、tooltip？
