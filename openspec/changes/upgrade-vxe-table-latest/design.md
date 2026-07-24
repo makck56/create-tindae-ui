@@ -1,140 +1,140 @@
-## Context
+## 背景
 
-Current state verified on 2026-07-24:
+当前状态核实于 2026-07-24：
 
-| Area | Current State | Upgrade Concern |
+| 区域 | 当前状态 | 升级关注点 |
 |---|---|---|
-| Dependencies | `vxe-table: 4.3.7`, `xe-utils: ^3.5.0` | Latest verified as `vxe-table@4.20.7`, `xe-utils@4.0.11` |
-| Runtime registration | `template/src/core/plugins/vxeTable.ts` imports many `vxe-table/es/*` modules directly | `npm pack vxe-table@4.20.7 --dry-run` shows `es/grid`, `es/table`, `es/column`, `es/toolbar`, but not old top-level `es/filter`, `es/checkbox`, `es/vxe-pager`, `es/vxe-modal`, or `es/tooltip` paths |
-| Type imports | Uses `VxeGridInstance` from package root and `vxe-table/types/grid`, `vxe-table/types/table` | Package file list shows only `types/index.d.ts` and `types/all.d.ts`; internal type paths should be considered unstable |
-| Theme bridge | `template/src/core/theme/bridges/vxeTable.ts` is explicitly written for `vxe-table@4.3.7` CSS | `4.20.7` includes larger `es/table/style.css` and theme files, so selectors must be rechecked |
-| Business usage | `vxe-grid` powers user list, role list, generated list templates, and theme preview | Existing behavior must remain stable after import/type/style changes |
+| 依赖 | `vxe-table: 4.3.7`，`xe-utils: ^3.5.0` | 最新已核实为 `vxe-table@4.20.7`，`xe-utils@4.0.11` |
+| 运行时注册 | `template/src/core/plugins/vxeTable.ts` 直接导入大量 `vxe-table/es/*` 模块 | `npm pack vxe-table@4.20.7 --dry-run` 显示仍有 `es/grid`、`es/table`、`es/column`、`es/toolbar`，但旧接入使用的顶层 `es/filter`、`es/checkbox`、`es/vxe-pager`、`es/vxe-modal`、`es/tooltip` 路径未出现在包清单中 |
+| 类型导入 | 使用包根导出的 `VxeGridInstance`，以及 `vxe-table/types/grid`、`vxe-table/types/table` | 包清单主要显示 `types/index.d.ts` 与 `types/all.d.ts`，内部类型路径应视为不稳定 |
+| 主题桥接 | `template/src/core/theme/bridges/vxeTable.ts` 明确按 `vxe-table@4.3.7` CSS 结构编写 | `4.20.7` 包含更大的 `es/table/style.css` 和 theme 文件，选择器必须重新核实 |
+| 业务使用 | `vxe-grid` 支撑用户列表、角色列表、生成列表模板和主题预览 | 导入、类型、样式调整后，现有行为必须保持稳定 |
 
-The upgrade has three moving parts:
+这次升级有三个互相影响的部分：
 
 ```text
-Dependency version
-      |
-      v
-Runtime registration -----> Business grid behavior
-      |                           |
-      v                           v
-Style import + theme bridge --> Visual regression
+依赖版本
+   |
+   v
+运行时注册 -----> 业务表格行为
+   |                  |
+   v                  v
+样式导入 + 主题桥接 -> 视觉回归
 ```
 
-## Goals / Non-Goals
+## 目标 / 非目标
 
-**Goals:**
+**目标：**
 
-- Upgrade the template to `vxe-table@4.20.7` and `xe-utils@^4.0.11`.
-- Keep the generated admin template on Vue 3, Vite, Ant Design Vue 3, Tailwind, and `vxe-grid`.
-- Preserve list page behavior: proxy query, pagination, sorting, checkbox selection, and delete refresh.
-- Preserve the theme system contract where VXE visual tokens are driven by `core/theme`.
-- Produce a verification path that can prove build, unit tests, runtime behavior, and visual theme behavior.
+- 将模板升级到 `vxe-table@4.20.7` 与 `xe-utils@^4.0.11`。
+- 保持生成后的后台模板仍基于 Vue 3、Vite、Ant Design Vue 3、Tailwind 和 `vxe-grid`。
+- 保持列表页行为：代理查询、分页、排序、checkbox 选择、删除后刷新。
+- 保持主题系统契约：VXE 的视觉表现继续由 `core/theme` 的主题 token 驱动。
+- 建立可以证明构建、单测、运行时行为、主题视觉都通过的验证路径。
 
-**Non-Goals:**
+**非目标：**
 
-- Do not migrate the whole table stack to `vxe-pc-ui` in this change.
-- Do not redesign list-page data flow or replace `proxyConfig`.
-- Do not rewrite cross-page selection UX beyond what the upgrade requires.
-- Do not treat old docs in `docs/superpowers/*` as canonical if they conflict with this OpenSpec change.
+- 本次不把整个表格栈迁移到 `vxe-pc-ui`。
+- 本次不重设列表页数据流，也不替换 `proxyConfig`。
+- 本次不重写跨页选择 UX，除非升级兼容必须调整。
+- 如果 `docs/superpowers/*` 旧文档与本 OpenSpec change 冲突，以本 change 为准。
 
-## Decisions
+## 决策
 
-### Decision 1: Upgrade as a compatibility change, not a dependency-only change
+### Decision 1: 按兼容性升级处理，而不是只升级依赖
 
-Rationale: The current code depends on internal module paths, internal type paths, and CSS internals. `vxe-table@4.20.7` still ships some familiar ES paths, but the old registration list is no longer structurally valid as-is.
+原因：当前代码依赖内部模块路径、内部类型路径和 CSS 内部结构。`vxe-table@4.20.7` 仍保留部分熟悉的 ES 路径，但旧注册清单整体已经不能原样视为稳定。
 
-Alternative considered: only change `package.json` and lockfile. Rejected because `es/filter`, `es/checkbox`, `es/vxe-pager`, `es/vxe-modal`, and `es/tooltip` are not visible in the `4.20.7` package file list.
+备选方案：只修改 `package.json` 和 lockfile。拒绝原因是 `es/filter`、`es/checkbox`、`es/vxe-pager`、`es/vxe-modal`、`es/tooltip` 未出现在 `4.20.7` 包清单中。
 
-### Decision 2: Prefer a stable VXE install path for runtime registration
+### Decision 2: 运行时注册优先使用稳定的 VXE 安装路径
 
-The implementation should first try a stable import strategy:
+实现阶段应优先尝试稳定导入策略：
 
-- Import the root VXE installer/config object from `vxe-table`.
-- Import global or component CSS from stable published paths such as `vxe-table/es/style.css` or `vxe-table/es/index.css`.
-- Register the components needed by the template through the supported installer surface.
+- 从 `vxe-table` 导入根安装器或配置对象。
+- 从稳定发布路径导入全局或组件样式，例如 `vxe-table/es/style.css` 或 `vxe-table/es/index.css`。
+- 通过受支持的安装入口注册模板需要的组件。
 
-If bundle size or tree-shaking becomes unacceptable, add a second pass to selectively import currently shipped modules such as `vxe-table/es/grid`, `vxe-table/es/table`, `vxe-table/es/column`, and `vxe-table/es/toolbar`. This second pass must not rely on removed deep paths.
+如果包体积或 tree-shaking 不可接受，再进行第二轮按需优化，选择当前确实存在的模块路径，例如 `vxe-table/es/grid`、`vxe-table/es/table`、`vxe-table/es/column`、`vxe-table/es/toolbar`。第二轮优化也不能继续依赖已移除的深路径。
 
-### Decision 3: Keep `@vxe-ui/core` out of the first upgrade unless compilation requires it
+### Decision 3: 第一轮升级不主动引入 `@vxe-ui/core`，除非编译证明必须
 
-`@vxe-ui/core@4.4.18` depends on `xe-utils@^4.0.11` and is part of the newer VXE ecosystem. It should be treated as a compatibility dependency only if `vxe-table@4.20.7` or official imports require it in practice.
+`@vxe-ui/core@4.4.18` 依赖 `xe-utils@^4.0.11`，属于新版 VXE 生态的一部分。只有当 `vxe-table@4.20.7` 或官方导入方式在实践中要求它时，才把它作为兼容依赖纳入。
 
-Rationale: Adding `@vxe-ui/core` as an explicit dependency expands the template surface and may start a broader ecosystem migration. This change's target is to keep the current `vxe-grid` template stable on the latest `vxe-table` v4.
+原因：显式加入 `@vxe-ui/core` 会扩大模板对新版生态的暴露面，可能把一次 VXE v4 升级变成更大的生态迁移。本 change 的目标是让当前 `vxe-grid` 模板稳定运行在最新版 `vxe-table` v4 上。
 
-### Decision 4: Rebuild type imports around public exports
+### Decision 4: 类型导入围绕公开导出重建
 
-Internal type paths should be replaced with package-root type exports where available. If the exact old types are not exported, define narrow local aliases for the methods the template actually uses, especially for:
+内部类型路径应优先替换成包根公开导出的类型。如果旧类型没有等价公开导出，则为模板实际使用的方法定义窄接口，尤其是：
 
 - `commitProxy('query')`
 - `clearCheckboxRow()`
 - `setCheckboxRow(rows, true)`
-- checkbox event payloads consumed by cross-page selection
+- 跨页选择消费的 checkbox 事件载荷
 
-Rationale: The template does not need the full VXE internal constructor shape. Narrow local types reduce future coupling.
+原因：模板并不需要完整的 VXE 内部 constructor 形状。窄接口可以降低未来升级耦合。
 
-### Decision 5: Treat theme bridge recalibration as a required phase
+### Decision 5: 主题桥接校准是必做阶段
 
-The upgrade is not complete until `template/src/core/theme/bridges/vxeTable.ts` is checked against `vxe-table@4.20.7` rendered DOM and CSS.
+只有在 `template/src/core/theme/bridges/vxeTable.ts` 已按 `vxe-table@4.20.7` 的真实渲染 DOM 和 CSS 核实后，升级才算完成。
 
-The implementation should verify:
+实现阶段必须验证：
 
-- Main table container classes
-- Header/body/footer column classes
-- Pager classes
-- Checkbox icon classes
-- Sort active classes
-- Border rendering method, especially `background-image: linear-gradient(...)`
-- Hover/current/checked row state classes
+- 主表容器 class
+- header/body/footer column class
+- pager class
+- checkbox icon class
+- sort active class
+- 边框绘制方式，尤其是 `background-image: linear-gradient(...)`
+- hover/current/checked 行状态 class
 
-## Risks / Trade-offs
+## 风险 / 取舍
 
-| Risk | Mitigation |
+| 风险 | 缓解方式 |
 |---|---|
-| Root installer increases `vendor-vxe` chunk size | Measure build output first; only optimize import granularity after behavior is stable |
-| Public type exports do not match old internal types | Use narrow local interfaces for the methods and event fields actually consumed |
-| Theme selectors silently stop matching | Use `ThemePreview` as the visual smoke page and inspect rendered DOM/CSS after the upgrade |
-| `commitProxy('query')` behavior changes | Add runtime smoke checks for search, reset, pagination, and reload paths |
-| Cross-page checkbox header breaks | Validate `VxeCheckbox` import/rendering and consider using globally registered `<vxe-checkbox>` or a local wrapper if direct import changes |
-| Existing dirty worktree obscures upgrade diff | Keep this OpenSpec change separate and avoid reverting unrelated existing changes |
+| 根安装器可能增大 `vendor-vxe` chunk | 先测量构建产物，行为稳定后再优化导入粒度 |
+| 公开类型导出不匹配旧内部类型 | 为实际消费的方法和事件字段定义窄接口 |
+| 主题选择器静默失效 | 使用 `ThemePreview` 作为视觉冒烟页，并检查升级后的真实 DOM/CSS |
+| `commitProxy('query')` 行为变化 | 为搜索、重置、分页、reload 路径做运行时冒烟验证 |
+| 跨页 checkbox header 失效 | 验证 `VxeCheckbox` 导入和渲染；如果直接导入变化，则考虑全局 `<vxe-checkbox>` 或本地 wrapper |
+| 现有脏工作区干扰升级 diff | 保持本 OpenSpec change 独立，避免回滚无关既有改动 |
 
-## Migration Plan
+## 迁移计划
 
-1. Dependency probe:
-   - Update `template/package.json` and lockfile.
-   - Run `pnpm install` inside `template`.
-   - Run `pnpm test` and `pnpm build` to collect first-break errors.
+1. 依赖探针：
+   - 更新 `template/package.json` 和 lockfile。
+   - 在 `template` 内运行 `pnpm install`。
+   - 运行 `pnpm test` 与 `pnpm build`，收集第一轮兼容错误。
 
-2. Runtime registration:
-   - Replace removed deep imports in `template/src/core/plugins/vxeTable.ts`.
-   - Preserve Chinese locale setup.
-   - Confirm VXE components used by templates are registered before app mount.
+2. 运行时注册：
+   - 替换 `template/src/core/plugins/vxeTable.ts` 中已不适用的深路径导入。
+   - 保留 VXE 中文 locale 设置。
+   - 确认模板使用的 VXE 组件在 app mount 前完成注册。
 
-3. Type compatibility:
-   - Replace `vxe-table/types/*` imports.
-   - Replace or narrow `VxeGridInstance`, `VxeGridConstructor`, and event payload types.
+3. 类型兼容：
+   - 替换 `vxe-table/types/*` 导入。
+   - 替换或收窄 `VxeGridInstance`、`VxeGridConstructor`、事件载荷类型。
 
-4. Behavior regression:
-   - Validate `UserList`, `RoleList`, `VxeTableShowcase`, and generated list template behavior.
-   - Verify search/reset calls still trigger `commitProxy('query')`.
-   - Verify checkbox selection, checkbox-all, sort, pagination, and delete refresh.
+4. 行为回归：
+   - 验证 `UserList`、`RoleList`、`VxeTableShowcase` 和生成列表模板行为。
+   - 验证搜索和重置仍触发 `commitProxy('query')`。
+   - 验证 checkbox 选择、全选、排序、分页和删除后刷新。
 
-5. Theme recalibration:
-   - Compare the rendered `4.20.7` DOM/CSS to the theme bridge selectors.
-   - Update selectors only after confirming the new source of truth.
+5. 主题校准：
+   - 对比 `4.20.7` 渲染 DOM/CSS 与当前主题桥接选择器。
+   - 只在确认新结构后更新选择器。
 
-6. Final gates:
+6. 最终门禁：
    - `cd template && pnpm test`
    - `cd template && pnpm build`
-   - root `pnpm test`
-   - root `pnpm build`
+   - 根目录 `pnpm test`
+   - 根目录 `pnpm build`
 
-Rollback is a normal revert of the dependency and compatibility commits. The implementation should keep dependency changes and compatibility fixes easy to separate in review.
+回滚策略是正常 revert 依赖升级和兼容修复提交。实现时应尽量让依赖变更与兼容修复在 review 中容易区分。
 
-## Open Questions
+## 未决问题
 
-- Does `vxe-table@4.20.7` root installation register every component the template uses, including pager, checkbox, modal, and tooltip?
-- Does the package root still export `VxeGridInstance`, `VxeGridConstructor`, and `VxeTableDefines`, or should the implementation use narrow local types?
-- Does `vxe-table/es/style.css` include all styles currently imported component-by-component?
-- Should the final dependency pin be exact `4.20.7` or patch-compatible `~4.20.7`? For this template, `~4.20.7` is acceptable only after the first verified upgrade passes.
+- `vxe-table@4.20.7` 的根安装方式是否会注册模板使用的所有组件，包括 pager、checkbox、modal、tooltip？
+- 包根是否仍导出 `VxeGridInstance`、`VxeGridConstructor`、`VxeTableDefines`，还是应改用窄本地类型？
+- `vxe-table/es/style.css` 是否包含当前按组件导入的所有样式？
+- 最终依赖应精确锁定为 `4.20.7`，还是使用 patch 兼容的 `~4.20.7`？对本模板来说，只有第一轮验证通过后才考虑 `~4.20.7`。

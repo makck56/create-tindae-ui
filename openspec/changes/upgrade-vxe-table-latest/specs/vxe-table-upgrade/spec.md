@@ -1,80 +1,101 @@
 ## ADDED Requirements
 
-### Requirement: Template dependency stack is upgraded to the latest verified VXE v4 line
-The template SHALL use the latest verified compatible VXE v4 dependency set for this change: `vxe-table@4.20.7` and `xe-utils@^4.0.11`.
+### Requirement: 模板依赖栈升级到最新已核实的 VXE v4 版本线
 
-#### Scenario: Dependency manifest reflects the upgrade target
-- **WHEN** `template/package.json` is inspected after implementation
-- **THEN** it MUST declare `vxe-table` as `4.20.7` or a deliberately approved patch-compatible `~4.20.7`
-- **AND** it MUST declare `xe-utils` as `^4.0.11` or a deliberately approved compatible range
+模板 SHALL 使用本 change 已核实的最新兼容 VXE v4 依赖组合：`vxe-table@4.20.7` 与 `xe-utils@^4.0.11`。
 
-#### Scenario: Lockfile is consistent with the manifest
-- **WHEN** template dependencies are installed after implementation
-- **THEN** `template/pnpm-lock.yaml` MUST resolve `vxe-table` to the selected upgrade target
-- **AND** it MUST resolve `xe-utils` to a v4 compatible version
+#### Scenario: 依赖清单体现升级目标
 
-### Requirement: Runtime registration avoids removed VXE deep paths
-The VXE plugin SHALL avoid importing VXE modules from deep paths that are absent from the `vxe-table@4.20.7` package file list.
+- **WHEN** 实现后检查 `template/package.json`
+- **THEN** 它 MUST 将 `vxe-table` 声明为 `4.20.7`，或声明为经过明确批准的 patch 兼容范围 `~4.20.7`
+- **AND** 它 MUST 将 `xe-utils` 声明为 `^4.0.11`，或声明为经过明确批准的兼容范围
 
-#### Scenario: Removed paths are not used
-- **WHEN** `template/src/core/plugins/vxeTable.ts` is inspected after implementation
-- **THEN** it MUST NOT import from `vxe-table/es/filter`
-- **AND** it MUST NOT import from `vxe-table/es/checkbox`
-- **AND** it MUST NOT import from `vxe-table/es/vxe-pager`
-- **AND** it MUST NOT import from `vxe-table/es/vxe-modal`
-- **AND** it MUST NOT import from `vxe-table/es/tooltip`
+#### Scenario: Lockfile 与依赖清单一致
 
-#### Scenario: Components required by the template are available at runtime
-- **WHEN** the generated admin app renders list pages after implementation
-- **THEN** `vxe-grid`, checkbox selection, pagination, sorting, modal, and tooltip behavior used by the template MUST be available without Vue unknown-component warnings
+- **WHEN** 实现后安装 template 依赖
+- **THEN** `template/pnpm-lock.yaml` MUST 将 `vxe-table` 解析到选定升级目标
+- **AND** 它 MUST 将 `xe-utils` 解析到兼容 v4 的版本
 
-### Requirement: VXE query and grid behavior remains compatible
-The upgrade SHALL preserve the existing `vxe-grid` data flow based on `proxyConfig`, list query functions, pagination, sorting, and checkbox selection.
+### Requirement: 运行时注册避开已不适用的 VXE 深路径
 
-#### Scenario: Search triggers VXE proxy query
-- **WHEN** a user triggers search or reset in `UserList`
-- **THEN** the grid MUST call `commitProxy('query')` without throwing `getCheckedFilters is not a function`
+VXE 插件 SHALL 避免从 `vxe-table@4.20.7` 包文件清单中不存在的深路径导入 VXE 模块。
 
-#### Scenario: Generated list pages keep the grid contract
-- **WHEN** a feature list page is generated from the scaffold templates
-- **THEN** the generated view MUST still render a `vxe-grid`
-- **AND** the generated composable MUST still provide `gridOptions` with `columns`, `pagerConfig`, and `proxyConfig.ajax.query`
+#### Scenario: 已不适用路径不再被使用
 
-### Requirement: VXE type usage is decoupled from unstable internal paths
-The upgraded template SHALL avoid depending on internal VXE type paths that are not part of the stable package root contract.
+- **WHEN** 实现后检查 `template/src/core/plugins/vxeTable.ts`
+- **THEN** 它 MUST NOT 从 `vxe-table/es/filter` 导入
+- **AND** 它 MUST NOT 从 `vxe-table/es/checkbox` 导入
+- **AND** 它 MUST NOT 从 `vxe-table/es/vxe-pager` 导入
+- **AND** 它 MUST NOT 从 `vxe-table/es/vxe-modal` 导入
+- **AND** 它 MUST NOT 从 `vxe-table/es/tooltip` 导入
 
-#### Scenario: Internal type paths are removed
-- **WHEN** `template/src` is searched for VXE type imports after implementation
-- **THEN** it MUST NOT import from `vxe-table/types/grid`
-- **AND** it MUST NOT import from `vxe-table/types/table`
+#### Scenario: 模板所需组件在运行时可用
 
-#### Scenario: Cross-page selection remains typed
-- **WHEN** TypeScript checks `useCrossPageGrid`
-- **THEN** checkbox change handlers, checkbox-all handlers, and grid checkbox methods MUST have explicit types or narrow local interfaces
-- **AND** the implementation MUST NOT use broad `any` as the primary type strategy for the grid integration
+- **WHEN** 实现后的后台模板渲染列表页
+- **THEN** `vxe-grid`、checkbox 选择、分页、排序、modal、tooltip 等模板使用的行为 MUST 可用
+- **AND** 运行时 MUST NOT 出现与这些 VXE 组件相关的 Vue unknown-component warning
 
-### Requirement: Theme bridge is validated against VXE 4.20.7
-The upgrade SHALL recalibrate VXE theme bridge selectors against the real `vxe-table@4.20.7` DOM and CSS structure before completion.
+### Requirement: VXE 查询与表格行为保持兼容
 
-#### Scenario: Theme preview verifies VXE visual states
-- **WHEN** `ThemePreview` renders the VXE showcase after implementation
-- **THEN** table header background, border lines, hover row, current row, checked row, active sort icon, active pager item, and checkbox color MUST follow the template theme tokens
+升级 SHALL 保持现有基于 `proxyConfig`、列表查询函数、分页、排序和 checkbox 选择的 `vxe-grid` 数据流。
 
-#### Scenario: Theme bridge comments name the verified VXE version
-- **WHEN** `template/src/core/theme/bridges/vxeTable.ts` is inspected after implementation
-- **THEN** its leading documentation MUST reference `vxe-table@4.20.7` or the final selected upgraded version as the verified CSS baseline
+#### Scenario: 搜索触发 VXE proxy query
 
-### Requirement: Upgrade passes build and test gates
-The upgrade SHALL pass the template and root validation gates before being considered complete.
+- **WHEN** 用户在 `UserList` 中触发搜索或重置
+- **THEN** grid MUST 调用 `commitProxy('query')`
+- **AND** MUST NOT 抛出 `getCheckedFilters is not a function`
 
-#### Scenario: Template validation passes
-- **WHEN** `cd template && pnpm test` is run
-- **THEN** all template tests MUST pass
-- **WHEN** `cd template && pnpm build` is run
-- **THEN** the template build MUST pass
+#### Scenario: 生成列表页保持 grid 契约
 
-#### Scenario: Root validation passes
-- **WHEN** root `pnpm test` is run
-- **THEN** all scaffold CLI tests MUST pass
-- **WHEN** root `pnpm build` is run
-- **THEN** the CLI build MUST pass
+- **WHEN** 从脚手架模板生成 feature list 页面
+- **THEN** 生成的 view MUST 仍渲染 `vxe-grid`
+- **AND** 生成的 composable MUST 仍提供包含 `columns`、`pagerConfig`、`proxyConfig.ajax.query` 的 `gridOptions`
+
+### Requirement: VXE 类型使用与不稳定内部路径解耦
+
+升级后的模板 SHALL 避免依赖不属于稳定包根契约的 VXE 内部类型路径。
+
+#### Scenario: 移除内部类型路径
+
+- **WHEN** 实现后搜索 `template/src` 中的 VXE 类型导入
+- **THEN** 代码 MUST NOT 从 `vxe-table/types/grid` 导入
+- **AND** 代码 MUST NOT 从 `vxe-table/types/table` 导入
+
+#### Scenario: 跨页选择保持类型约束
+
+- **WHEN** TypeScript 检查 `useCrossPageGrid`
+- **THEN** checkbox change handler、checkbox-all handler 和 grid checkbox 方法 MUST 具有显式类型或窄本地接口
+- **AND** 实现 MUST NOT 将宽泛 `any` 作为 grid 接入的主要类型策略
+
+### Requirement: 主题桥接按 VXE 4.20.7 校验
+
+升级 SHALL 在完成前，按真实 `vxe-table@4.20.7` DOM 和 CSS 结构重新校准 VXE 主题桥接选择器。
+
+#### Scenario: 主题预览验证 VXE 视觉状态
+
+- **WHEN** `ThemePreview` 渲染 VXE showcase
+- **THEN** 表头背景、边框线、hover 行、current 行、checked 行、激活排序图标、激活分页项和 checkbox 颜色 MUST 跟随模板主题 token
+
+#### Scenario: 主题桥接注释标明已验证 VXE 版本
+
+- **WHEN** 实现后检查 `template/src/core/theme/bridges/vxeTable.ts`
+- **THEN** 文件头部文档 MUST 将 `vxe-table@4.20.7` 或最终选定升级版本标记为已验证 CSS 基线
+
+### Requirement: 升级通过构建与测试门禁
+
+升级 SHALL 在视为完成前通过 template 和根目录验证门禁。
+
+#### Scenario: Template 验证通过
+
+- **WHEN** 运行 `cd template && pnpm test`
+- **THEN** 所有 template 测试 MUST 通过
+- **WHEN** 运行 `cd template && pnpm build`
+- **THEN** template 构建 MUST 通过
+
+#### Scenario: 根目录验证通过
+
+- **WHEN** 运行根目录 `pnpm test`
+- **THEN** 所有脚手架 CLI 测试 MUST 通过
+- **WHEN** 运行根目录 `pnpm build`
+- **THEN** CLI 构建 MUST 通过
+
