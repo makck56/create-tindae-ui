@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { THEME_PRESETS, DEFAULT_PRESET_KEY, findPreset, applyPreset } from './presets';
-import { lightTokens } from '../tokens';
-import type { ColorScale } from '../types';
+import { lightTokens } from './tokens';
+import type { ColorScale } from './types';
 
 describe('presets', () => {
   it('预设数量不少于 3，且每个含完整主色色阶', () => {

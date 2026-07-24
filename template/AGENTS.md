@@ -17,12 +17,12 @@ pages ──► modules ──► shared ──► core
   └──────────┴──────────┴──► core（被任何层使用）
 ```
 
-| 层 | 放什么 | 可引用 |
-| :--- | :--- | :--- |
-| `src/core/` | 启动、插件、`http`、`theme` 基建 | 被任何层使用 |
-| `src/shared/` | 无业务的通用组件/工具/常量 | 只能引用 core |
-| `src/modules/` | 跨域复用业务（auth / app） | shared |
-| `src/pages/<域>/` | 具体业务功能 | modules、shared |
+| 层                | 放什么                           | 可引用          |
+| :---------------- | :------------------------------- | :-------------- |
+| `src/core/`       | 启动、插件、`http`、`theme` 基建 | 被任何层使用    |
+| `src/shared/`     | 无业务的通用组件/工具/常量       | 只能引用 core   |
+| `src/modules/`    | 跨域复用业务（auth / app）       | shared          |
+| `src/pages/<域>/` | 具体业务功能                     | modules、shared |
 
 ❌ **跨域禁止直接 import** —— 用 `router.push()`、下沉到 `modules/`、或全局 Store 交互。
 
@@ -44,10 +44,10 @@ pages ──► modules ──► shared ──► core
 
 每个业务页面拆两文件：
 
-| 文件 | 角色 | 职责 | 禁止 |
-| :--- | :--- | :--- | :--- |
-| `XxxList.page.vue` | **路由壳**（极薄） | keep-alive 锚点、取 `$route` 参数传 View | ❌ 业务逻辑、❌ 调 API |
-| `XxxList.view.vue` | **业务核**（100% 功能） | 组合 composables + 组件、处理交互/loading | |
+| 文件               | 角色                    | 职责                                      | 禁止                   |
+| :----------------- | :---------------------- | :---------------------------------------- | :--------------------- |
+| `XxxList.page.vue` | **路由壳**（极薄）      | keep-alive 锚点、取 `$route` 参数传 View  | ❌ 业务逻辑、❌ 调 API |
+| `XxxList.view.vue` | **业务核**（100% 功能） | 组合 composables + 组件、处理交互/loading |                        |
 
 ### 3.2 新建域 / 特性
 
@@ -67,8 +67,8 @@ pnpm scaffold:feature   # 在现有域下加特性
 ### 3.3 命名约定
 
 | kebab（目录/URL/文件前缀） | camel（路由变量/api 文件） | Pascal（组件名/类/路由 name） |
-| :--- | :--- | :--- |
-| `order-management` | `orderManagement` | `OrderManagement` |
+| :------------------------- | :------------------------- | :---------------------------- |
+| `order-management`         | `orderManagement`          | `OrderManagement`             |
 
 ---
 
@@ -88,11 +88,11 @@ export const getOrderList = (params: OrderListParams) =>
 
 **三层职责（严格分层）**：
 
-| 层 | 做 | 禁止 |
-| :--- | :--- | :--- |
-| `*.api.ts` | 发请求、返回 `ApiResponse<T>` | ❌ UI 反馈（`message.error`） |
-| `use*.ts`（composable） | `await getXxx()` → 取 `res.data`、管 loading/error、UI 反馈 | ❌ 关心请求细节 |
-| `*.vue`（View） | 组合 composables + 组件 | ❌ 直接调 `request` |
+| 层                      | 做                                                          | 禁止                          |
+| :---------------------- | :---------------------------------------------------------- | :---------------------------- |
+| `*.api.ts`              | 发请求、返回 `ApiResponse<T>`                               | ❌ UI 反馈（`message.error`） |
+| `use*.ts`（composable） | `await getXxx()` → 取 `res.data`、管 loading/error、UI 反馈 | ❌ 关心请求细节               |
+| `*.vue`（View）         | 组合 composables + 组件                                     | ❌ 直接调 `request`           |
 
 错误：传输层失败统一抛 `HttpError`（`@/core/http`）；业务码 `code !== 0` **默认不抛**，由调用方判断。
 
@@ -139,13 +139,13 @@ export const getOrderList = (params: OrderListParams) =>
 
 ## 10. 命令速查
 
-| 命令 | 作用 |
-| :--- | :--- |
-| `pnpm dev` | 启动（端口 3000，自动开浏览器） |
-| `pnpm build` | `vue-tsc --noEmit` 类型检查 + `vite build` |
-| `pnpm lint` | ESLint 修复 + Prettier 格式化 |
-| `pnpm test` | `vitest run` 跑单测 |
-| `pnpm scaffold:domain` / `:feature` | 交互式创建域 / 特性 |
+| 命令                                | 作用                                       |
+| :---------------------------------- | :----------------------------------------- |
+| `pnpm dev`                          | 启动（端口 3000，自动开浏览器）            |
+| `pnpm build`                        | `vue-tsc --noEmit` 类型检查 + `vite build` |
+| `pnpm lint`                         | ESLint 修复 + Prettier 格式化              |
+| `pnpm test`                         | `vitest run` 跑单测                        |
+| `pnpm scaffold:domain` / `:feature` | 交互式创建域 / 特性                        |
 
 ---
 
@@ -157,16 +157,16 @@ Conventional Commits：`type(scope): subject`，type ∈ `feat / fix / refactor 
 
 ## AI 高频踩坑（务必规避）
 
-| ❌ 错误做法 | ✅ 正确做法 |
-| :--- | :--- |
-| 在 `.page.vue` 写业务逻辑 / 调 API | 移到 `.view.vue`，Page 只做路由壳 |
-| View 里 `import { request }` | 走 `api/*.ts` → `use*.ts` composable |
-| `const { data: res } = await x()` | `const res = await x()`（封装已解壳） |
-| 用字面色 `#1890ff` | 用 `var(--color-*)` / Tailwind 语义类 |
-| 改路由 `name` 没同步 `defineOptions({ name })` | 都用 `ROUTE_NAMES` 常量 |
-| 新建域后忘接路由 / 忘加菜单 / code 不一致 | 三件事全做（见 3.2） |
-| `components/` / `api/` 用 `index.ts` | 显式路径 import |
-| 原地修改 state | 返回新对象（不可变） |
+| ❌ 错误做法                                    | ✅ 正确做法                           |
+| :--------------------------------------------- | :------------------------------------ |
+| 在 `.page.vue` 写业务逻辑 / 调 API             | 移到 `.view.vue`，Page 只做路由壳     |
+| View 里 `import { request }`                   | 走 `api/*.ts` → `use*.ts` composable  |
+| `const { data: res } = await x()`              | `const res = await x()`（封装已解壳） |
+| 用字面色 `#1890ff`                             | 用 `var(--color-*)` / Tailwind 语义类 |
+| 改路由 `name` 没同步 `defineOptions({ name })` | 都用 `ROUTE_NAMES` 常量               |
+| 新建域后忘接路由 / 忘加菜单 / code 不一致      | 三件事全做（见 3.2）                  |
+| `components/` / `api/` 用 `index.ts`           | 显式路径 import                       |
+| 原地修改 state                                 | 返回新对象（不可变）                  |
 
 ---
 
