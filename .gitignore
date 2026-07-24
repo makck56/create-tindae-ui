@@ -1,4 +1,5 @@
 node_modules
+.pnpm-store
 dist
 *.tgz
 # 仅忽略「仓库根目录」的开发用 .npmrc（可能含本地 token）；
