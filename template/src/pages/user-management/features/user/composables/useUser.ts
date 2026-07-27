@@ -1,9 +1,12 @@
 import { ref, reactive } from 'vue';
-import type { VxeGridInstance } from 'vxe-table';
 import message from 'ant-design-vue/es/message';
 import { getUserList, getUserDetail, deleteUser } from '../api/user.api';
 import type { User, UserStatus, UserRole } from '../models/User';
 import { COPY } from '@/shared/constants/copy';
+
+interface QueryableGrid {
+  commitProxy(target: 'query'): Promise<unknown> | void;
+}
 
 export function useUserList() {
   const filters = ref({
@@ -12,7 +15,8 @@ export function useUserList() {
     role: undefined as UserRole | undefined,
   });
 
-  const gridRef = ref<VxeGridInstance | null>(null);
+  // 业务层只需要触发表格重新查询，不应依赖 VXE 内部实例完整类型。
+  const gridRef = ref<QueryableGrid | null>(null);
 
   const gridOptions = reactive({
     columns: [
@@ -33,7 +37,9 @@ export function useUserList() {
     ],
     pagerConfig: { pageSize: 10 },
     proxyConfig: {
-      props: {
+      // vxe-table 4.20.x 已将 proxyConfig.props 重命名为 proxyConfig.response，
+      // 沿用 props 会触发 delProp 废弃警告，且新版无法据此解析列表与总数字段。
+      response: {
         result: 'list',
         total: 'total',
       },
@@ -56,6 +62,12 @@ export function useUserList() {
   }
 
   function resetFilters() {
+    // 重置筛选条件为初始空值后再查询，与 QueryFilter 的清空语义保持一致。
+    filters.value = {
+      name: undefined,
+      status: undefined,
+      role: undefined,
+    };
     handleSearch();
   }
 

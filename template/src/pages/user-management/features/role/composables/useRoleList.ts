@@ -21,7 +21,9 @@ export function useRoleList() {
     ],
     pagerConfig: { pageSize: 10 },
     proxyConfig: {
-      props: {
+      // vxe-table 4.20.x 已将 proxyConfig.props 重命名为 proxyConfig.response，
+      // 沿用 props 会触发 delProp 废弃警告，且新版无法据此解析列表与总数字段。
+      response: {
         result: 'list',
         total: 'total',
       },

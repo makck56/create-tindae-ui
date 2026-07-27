@@ -1,15 +1,26 @@
 import { h, computed, watch, nextTick, type Ref } from 'vue'
-import type { VxeGridConstructor } from 'vxe-table/types/grid'
-import type { VxeTableDefines } from 'vxe-table/types/table'
 import CrossPageCheckboxHeader from './CrossPageCheckboxHeader.vue'
 import { useCrossPageSelect } from './useCrossPageSelect'
 import type { UseCrossPageSelectOptions } from './types'
 
-export interface UseCrossPageGridOptions<T = any> extends UseCrossPageSelectOptions<T> {
-  gridRef: Ref<VxeGridConstructor | undefined>
+export interface VxeGridCheckboxController<T> {
+  clearCheckboxRow(): void
+  setCheckboxRow(rows: T[], checked: boolean): void
 }
 
-export function useCrossPageGrid<T = any>(options: UseCrossPageGridOptions<T>) {
+export interface VxeCheckboxEventParams<T> {
+  row?: T
+  records?: T[]
+  checked?: boolean
+  $event?: Event
+}
+
+export interface UseCrossPageGridOptions<T = unknown> extends UseCrossPageSelectOptions<T> {
+  // 这里只依赖 checkbox 同步需要的最小 grid 能力，避免绑定 vxe-table 内部类型路径。
+  gridRef: Ref<VxeGridCheckboxController<T> | undefined>
+}
+
+export function useCrossPageGrid<T = unknown>(options: UseCrossPageGridOptions<T>) {
   const { gridRef, ...selectOptions } = options
   const composable = useCrossPageSelect<T>(selectOptions)
 
@@ -22,7 +33,7 @@ export function useCrossPageGrid<T = any>(options: UseCrossPageGridOptions<T>) {
     try {
       grid.clearCheckboxRow()
       const rows = selectOptions.data.value.filter(
-        (row: any) => !(selectOptions.isDisabled?.(row)) && composable.isRowSelected(row),
+        (row) => !(selectOptions.isDisabled?.(row)) && composable.isRowSelected(row),
       )
       if (rows.length > 0) {
         grid.setCheckboxRow(rows, true)
@@ -37,12 +48,12 @@ export function useCrossPageGrid<T = any>(options: UseCrossPageGridOptions<T>) {
     () => { nextTick(syncGridCheckbox) },
   )
 
-  function handleCheckboxChange(params: VxeTableDefines.CheckboxChangeEventParams) {
+  function handleCheckboxChange(params: VxeCheckboxEventParams<T>) {
     if (isSyncing) return
     composable.onCheckboxChange(params)
   }
 
-  function handleCheckboxAll(params: VxeTableDefines.CheckboxAllEventParams) {
+  function handleCheckboxAll(params: VxeCheckboxEventParams<T>) {
     if (isSyncing) return
     composable.onCheckboxAll(params)
   }

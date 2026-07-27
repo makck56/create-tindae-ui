@@ -29,7 +29,7 @@ function getStatusLabel(status: string) {
   <PageWrapper>
     <template #search>
       <QueryFilter
-        v-model:value="filters"
+        v-model="filters"
         :config="filterConfig"
         @search="handleSearch"
         @reset="resetFilters"
