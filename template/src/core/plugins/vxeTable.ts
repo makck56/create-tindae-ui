@@ -1,49 +1,36 @@
 import type { App } from 'vue';
-// 主题说明：vxe-table 的「主色 / 表头 / 行 hover / 选中行 / 边框 / 分页」等核心视觉，
-// 由 core/theme/bridges/vxeTable.ts 注入的覆盖样式统一接管（引用 var(--color-*) 等语义变量），
-// 与 Tailwind / Ant Design Vue 三端联动换肤。本文件只负责「按需注册组件 + i18n」，不含主题逻辑。
-import VXETable from 'vxe-table/es/v-x-e-table';
-import zhCN from 'vxe-table/es/locale/lang/zh-CN';
-import Grid from 'vxe-table/es/grid';
-import Table from 'vxe-table/es/table';
-import Column from 'vxe-table/es/column';
-import Checkbox from 'vxe-table/es/checkbox';
-// 列筛选模块：vxe-grid 的 commitProxy('query') 内部会无条件调用
-// $xetable.getCheckedFilters()（无论业务是否使用列筛选），该方法由 filter 模块提供。
-// 若不注册，触发查询（如点击搜索、分页、reload）会报 "getCheckedFilters is not a function"。
-import Filter from 'vxe-table/es/filter';
-import Toolbar from 'vxe-table/es/toolbar';
-import Pager from 'vxe-table/es/vxe-pager';
-import Modal from 'vxe-table/es/vxe-modal';
-import Tooltip from 'vxe-table/es/tooltip';
+import VXETable, { VxeUI } from 'vxe-table';
+// vxe-pc-ui 的默认导出是带 install 的插件对象（namespace），故用默认导入。
+import VxeUIPcUi from 'vxe-pc-ui';
+import vxeTableZhCN from 'vxe-table/es/locale/lang/zh-CN';
+import vxePcUiZhCN from 'vxe-pc-ui/es/language/zh-CN';
 
-import 'vxe-table/es/grid/style.css';
-import 'vxe-table/es/table/style.css';
-import 'vxe-table/es/column/style.css';
-import 'vxe-table/es/vxe-pager/style.css';
-import 'vxe-table/es/checkbox/style.css';
-import 'vxe-table/es/filter/style.css';
-import 'vxe-table/es/toolbar/style.css';
-import 'vxe-table/es/vxe-modal/style.css';
-import 'vxe-table/es/tooltip/style.css';
+import 'vxe-table/es/style.css';
+import 'vxe-pc-ui/es/style.css';
 
-const messages = (zhCN as any).default ?? zhCN
+// vxe-table 4.6+ 将 VxePager / VxeForm 等 PC UI 组件拆分到独立的 vxe-pc-ui 包，
+// 两个包各自维护一份中文文案，这里合并后再写入共享的 VxeUI，
+// 确保表格（空数据、排序提示等）与分页器（上一页 / 跳转等）文案都完整。
+const tableMessages = (vxeTableZhCN as { default?: Record<string, unknown> }).default ?? vxeTableZhCN;
+const pcUiMessages = (vxePcUiZhCN as { default?: Record<string, unknown> }).default ?? vxePcUiZhCN;
+const messages: Record<string, unknown> = { ...pcUiMessages, ...tableMessages };
 
-function getNestedValue(obj: any, path: string): string | undefined {
-  return path.split('.').reduce((acc, key) => acc?.[key], obj)
+function getNestedValue(obj: Record<string, unknown>, path: string): string | undefined {
+  // 支持 "a.b.c" 形式的嵌套 key 取值，用于自定义 i18n 查找。
+  const value = path.split('.').reduce<unknown>((acc, key) => {
+    if (typeof acc !== 'object' || acc === null) return undefined;
+    return (acc as Record<string, unknown>)[key];
+  }, obj);
+
+  return typeof value === 'string' ? value : undefined;
 }
 
 export function setupVxeTable(app: App): void {
-  VXETable.setup({ i18n: (key: string) => getNestedValue(messages, key) || key });
-  // 先注册 filter 模块：install 内部执行 VXETable.hooks.add('$tableFilter', ...)，
-  // 必须早于 grid 组件首次实例化，grid 实例才能拿到 getCheckedFilters 等方法。
-  app.use(Filter as any);
-  app.component(Grid.name!, Grid);
-  app.component(Table.name!, Table);
-  app.component(Column.name!, Column);
-  app.component(Checkbox.name!, Checkbox);
-  app.component(Toolbar.name!, Toolbar);
-  app.component(Pager.name!, Pager);
-  app.component(Modal.name!, Modal);
-  app.component(Tooltip.name!, Tooltip);
+  // 统一走包级安装：先注册 vxe-pc-ui，提供 VxePager / VxeForm 等 grid 依赖的组件，
+  // 否则 pagerConfig 会触发 "缺少组件" 警告且分页器不会渲染；再注册 vxe-table 表格核心。
+  VxeUI.setI18n('zh-CN', messages);
+  VxeUI.setLanguage('zh-CN');
+  VxeUI.setConfig({ i18n: (key: string) => getNestedValue(messages, key) || key });
+  app.use(VxeUIPcUi);
+  app.use(VXETable);
 }
