@@ -58,6 +58,8 @@ test("renderTemplate: 列表 composable 继续输出 proxy 查询骨架", async 
   const out = await renderTemplate("feature/composable-list.ts.hbs", data);
 
   assert.ok(out.includes("gridOptions"));
+  assert.ok(out.includes("formConfig: { enabled: false }"));
+  assert.ok(out.includes("toolbarConfig: { enabled: false }"));
   assert.ok(out.includes("proxyConfig"));
   assert.ok(out.includes("ajax:"));
   assert.ok(out.includes("query: async"));

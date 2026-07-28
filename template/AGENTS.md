@@ -7,7 +7,7 @@
 
 ## 1. 技术栈与四层架构
 
-Vue 3（`<script setup>` + TS）· Vite · Pinia · Vue Router · Tailwind CSS · Ant Design Vue **v3** · VXE Table 4 · ECharts 5 · MSW（mock）· Vitest。
+Vue 3（`<script setup>` + TS）· Vite · Pinia · Vue Router · Tailwind CSS 4 · Ant Design Vue **v3** · VXE Table 4 · ECharts 6 · MSW 2.14 · Vitest。
 
 **四层分层，依赖只能向下，严禁反向：**
 
@@ -123,11 +123,13 @@ export const getOrderList = (params: OrderListParams) =>
 
 ---
 
-## 8. Mock（MSW）
+## 8. Mock（MSW 默认）
 
-- **仅开发环境**生效（`import.meta.env.DEV`），生产构建不含。
-- 新接口在 `src/mock/handlers/` 加 handler，URL 带 `/api` 前缀。
-- 未匹配请求 `onUnhandledRequest: 'bypass'` 放行（不报错，走真实网络）。
+- 默认开发态由 `src/main.ts` 启动 MSW，生产构建不启动 mock。
+- 新业务接口优先在 `src/mock/handlers/` 新建或扩展 handler，并在 `src/mock/handlers/index.ts` 聚合。
+- `fallbackHandlers` 必须排在 handler 列表最后：业务 mock 先匹配，遗漏的 `/api/...` 再返回结构化 404。
+- `public/mockServiceWorker.js` 带模板补丁：同源非 `/api/` 请求必须在 fetch 事件最前面直接绕过 MSW，避免 Vite 源码模块和 HMR 进入 passthrough 链路。
+- `onUnhandledRequest: 'bypass'` 只放行 Vite 源码模块、HMR、静态资源和第三方资源；不要把默认 mock 架构改成 Vite middleware，除非先完成 OpenSpec 评估。
 
 ---
 

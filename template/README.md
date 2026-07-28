@@ -50,15 +50,15 @@
 | :------- | :-------------------------------------------- | :---------------------------------------------------------------- |
 | 框架     | Vue 3.5（Composition API + `<script setup>`） |                                                                   |
 | 语言     | TypeScript 5.5（strict 严格模式）             |                                                                   |
-| 构建     | Vite 5.4                                      | 开发端口 **3000**，启动自动开浏览器                               |
+| 构建     | Vite 8.1                                      | 开发端口 **3000**，启动自动开浏览器                               |
 | 路由     | Vue Router 4.4                                | 手动聚合（非自动发现）                                            |
 | 状态管理 | Pinia 2.2                                     | Setup Store 风格                                                  |
 | UI 库    | Ant Design Vue 3.2                            | 按需自动导入（unplugin-vue-components）                           |
-| 表格     | VXE Table 4.3（`vxe-grid`）                   | 列表页主力                                                        |
-| 图表     | ECharts 5.5                                   |                                                                   |
-| CSS      | Tailwind CSS 3.4 + CSS Variables              | 统一主题系统（亮暗 + 主色预设，见 [7.7](#77-主题系统与统一换肤)） |
-| Mock     | MSW 2.14                                      | 仅开发环境启用                                                    |
-| 测试     | Vitest 1.6 + Vue Test Utils 2.4               |                                                                   |
+| 表格     | VXE Table 4.20（`vxe-grid`）                  | 列表页主力                                                        |
+| 图表     | ECharts 6.0                                   |                                                                   |
+| CSS      | Tailwind CSS 4 + CSS Variables                | CSS-first `@theme inline`，统一主题系统（见 [7.7](#77-主题系统与统一换肤)） |
+| Mock     | MSW 2.14                                      | 开发态默认启动，`/api` 未匹配请求返回结构化 404                  |
+| 测试     | Vitest 4.1 + Vue Test Utils 2.4               |                                                                   |
 | 代码规范 | ESLint 8.57 + Prettier 3.3                    |                                                                   |
 | 提交规范 | Husky + Commitlint + lint-staged              |                                                                   |
 | 加密     | JSEncrypt 3.5（RSA）                          | 登录密码加密                                                      |
@@ -130,7 +130,7 @@ pnpm dev          # 实际执行：vite
 
 ### 4. 默认登录账号（Mock 模式）
 
-开发环境下，项目通过 **MSW** 拦截 `/api/*` 请求，**任意用户名 + 任意密码 + 正确的图形验证码**即可登录成功（验证码图片上显示什么就填什么）。
+开发环境下，项目默认通过 **MSW** 处理接口请求，**任意用户名 + 任意密码 + 正确的图形验证码**即可登录成功（验证码图片上显示什么就填什么）。
 
 - 登录成功后会自动拉取用户信息与权限菜单，重定向到 `/user-management`。
 - 菜单默认显示「用户管理」「角色管理」两项（可在 `src/modules/app/config/menu.config.ts` 配置）。
@@ -201,8 +201,6 @@ my-project/
 ├── vite.config.ts            # 构建配置（含插件装配、端口、分包）
 ├── vitest.config.ts          # 单测配置
 ├── tsconfig.json             # @ -> src 别名
-├── tailwind.config.js
-├── postcss.config.js
 ├── env.d.ts
 ├── .eslintrc.cjs
 ├── .prettierrc.json
@@ -226,12 +224,12 @@ my-project/
 │   └── templates/            #   Handlebars 模板（.hbs）
 │
 ├── public/
-│   └── mockServiceWorker.js  # MSW Worker
+│   └── mockServiceWorker.js  # MSW Worker（开发态默认启用）
 │
 ├── docs/                     # 架构白皮书 / 编码规范 / 迁移指南
 │
 └── src/
-    ├── main.ts               # 入口（dev 下先启动 MSW 再 setupApp）
+    ├── main.ts               # 入口（开发态默认启动 MSW，并更新旧 worker）
     ├── App.vue               # 根组件（a-config-provider + router-view）
     ├── auto-components.d.ts  # Ant Design Vue 自动导入类型（自动生成，勿手改）
     │
@@ -284,12 +282,12 @@ my-project/
     │           ├── user/    #   用户特性（api / models / composables / views）
     │           └── role/    #   角色特性
     │
-    ├── mock/                # MSW Mock
-    │   ├── browser.ts       #   worker 入口
-    │   ├── handlers/        #   auth.ts / user.ts / index.ts
+    ├── mock/                # MSW Mock（开发态默认启用）
+    │   ├── browser.ts       #   worker 入口与未处理请求诊断
+    │   ├── handlers/        #   auth.ts / user.ts / role.ts / fallback.ts / index.ts
     │   └── data/            #   内存测试数据
     │
-    ├── assets/styles/       # global.css / tailwind.css / variables.css
+    ├── assets/styles/       # global.css / tailwind.css / theme.tailwind.css / variables.css
     └── types/index.ts
 ```
 
@@ -442,7 +440,7 @@ interface LoginParams {
 }
 ```
 
-**Mock 行为**（`src/mock/handlers/auth.ts`）：任意账号密码 + 验证码正确即放行，登录态用 `sessionStorage['mock-auth']='1'` 标记，刷新页面后仍保持登录（直到登出或关标签页）。
+**Mock 行为**：默认开发态由 MSW 处理 `/api/auth/login`、`/api/user/info`、`/api/auth/refresh`、`/api/auth/logout`。任意账号密码 + 验证码正确即放行，登录态写入 `localStorage.token` / `localStorage.refreshToken` / `localStorage.tokenExpiresAt`，刷新页面后仍保持登录（直到登出或 token 失效）。
 
 ### 6.5 数据请求层封装与使用
 
@@ -853,23 +851,30 @@ access token 有有效期，过期后请求会 401。封装内置「**主动刷�
 
 > 💡 一句话总结：**api 层 `request.get<业务类型>(url)`，调用层 `const res = await api()` 后用 `res.data`**。token、401、超时、网络错误全部自动处理，业务只关心「成功拿 data / 失败看 code」。
 
-### 6.6 Mock：MSW 仅开发环境
+### 6.6 Mock：默认 MSW
 
-入口在 `src/main.ts`：
+默认入口在 `src/main.ts`：
 
 ```ts
 if (import.meta.env.DEV) {
-  import('@/mock/browser').then(({ worker }) => {
-    worker.start({ onUnhandledRequest: 'bypass' }).then(setupApp); // 未匹配的请求放行
+  Promise.all([import('@/mock/browser'), updateExistingMockWorker()]).then(([{ worker }]) => {
+    worker.start({
+      onUnhandledRequest: 'bypass',
+      serviceWorker: {
+        url: '/mockServiceWorker.js',
+        options: { updateViaCache: 'none' },
+      },
+    });
   });
-} else {
-  setupApp(); // 生产构建不含 Mock
 }
 ```
 
-- Mock 处理器集中在 `src/mock/handlers/`，在 `index.ts` 聚合后注入 worker。
-- 测试数据放在 `src/mock/data/`（如 `user.ts` 内置 30 条随机用户，支持增删改查）。
-- 生产构建（`pnpm build`）**不会**打包 mock，可放心上线。
+- MSW 默认在开发态启动，生产构建（`pnpm build`）不会启动 mock。
+- 默认 mock 数据在 `src/mock/handlers/` 与 `src/mock/data/` 中维护，已覆盖登录、用户信息、token refresh、用户列表、角色列表与删除。
+- `src/mock/handlers/fallback.ts` 兜底匹配未声明的 `/api/...`，返回结构化 404，避免 API 请求 passthrough 到不存在的真实后端。
+- `src/mock/browser.ts` 会打印未处理且即将放行的请求，用来区分 Vite 模块、静态资源、第三方资源和遗漏的业务 mock。
+- `src/main.ts` 会更新已有 `/mockServiceWorker.js` 注册，并设置 `updateViaCache: 'none'`，减少浏览器缓存旧 worker 导致的动态模块加载异常。
+- `public/mockServiceWorker.js` 保留模板补丁：同源但非 `/api/` 的请求会在 fetch 事件最前面直接绕过 MSW，避免 `.vue` / `.ts` / HMR 等 Vite 模块请求进入 passthrough 链路。
 
 ---
 
@@ -1005,7 +1010,7 @@ message.success(COPY.COMMON.SUCCESS);
 当前主题链路分成两层：
 
 - **运行时真源**：`src/core/theme/` 里的 `ThemeTokens` 驱动 Tailwind、Ant Design Vue、VXE Table、ECharts 四端联动；现在已纳入 `colors / text / bg / border / typography / spacing / radius / layout`。
-- **设计稿导出链路**：`design.md -> theme.tokens.json -> theme.tailwind.json -> tailwind.config.js`。其中 `theme.tokens.json` 是 `@google/design.md` 的 raw 导出，`theme.tailwind.json` 是项目内适配层产物，负责把第三方导出格式映射到本项目稳定的 Tailwind 语义结构。
+- **设计稿导出链路**：`design.md -> theme.tokens.json -> src/assets/styles/theme.tailwind.css`。其中 `theme.tokens.json` 是 `@google/design.md` 的 raw 导出，`theme.tailwind.css` 是项目内 Tailwind v4 适配产物，使用 `@theme inline` 把语义 token 映射到运行时 CSS 变量。
 
 **推荐命令**：
 
@@ -1014,8 +1019,8 @@ pnpm run tokens:export
 pnpm run tokens:check
 ```
 
-- `tokens:export`：从 `design.md` 生成 `theme.tokens.json` 和 `theme.tailwind.json`
-- `tokens:check`：同时校验 raw 导出结构、Tailwind 适配结果，以及 `design.md` 与 `src/core/theme/tokens.ts` 中 `lightTokens` 默认值的一致性
+- `tokens:export`：从 `design.md` 生成 `theme.tokens.json` 和 `src/assets/styles/theme.tailwind.css`
+- `tokens:check`：同时校验 raw 导出结构、Tailwind v4 `@theme inline` 适配结果，以及 `design.md` 与 `src/core/theme/tokens.ts` 中 `lightTokens` 默认值的一致性
 
 **开箱即用**：`DefaultLayout` 顶栏右侧的 `ThemeSwitcher` 可切「亮/暗」与 5 套主色预设（蓝/绿/紫/橙/红）。登录后访问侧边栏「**主题预览**」（路由 `/theme-preview`，admin 可见）可对照色板 / antd 全组件 / VXE 表格 / ECharts 图表 / 业务卡片，肉眼验证联动效果。
 
@@ -1335,15 +1340,19 @@ export const orderManagementRoutes: RouteRecordRaw[] = [
 
 **⑦ 接路由 + 配权限**：回到 [方式 A 的避坑 1、2](#方式-a用脚手架推荐30-秒)，把路由加入 `router.ts`、菜单加入 `menu.config.ts`（mock 自动回吐，无需改 mock）。
 
-**⑧（可选）补 Mock**：在 `src/mock/handlers/` 新建 `order.ts` 仿照 `user.ts`，并在 `index.ts` 聚合：
+**⑧（可选）补 Mock**：默认开发态走 MSW，因此新业务接口优先在 `src/mock/handlers/` 新建 handler 并在 `index.ts` 聚合：
 
 ```ts
-// src/mock/handlers/index.ts
-import { authHandlers } from './auth';
-import { userHandlers } from './user';
-import { orderHandlers } from './order'; // ← 新增
-export const handlers = [...authHandlers, ...userHandlers, ...orderHandlers];
+import { http, HttpResponse } from 'msw'
+
+export const orderHandlers = [
+  http.get('/api/orders', () => {
+    return HttpResponse.json({ code: 0, message: 'ok', data: { list: [], total: 0 } })
+  }),
+]
 ```
+
+遗漏的 `/api/...` 会被 `fallbackHandlers` 返回结构化 404；如果看到该 404，说明需要补对应业务 handler。
 
 保存后浏览器热更新即可看到「订单管理」菜单和列表页。
 
@@ -1453,14 +1462,21 @@ src/pages/<domain>/
 
 ## 十一、对接真实后端
 
-模板默认全量 Mock。接真实接口时：
+模板开发态默认通过 MSW mock `/api`。接真实接口时：
 
 ### 1. 加 Vite 代理（解决跨域）
 
-当前 `vite.config.ts` 的 `server` 只有 `host/port/open`，**没有** proxy。开发时若后端在别的端口，需自行添加：
+当前 `src/main.ts` 在开发态默认启动 MSW，它会优先处理已声明的 `/api` handler。开发时若要接真实后端，需要先关闭 MSW 启动，再添加 proxy：
 
 ```ts
 // vite.config.ts
+const plugins = [
+  vue(),
+  tailwindcss(),
+  defineRenderPlugin(),
+  // ...
+];
+
 server: {
   host: true,
   port: 3000,
@@ -1474,6 +1490,14 @@ server: {
     },
   },
 },
+```
+
+```ts
+// src/main.ts
+// 接真实后端时，可用环境变量控制是否启动 MSW。
+if (import.meta.env.DEV && import.meta.env.VITE_USE_MSW !== 'false') {
+  // worker.start(...)
+}
 ```
 
 ### 2. （可选）用环境变量区分 baseURL
@@ -1492,8 +1516,9 @@ VITE_API_BASE_URL=https://api.example.com
 
 ### 3. 关闭 Mock
 
-- 临时关：把 `src/main.ts` 里的 `if (import.meta.env.DEV)` 分支直接改成 `setupApp()`；
-- 生产构建天然不含 Mock（`import.meta.env.DEV` 为 false）。
+- 开发态默认 MSW：在 `src/main.ts` 用环境变量控制 `worker.start()`，例如 `VITE_USE_MSW !== 'false'`。
+- 接真实后端时，让 `VITE_USE_MSW=false` 并启用 Vite proxy，避免 MSW 抢先响应 `/api`。
+- 生产构建天然不含开发态 mock：`import.meta.env.DEV` 为 false 时不会启动 MSW。
 
 ### 4. 适配响应格式
 
@@ -1518,8 +1543,8 @@ A：路由 `name` 必须与 `.page.vue` 里 `defineOptions({ name })` 一致，�
 **Q4：`vxe-grid` 报错或样式错乱？**
 A：确保已在 `core/plugins/vxeTable.ts` 正确初始化（模板已配好，勿删）。表格高度用 `height="auto"` 配合 `PageWrapper` 的 flex 布局自适应。
 
-**Q5：MSW 没拦截请求，直接打到后端 / 报网络错误？**
-A：① 确认在 dev 模式（`pnpm dev`）；② 确认 `public/mockServiceWorker.js` 存在；③ 未匹配的请求会被 `onUnhandledRequest: 'bypass'` 放行，所以「没拦到」时不会报错，只是走了真实网络——检查 handler 的 URL 是否带 `/api` 前缀。
+**Q5：控制台出现 `mockServiceWorker.js: Failed to fetch`？**
+A：默认开发态会启动 MSW，但模板版 `mockServiceWorker.js` 只接管同源 `/api/` 请求；`.vue` / `.ts` / HMR / 静态资源会在 worker fetch 事件最前面绕过 MSW。先看控制台前面的 `[mock] 未匹配的 API 请求...` 日志：如果是 `/api/...`，补 `src/mock/handlers/`；如果仍指向源码模块，通常是浏览器仍被旧 worker 控制，刷新一次或到 DevTools -> Application -> Service Workers 手动 unregister 后重启 dev server。
 
 **Q6：端口 3000 被占用？**
 A：改 `vite.config.ts` 的 `server.port`，或启动时 `pnpm dev --port 3001`。

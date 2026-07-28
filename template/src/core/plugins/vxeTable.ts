@@ -30,7 +30,16 @@ export function setupVxeTable(app: App): void {
   // 否则 pagerConfig 会触发 "缺少组件" 警告且分页器不会渲染；再注册 vxe-table 表格核心。
   VxeUI.setI18n('zh-CN', messages);
   VxeUI.setLanguage('zh-CN');
-  VxeUI.setConfig({ i18n: (key: string) => getNestedValue(messages, key) || key });
+  VxeUI.setConfig({
+    i18n: (key: string) => getNestedValue(messages, key) || key,
+    grid: {
+      // 本模板的列表页只使用表格、分页与 proxy 查询，不使用 VXE 内置查询表单和工具栏。
+      // vxe-table 4.20.x 的全局默认值会启用 form/toolbar，某些按需渲染路径会继续查找空 renderer，
+      // 进而抛出 "Renderer 'undefined' is not imported"。这里全局关闭未使用能力，避免页面显式配置遗漏。
+      formConfig: { enabled: false },
+      toolbarConfig: { enabled: false },
+    },
+  });
   app.use(VxeUIPcUi);
   app.use(VXETable);
 }

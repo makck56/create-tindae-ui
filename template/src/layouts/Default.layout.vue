@@ -69,7 +69,7 @@ async function handleLogout() {
       </a-menu>
     </a-layout-sider>
     <a-layout>
-      <a-layout-header class="bg-white px-4 flex items-center justify-between shadow-sm">
+      <a-layout-header class="app-layout-header px-4 flex items-center justify-between shadow-xs">
         <a-button type="text" @click="appStore.toggleSidebar">
           <template #icon>
             <MenuFoldOutlined v-if="!appStore.sidebarCollapsed" />
@@ -89,7 +89,7 @@ async function handleLogout() {
       <TabBar />
       <!-- overflow-auto + min-h-0：内容区独立滚动。min-h-0 是 flex 子项能收缩+溢出滚动的关键
            （默认 min-height:auto 会撑开父级、导致整页滚动而非本区域滚动） -->
-      <a-layout-content class="m-4 p-4 bg-white rounded overflow-auto min-h-0">
+      <a-layout-content class="app-layout-content m-4 p-4 rounded overflow-auto min-h-0">
         <!-- ErrorBoundary 包裹业务内容区：捕获页面渲染异常 → 显示 fallback，保留布局壳不白屏 -->
         <ErrorBoundary>
           <router-view v-slot="{ Component }">
@@ -112,3 +112,22 @@ async function handleLogout() {
     </a-layout>
   </a-layout>
 </template>
+
+<style scoped>
+/*
+ * Ant Design Vue 的 Layout Header 默认使用 background: #001529。
+ * Tailwind v4 升级后，工具类生成与三方样式的最终顺序更容易变化；
+ * 因此这里用布局专属类承接主题变量，并通过 !important 明确覆盖 antd 默认背景。
+ */
+.app-layout-header {
+  background: var(--bg-container) !important;
+}
+
+/*
+ * 内容区同样使用语义背景变量，避免继续依赖 bg-white 这类 Tailwind 内置色名称。
+ * --bg-container 会随 ThemeProvider 注入的亮/暗主题同步变化。
+ */
+.app-layout-content {
+  background: var(--bg-container) !important;
+}
+</style>

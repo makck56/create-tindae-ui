@@ -61,7 +61,7 @@ const borderSwatches = [
           :style="{ backgroundColor: `var(--color-${s.key}${st})` }"
         >
           <!-- 色块标签：半透明黑底白字，任意主色上都清晰 -->
-          <span class="rounded-sm bg-black/40 px-1 text-[11px] leading-tight text-white">
+          <span class="rounded-xs bg-black/40 px-1 text-[11px] leading-tight text-white">
             {{ st || 'DEFAULT' }}
           </span>
         </div>
@@ -93,7 +93,7 @@ const borderSwatches = [
         :style="{ backgroundColor: `var(${b.varName})` }"
       >
         <span
-          class="rounded-sm border border-light bg-[var(--bg-subtle)] px-1 text-[11px] leading-tight text-[var(--text-title)]"
+          class="rounded-xs border border-light bg-[var(--bg-subtle)] px-1 text-[11px] leading-tight text-[var(--text-title)]"
         >
           {{ b.name }}
         </span>
@@ -110,7 +110,7 @@ const borderSwatches = [
         :style="{ border: `2px solid var(${b.varName})` }"
       >
         <span
-          class="rounded-sm border border-light bg-[var(--bg-subtle)] px-1 text-[11px] leading-tight text-[var(--text-title)]"
+          class="rounded-xs border border-light bg-[var(--bg-subtle)] px-1 text-[11px] leading-tight text-[var(--text-title)]"
         >
           {{ b.name }}
         </span>

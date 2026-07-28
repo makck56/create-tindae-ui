@@ -246,6 +246,131 @@ export function buildProjectTailwindTheme(rawTokens) {
   };
 }
 
+const TAILWIND_COLOR_VARIABLES = [
+  ['primary', 'var(--color-primary)'],
+  ['primary-hover', 'var(--color-primary-hover)'],
+  ['primary-active', 'var(--color-primary-active)'],
+  ['primary-disabled', 'var(--color-primary-disabled)'],
+  ['success', 'var(--color-success)'],
+  ['success-hover', 'var(--color-success-hover)'],
+  ['success-active', 'var(--color-success-active)'],
+  ['success-disabled', 'var(--color-success-disabled)'],
+  ['danger', 'var(--color-danger)'],
+  ['danger-hover', 'var(--color-danger-hover)'],
+  ['danger-active', 'var(--color-danger-active)'],
+  ['danger-disabled', 'var(--color-danger-disabled)'],
+  ['warning', 'var(--color-warning)'],
+  ['warning-hover', 'var(--color-warning-hover)'],
+  ['warning-active', 'var(--color-warning-active)'],
+  ['warning-disabled', 'var(--color-warning-disabled)'],
+  ['info', 'var(--color-info)'],
+  ['info-hover', 'var(--color-info-hover)'],
+  ['info-active', 'var(--color-info-active)'],
+  ['info-disabled', 'var(--color-info-disabled)'],
+  ['title', 'var(--text-title)'],
+  ['body', 'var(--text-body)'],
+  ['secondary', 'var(--text-secondary)'],
+  ['disabled', 'var(--text-disabled)'],
+  ['inverse', 'var(--text-inverse)'],
+  ['white', 'var(--bg-white)'],
+  ['page', 'var(--bg-page)'],
+  ['container', 'var(--bg-container)'],
+  ['elevated', 'var(--bg-elevated)'],
+  ['subtle', 'var(--bg-subtle)'],
+  ['base', 'var(--border-base)'],
+  ['light', 'var(--border-light)'],
+  ['lighter', 'var(--border-lighter)'],
+  ['extra-light', 'var(--border-extra-light)'],
+];
+
+const TAILWIND_FONT_FAMILY_VARIABLES = [
+  ['sans', 'var(--font-family-body-lg)'],
+  ['heading', 'var(--font-family-heading-xl)'],
+  ['body', 'var(--font-family-body-lg)'],
+  ['label', 'var(--font-family-label)'],
+];
+
+const TAILWIND_FONT_SIZE_VARIABLES = [
+  ['xs', 'var(--font-size-label)', 'var(--line-height-label)', 'var(--font-weight-label)'],
+  ['sm', 'var(--font-size-body-sm)', 'var(--line-height-body-sm)', 'var(--font-weight-body-sm)'],
+  ['tiny', 'var(--font-size-body-md)', 'var(--line-height-body-md)', 'var(--font-weight-body-md)'],
+  ['base', 'var(--font-size-body-lg)', 'var(--line-height-body-lg)', 'var(--font-weight-body-lg)'],
+  ['lg', 'var(--font-size-heading-md)', 'var(--line-height-heading-md)', 'var(--font-weight-heading-md)'],
+  ['xl', 'var(--font-size-heading-lg)', 'var(--line-height-heading-lg)', 'var(--font-weight-heading-lg)'],
+  ['2xl', 'var(--font-size-heading-xl)', 'var(--line-height-heading-xl)', 'var(--font-weight-heading-xl)'],
+  ['3xl', '32px', '40px', undefined],
+  ['4xl', '36px', '44px', undefined],
+  ['5xl', '40px', '48px', undefined],
+];
+
+const TAILWIND_RADIUS_VARIABLES = [
+  ['xs', 'var(--radius-sm)'],
+  ['sm', 'var(--radius-base)'],
+  ['md', 'var(--radius-md)'],
+  ['lg', 'var(--radius-lg)'],
+  ['xl', 'var(--radius-xl)'],
+];
+
+function appendThemeVariable(lines, name, value) {
+  lines.push(`  ${name}: ${value};`);
+}
+
+function normalizeCssText(cssText) {
+  return cssText.replace(/\r\n/g, '\n');
+}
+
+export function buildProjectTailwindThemeCss(rawTokens) {
+  assertValidRawTailwindTokens(rawTokens);
+
+  const lines = [
+    '/*',
+    ' * 由 scripts/export-theme-tokens.mjs 自动生成。',
+    ' * 这里使用 @theme inline，让 Tailwind v4 只生成工具类，并把最终颜色/间距/圆角继续交给运行时 :root 变量。',
+    ' */',
+    '@theme inline {',
+  ];
+
+  // v4 统一使用 --color-* 命名空间；text/bg/border 的语义色也映射进这里，以保留 text-title、bg-page、border-base 等工具类。
+  for (const [key, value] of TAILWIND_COLOR_VARIABLES) {
+    appendThemeVariable(lines, `--color-${key}`, value);
+  }
+
+  for (const value of NUMERIC_SPACING_SCALE) {
+    appendThemeVariable(lines, `--spacing-${value}`, `calc(var(--space-unit) * ${value})`);
+  }
+  for (const key of REQUIRED_SPACING_KEYS) {
+    appendThemeVariable(lines, `--spacing-${key}`, `var(--space-${key})`);
+  }
+
+  for (const [key, value] of TAILWIND_FONT_FAMILY_VARIABLES) {
+    appendThemeVariable(lines, `--font-${key}`, value);
+  }
+
+  // Tailwind v4 的字体元数据通过 --text-<name>--line-height / --font-weight 副变量表达。
+  for (const [key, size, lineHeight, fontWeight] of TAILWIND_FONT_SIZE_VARIABLES) {
+    appendThemeVariable(lines, `--text-${key}`, size);
+    appendThemeVariable(lines, `--text-${key}--line-height`, lineHeight);
+    if (fontWeight) {
+      appendThemeVariable(lines, `--text-${key}--font-weight`, fontWeight);
+    }
+  }
+
+  // v4 已将 rounded-sm 改名为 rounded-xs，原先无后缀 rounded 对应新的 rounded-sm。
+  for (const [key, value] of TAILWIND_RADIUS_VARIABLES) {
+    appendThemeVariable(lines, `--radius-${key}`, value);
+  }
+
+  lines.push('}', '');
+  return lines.join('\n');
+}
+
+export function assertThemeCssMatchesRawTokens(rawTokens, cssText) {
+  const expectedCss = buildProjectTailwindThemeCss(rawTokens);
+  if (normalizeCssText(cssText) !== expectedCss) {
+    throw new Error('theme.tailwind.css 与 theme.tokens.json 不一致，请重新执行 pnpm run tokens:export');
+  }
+}
+
 export function stringifyJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }

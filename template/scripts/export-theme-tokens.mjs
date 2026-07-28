@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   assertValidRawTailwindTokens,
-  buildProjectTailwindTheme,
+  buildProjectTailwindThemeCss,
   stringifyJson,
 } from './theme-token-contract.mjs';
 
@@ -27,7 +27,7 @@ assertValidRawTailwindTokens(rawTokens);
 
 writeFileSync(resolve(projectRoot, 'theme.tokens.json'), stringifyJson(rawTokens), 'utf8');
 writeFileSync(
-  resolve(projectRoot, 'theme.tailwind.json'),
-  stringifyJson(buildProjectTailwindTheme(rawTokens)),
+  resolve(projectRoot, 'src', 'assets', 'styles', 'theme.tailwind.css'),
+  buildProjectTailwindThemeCss(rawTokens),
   'utf8',
 );

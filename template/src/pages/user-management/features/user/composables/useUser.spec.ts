@@ -43,6 +43,8 @@ describe('useUserList', () => {
 
     expect(gridOptions.columns).toHaveLength(6);
     expect(gridOptions.columns[0]).toEqual({ field: 'name', title: '用户名' });
+    expect(gridOptions.formConfig).toEqual({ enabled: false });
+    expect(gridOptions.toolbarConfig).toEqual({ enabled: false });
     expect(gridOptions.pagerConfig.pageSize).toBe(10);
     expect(typeof gridOptions.proxyConfig.ajax.query).toBe('function');
   });

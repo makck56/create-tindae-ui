@@ -32,6 +32,8 @@ describe('useRoleList', () => {
     const { gridOptions } = useRoleList();
 
     expect(gridOptions.columns).toHaveLength(4);
+    expect(gridOptions.formConfig).toEqual({ enabled: false });
+    expect(gridOptions.toolbarConfig).toEqual({ enabled: false });
     expect(gridOptions.pagerConfig.pageSize).toBe(10);
     expect(gridOptions.proxyConfig.response).toEqual({
       result: 'list',

@@ -89,6 +89,21 @@ addEventListener('message', async function (event) {
 })
 
 addEventListener('fetch', function (event) {
+  const requestUrl = new URL(event.request.url)
+
+  // Tindae template patch:
+  // MSW is the default mock layer, but this template only mocks same-origin
+  // API requests under `/api/`. Vite source modules, HMR endpoints, and static
+  // assets must bypass the worker at the fetch-event level instead of going
+  // through MSW passthrough(), otherwise module load failures are reported from
+  // mockServiceWorker.js and become much harder to diagnose.
+  if (
+    requestUrl.origin === self.location.origin &&
+    !requestUrl.pathname.startsWith('/api/')
+  ) {
+    return
+  }
+
   const requestInterceptedAt = Date.now()
 
   // Bypass navigation requests.

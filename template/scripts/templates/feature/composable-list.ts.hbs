@@ -19,6 +19,10 @@ export function use{{featurePascal}}List() {
         slots: { default: 'actions_default' },
       },
     ],
+    // 当前脚手架列表页未使用 VXE 内置查询表单和工具栏；显式关闭可覆盖 vxe-table 4.20.x 的默认启用项，
+    // 避免 grid 在按需渲染时查找空 renderer 并抛出 "Renderer 'undefined' is not imported"。
+    formConfig: { enabled: false },
+    toolbarConfig: { enabled: false },
     pagerConfig: { pageSize: 10 },
     proxyConfig: {
       // vxe-table 4.20.x 已将 proxyConfig.props 重命名为 proxyConfig.response，

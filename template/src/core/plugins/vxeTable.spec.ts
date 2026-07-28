@@ -69,6 +69,11 @@ describe('setupVxeTable', () => {
     expect(VxeUI.setLanguage).toHaveBeenCalledWith('zh-CN');
     expect(VxeUI.setConfig).toHaveBeenCalledWith({
       i18n: expect.any(Function),
+      grid: {
+        // 模板默认不启用 VXE 内置查询表单和工具栏，避免未注册 renderer 的运行时异常。
+        formConfig: { enabled: false },
+        toolbarConfig: { enabled: false },
+      },
     });
     // PC UI 组件必须先于表格核心注册，grid 才能取到 VxePager 等依赖组件
     expect(app.use).toHaveBeenNthCalledWith(1, VxeUIPcUi);
