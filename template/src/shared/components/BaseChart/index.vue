@@ -2,39 +2,57 @@
   <VChart ref="chartRef" v-bind="forwarded" :theme="themeObj" />
 </template>
 
+<script lang="ts">
+import { use } from 'echarts/core';
+import { BarChart, LineChart, PieChart } from 'echarts/charts';
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+/*
+ * ECharts 6 的核心包默认不包含渲染器、图表类型和组件，vue-echarts 也不会自动注册。
+ * 这段代码必须在 <VChart> 实例创建前执行，否则 ZRender 初始化时拿不到 renderer，会抛出：
+ * "Renderer 'undefined' is not imported. Please import it first."
+ *
+ * 放在普通 <script> 的模块作用域中，可以保证：
+ * - BaseChart chunk 被懒加载时才引入 ECharts，避免污染首屏主包。
+ * - 同一个页面渲染多个图表时只注册一次，避免在每个组件实例 setup 阶段重复执行。
+ */
+use([CanvasRenderer, BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent]);
+</script>
+
 <script setup lang="ts">
-import { ref, computed, useAttrs } from 'vue';
+import { computed, ref, useAttrs } from 'vue';
 import VChart from 'vue-echarts';
 import type { EChartsOption } from 'echarts';
 import { useThemeStore } from '@/core/theme';
 import { buildEChartsTheme } from '@/core/theme/bridges/echarts';
 
 /**
- * 项目级图表组件：vue-echarts <VChart> 的透明包装，自动注入主题。
+ * 项目级图表组件：vue-echarts <VChart> 的透明包装。
  *
- * 为何用 $attrs 透传而非重声明 props：vue-echarts 的 props 类型派生自
- * `InstanceType<typeof VChart>['$props']`，Vue SFC 编译器无法解析该派生类型（vite build 会失败）。
- * 故采用「inheritAttrs:false + $attrs 透传」：option / group / loading / 事件 / class 等全部
- * 原样转发给 VChart，仅 :theme 由本组件接管。
+ * 设计取舍：
+ * - option / group / loading / 事件 / class 等能力全部通过 $attrs 原样透传给 VChart。
+ * - theme 由 BaseChart 接管，统一接入主题 token，避免业务图表重复拼接主题配置。
+ * - autoresize 默认开启；消费方仍可显式传入 autoresize 覆盖默认值。
  *
- * - 主题：把 buildEChartsTheme(tokens) 作为 :theme 注入；切主题走实例级 setTheme 热更新（echarts 6+）。
- * - autoresize 默认开启（消费者显式传 autoresize 则以其值为准）。
- * - 容器需有显式高度（如 class="h-80"），否则图表塌缩为 0。
- * - 代价：BaseChart 不对 VChart 的 props 做静态类型检查（经 $attrs 透传）；如需严格类型请用原生 <VChart>。
+ * 使用约束：
+ * - 图表外层必须提供稳定高度，例如 class="h-[260px]" 或固定高度 viewport。
+ * - 如果缺少显式高度，ECharts 无法正确计算画布尺寸；如果高度参与父级反馈，可能造成不断撑高。
  */
 defineOptions({ name: 'BaseChart', inheritAttrs: false });
 
 const attrs = useAttrs();
 const themeStore = useThemeStore();
 const themeObj = computed(() => buildEChartsTheme(themeStore.currentTokens));
-// autoresize 默认 true；消费者传入的同名 attr 在后展开，覆盖默认值
+
+// 默认开启 autoresize，同时允许调用方通过同名 attr 覆盖这个默认值。
 const forwarded = computed(() => ({ autoresize: true, ...attrs }));
 
 const chartRef = ref<InstanceType<typeof VChart>>();
 
 defineExpose({
-  // 仅 manual-update 模式生效：vue-echarts 常规模式下 setOption 会 warn 并忽略；
-  // 常规更新请直接改 :option（响应式）。保留此方法是为 manual-update 场景透传。
+  // 仅在 vue-echarts 的 manual-update 模式下建议手动调用 setOption。
+  // 常规场景应优先修改 :option，让 Vue 响应式更新驱动图表变化。
   setOption: (option: EChartsOption, ...args: any[]) => chartRef.value?.setOption(option, ...args),
   resize: (...args: any[]) => chartRef.value?.resize(...args),
   dispatchAction: (payload: any) => chartRef.value?.dispatchAction(payload),
@@ -44,7 +62,8 @@ defineExpose({
   get vchart() {
     return chartRef.value;
   },
-  // vue-echarts expose 的 .chart 经组件实例代理自动解包，直接是底层 echarts 实例
+
+  // vue-echarts expose 的 .chart 会被组件实例代理自动解包，这里返回底层 echarts 实例。
   get echarts() {
     return chartRef.value?.chart;
   },

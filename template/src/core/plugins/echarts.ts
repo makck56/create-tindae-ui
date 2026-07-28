@@ -1,18 +1,15 @@
 import type { App } from 'vue';
 
 /**
- * ECharts 运行时入口（占位）。
+ * ECharts 应用级插件入口。
  *
- * 项目通过 vue-echarts 的 <VChart> + shared/components/BaseChart 使用 echarts：
- *   - BaseChart 内部把 core/theme 的 buildEChartsTheme 产物作为 :theme 注入；
- *   - echarts / vue-echarts 由 BaseChart（被懒加载路由的图表页引用）按需引入，不进首屏主包；
- *   - 切主题时 vue-echarts（echarts 6+）走实例级 setTheme 热更新，不重建实例。
+ * 这里刻意保持为空，不引入 `echarts/core`、renderer、charts 或 components。
+ * 原因是 ECharts 体积较大，如果在应用启动阶段注册模块，会被 Vite 合并进首屏主包。
+ * 具体的 renderer、图表类型和基础组件由 `shared/components/BaseChart` 在图表组件加载时注册，
+ * 这样可以保证主题预览等图表页面正常渲染，同时保留路由级懒加载带来的首屏性能收益。
  *
- * 依赖约束：vue-echarts 8 的 peerDep 为 echarts ^6，故项目锁定 echarts 6。
- *
- * 业务用法：见 shared/components/BaseChart（声明式 <BaseChart :option="..." />）。
- * 若确有「全局预注册 echarts 组件 / 自定义渲染器」需求，可在此扩展 setupEcharts。
+ * 后续新增图表能力时，优先扩展 BaseChart 中的按需注册清单。
  */
 export function setupEcharts(_app: App): void {
-  // 暂无全局预注册需求：echarts 由 BaseChart 按需引入，主题由 core/theme 提供纯函数翻译。
+  // 保留统一 bootstrap 调用点，避免上层启动流程为了 ECharts 做特殊分支。
 }

@@ -45,3 +45,36 @@ test("template: MSW worker 保留旧 worker 更新和 API 兜底诊断", () => {
   assert.match(worker, /!requestUrl\.pathname\.startsWith\('\/api\/'\)/);
   assert.match(worker, /Vite source modules, HMR endpoints, and static/);
 });
+
+test("template: 主题预览 VXE showcase 不启用内置表单和工具栏 renderer", () => {
+  const showcase = readTemplateFile(
+    "src/pages/theme-preview/features/theme-preview/components/VxeTableShowcase.section.vue",
+  );
+
+  // 主题预览页是静态展示表格，不需要 VXE 内置 form/toolbar。
+  // 显式传入禁用配置，避免 vxe-table 4.20.x 在 grid 默认路径里查找空 renderer。
+  assert.match(showcase, /const disabledFormConfig = \{ enabled: false \}/);
+  assert.match(showcase, /const disabledToolbarConfig = \{ enabled: false \}/);
+  assert.match(showcase, /:form-config="disabledFormConfig"/);
+  assert.match(showcase, /:toolbar-config="disabledToolbarConfig"/);
+});
+
+test("template: 主题预览页保留宽松间距并限制 ECharts 高度反馈", () => {
+  const view = readTemplateFile("src/pages/theme-preview/features/theme-preview/views/ThemePreview.view.vue");
+  const charts = readTemplateFile(
+    "src/pages/theme-preview/features/theme-preview/components/EchartsShowcase.section.vue",
+  );
+
+  // 预览页是组件陈列场景，section 之间需要比业务列表页更宽松的视觉节奏。
+  assert.match(view, /theme-preview-page flex flex-col gap-6 lg:gap-8/);
+  assert.match(view, /ant-card-body/);
+  assert.match(view, /padding: 28px !important/);
+  assert.match(view, /gap: 32px !important/);
+
+  // ECharts autoresize 读取稳定 viewport 尺寸，避免图表根节点把父级卡片持续撑高。
+  assert.match(charts, /theme-chart-grid grid grid-cols-1 gap-6 lg:grid-cols-2/);
+  assert.match(charts, /theme-chart-viewport h-\[260px\] max-h-\[260px\] min-h-\[260px\]/);
+  assert.match(charts, /theme-chart-viewport h-\[300px\] max-h-\[300px\] min-h-\[300px\]/);
+  assert.match(charts, /contain: layout size/);
+  assert.match(charts, /gap: 24px !important/);
+});
