@@ -15,7 +15,7 @@ ThemeTokens (TS, src/core/theme/tokens.ts)
    ▼
 :root CSS 变量（单一真相源，运行时写入 documentElement）
    ├── Tailwind       ← tailwind.config.js 以 var() 引用（bg-primary / text-title ...）
-   ├── Ant Design v3  ← bridges/antd/*.less 覆盖样式（antd.ts 编译拼接注入），主色高频组件改引 var()
+   ├── Ant Design v4  ← bridges/antDesignVue.ts 生成 ConfigProvider theme，直接消费项目 Token
    ├── VXE Table      ← bridges/vxeTable.ts 覆盖表头 / 行 hover / 选中行 / 分页
    └── ECharts        ← bridges/echarts.ts 生成主题 option，实例化时注入
    ▲
@@ -30,11 +30,10 @@ ThemeTokens (TS, src/core/theme/tokens.ts)
 | `tokens.ts` | 亮 / 暗默认 Token，`getTokensByMode(mode)` |
 | `presets.ts` | 5 套品牌主色预设（蓝 / 绿 / 紫 / 橙 / 红） |
 | `bridges/cssVariables.ts` | `buildCssVarMap`（纯函数）+ `applyTokensToRoot`（写 DOM） |
-| `bridges/antd/*.less` | antd v3 主色覆盖样式，按组件拆分（base/buttons/selection/navigation/inputs/feedback/containers/picker/misc） |
-| `bridges/antd.ts` | 用 Vite `?inline` 把上述 .less 编译拼接为 `ANTD_THEME_CSS` |
+| `bridges/antDesignVue.ts` | Ant Design Vue v4 `ConfigProvider` theme 映射，把项目 Token 转成 Ant token |
 | `bridges/vxeTable.ts` | vxe 表头/行/边框/分页覆盖 CSS |
 | `bridges/echarts.ts` | `buildEChartsTheme`（纯函数）+ `registerAppEChartsTheme` |
-| `bridges/injectStyle.ts` | 幂等注入 antd+vxe 覆盖 `<style>`（仅一次） |
+| `bridges/injectStyle.ts` | 幂等注入仍需 CSS 变量兜底的 VXE 覆盖 `<style>`（仅一次） |
 | `stores/theme.store.ts` | Pinia store：状态 + localStorage 持久化（不碰 DOM） |
 | `composables/useTheme.ts` | 业务 API（状态 + 操作） |
 | `composables/useEcharts.ts` | 图表封装（主题注入 + resize + 切主题重建） |
@@ -205,14 +204,15 @@ const option: EChartsOption = {
 
 ---
 
-## 五、Ant Design Vue v3 主题说明
+## 五、Ant Design Vue v4 主题说明
 
-项目使用 `ant-design-vue@^3.2`（v3 线）。v3 **没有** v4/v5 的 `ConfigProvider` token 运行时 API，主色在 `antd.css` 编译期固化为字面色。因此运行时换色采用 **注入覆盖样式** 的方案：覆盖样式按组件类别拆分为 `bridges/antd/*.less`，由 `bridges/antd.ts` 用 Vite `?inline` 编译拼接为 `ANTD_THEME_CSS` 并注入 `<head>`（位于 antd.css 之后，同特异性下后加载胜），把主色高频组件（按钮 / Checkbox / Radio / Switch / 分页 / Tabs / 菜单 / 输入聚焦态 / Steps / Spin / DatePicker / TimePicker / Calendar …）改为引用 `var(--color-primary)`，全程靠 CSS 变量自动联动。
+项目使用 `ant-design-vue@^4.2.6`（v4 线）。v4 已提供 `ConfigProvider` 运行时 theme token 能力，因此 Ant 主题不再依赖 `antd.css` 编译期主色，也不再维护旧版 Ant 选择器覆盖目录。
 
-- **如何调整**：改某个组件的主题表现直接编辑对应 `.less`（开发期 HMR 即时生效）。注意主题色为运行时 CSS 变量，less 仅用嵌套 / mixin 组织代码，其变量与颜色函数（`lighten` 等）对 `var()` 无效。
-- **覆盖范围**：聚焦「主色高频呈现」组件，不追求 100%；若某组件未跟随主题，按既有规则模板在对应 `.less` 追加选择器即可。
+- **主题入口**：`App.vue` 在根级 `<a-config-provider>` 上传入 `:theme="antDesignTheme"`，并保留 `:locale="zhCN"` 中文化。
+- **Token 映射**：`src/core/theme/bridges/antDesignVue.ts` 把项目 `ThemeTokens` 转成 Ant v4 `ThemeConfig`，覆盖主色、状态色、文本色、边框、背景、圆角、字号以及 Layout / Menu / Button 的关键组件 token。
+- **运行时联动**：`ThemeProvider` 继续负责写入 `:root` CSS 变量，供 Tailwind、VXE Table、ECharts 和业务 CSS 使用；Ant 组件则通过 ConfigProvider 直接消费同一份项目 Token 生成的 theme 对象。
+- **如何调整**：优先修改 `bridges/antDesignVue.ts` 的 token 映射；只有浏览器验证证明 v4 token 覆盖不了具体组件缺口时，才在对应组件或布局本地增加明确注释的 fallback CSS。
 - **日期组件**：DatePicker / TimePicker / Calendar 依赖 dayjs，中文 locale 已在 `core/plugins/antd.ts` 统一注入（dayjs 需作为运行时依赖显式声明，pnpm 不会 hoist）。
-- **升级路径**：未来迁移到 antd v4/v5 后，可改用 `ConfigProvider :theme="{ token }"` 直接消费 Token，届时 `bridges/antd/` 可大幅精简。
 
 ---
 

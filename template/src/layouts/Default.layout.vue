@@ -134,7 +134,7 @@ async function handleLogout() {
 
 /*
  * 侧边栏背景不能只依赖 Ant Layout Sider 的默认样式：
- * Ant Design Vue 的 Sider 默认背景是深蓝黑色，v4 升级后旧的 antd.less 桥接已被移除，
+ * Ant Design Vue 的 Sider 默认背景是深蓝黑色，v4 升级后旧的 Ant 选择器桥接已被移除，
  * 如果这里不显式接管，亮色主题下会出现「侧边栏菜单栏变暗」的视觉回归。
  */
 .app-sider--light {

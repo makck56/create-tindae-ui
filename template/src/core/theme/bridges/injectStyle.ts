@@ -1,25 +1,24 @@
-import { ANTD_THEME_CSS } from './antd';
 import { VXE_THEME_CSS } from './vxeTable';
 
-/** 注入到 <head> 的主题覆盖样式 <style> 标签 id（幂等去重用） */
+/** 注入到 <head> 的主题覆盖样式 <style> 标签 id，用于幂等去重。 */
 const THEME_STYLE_ID = 'app-theme-overrides';
 
 /**
- * 进程内缓存标志：标记本次会话已注入过覆盖样式。
- * 即便 DOM 上的 <style> 被意外移除，也只允许注入一次（主题全程靠 CSS 变量驱动，无需重复注入）。
+ * 进程内缓存标记：
+ * 主题覆盖样式只需要注入一次；后续亮/暗模式或预设切换通过 :root CSS 变量级联生效，
+ * 不需要反复创建 <style> 标签，避免重复样式节点干扰排查。
  */
 let injected = false;
 
 /**
- * 注入 antd + vxe-table 主题覆盖样式到 <head>。
+ * 注入仍需要 CSS 变量兜底的第三方组件样式。
  *
- * 幂等：多次调用只会真正注入一次（首次后直接返回）。
- * 这段 CSS 全部以 var(--color-*) 等变量引用，主题变化时由 :root 变量刷新自动联动，
- * 因此无需在主题切换时重新注入。
+ * Ant Design Vue v4 已由根级 ConfigProvider theme token 接管，不再走这里的 selector bridge。
+ * 当前保留的注入内容只有 VXE Table / vxe-pc-ui 的少量 CSS 变量覆盖。
  */
 export function injectThemeOverrideStyles(): void {
   if (typeof document === 'undefined') return;
-  // 已注入（内存标志）或 DOM 已存在同 id 节点 → 跳过
+
   if (injected || document.getElementById(THEME_STYLE_ID)) {
     injected = true;
     return;
@@ -27,8 +26,7 @@ export function injectThemeOverrideStyles(): void {
 
   const style = document.createElement('style');
   style.id = THEME_STYLE_ID;
-  // Ant v4 已由 ConfigProvider token 接管；这里仅注入仍需 CSS 变量兜底的 bridge 段。
-  style.textContent = [ANTD_THEME_CSS, VXE_THEME_CSS].filter(Boolean).join('\n');
+  style.textContent = VXE_THEME_CSS;
   document.head.appendChild(style);
 
   injected = true;

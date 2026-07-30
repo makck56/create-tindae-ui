@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
@@ -63,4 +63,24 @@ test('template: layout keeps the light sidebar from falling back to Ant dark Sid
   assert.match(layoutSource, /app-sider--light/);
   assert.match(layoutSource, /background:\s*var\(--bg-container\)\s*!important/);
   assert.match(layoutSource, /:deep\(\.ant-layout-sider-trigger\)/);
+});
+
+test('template: Ant v4 cleanup removes obsolete v3 Less bridge leftovers', () => {
+  const packageJson = JSON.parse(readWorkspaceFile('template/package.json')) as {
+    devDependencies: Record<string, string>;
+  };
+  const envSource = readWorkspaceFile('template/env.d.ts');
+  const injectorSource = readWorkspaceFile('template/src/core/theme/bridges/injectStyle.ts');
+  const themeGuide = readWorkspaceFile('template/theme.md');
+  const templateAgentGuide = readWorkspaceFile('template/AGENTS.md');
+
+  assert.equal(existsSync(join(repoRoot, 'template/src/core/theme/bridges/antd.ts')), false);
+  assert.equal(packageJson.devDependencies.less, undefined);
+  assert.equal(envSource.includes("declare module '*.less?inline'"), false);
+  assert.equal(injectorSource.includes('ANTD_THEME_CSS'), false);
+  assert.match(injectorSource, /VXE_THEME_CSS/);
+  assert.match(themeGuide, /bridges\/antDesignVue\.ts/);
+  assert.doesNotMatch(themeGuide, /bridges\/antd\/\*\.less/);
+  assert.match(templateAgentGuide, /bridges\/antDesignVue\.ts/);
+  assert.doesNotMatch(templateAgentGuide, /bridges\/antd\/\*\.less/);
 });

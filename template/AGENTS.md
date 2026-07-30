@@ -117,7 +117,7 @@ export const getOrderList = (params: OrderListParams) =>
 ## 7. 主题（CSS 变量 SSOT）
 
 - 配色**只用 CSS 变量 / Tailwind 语义类**（`bg-primary` / `text-title` / `border-light` …），**禁止**字面色（`#1890ff` / `rgb(...)`），否则切主题 / 暗色不联动。
-- 改 antd 某组件的主题表现：编辑 `src/core/theme/bridges/antd/*.less`（按组件类别拆分，开发期 HMR 即时生效）。less 只用嵌套 / mixin，颜色函数（`lighten` 等）对运行时 `var()` 无效。
+- 改 Ant Design Vue 主题表现：优先编辑 `src/core/theme/bridges/antDesignVue.ts` 的 ConfigProvider token 映射；只有 v4 token 覆盖不了且经过浏览器验证的缺口，才在对应组件或布局本地补充带注释的 fallback CSS。
 - 加组件预览：在 `src/pages/theme-preview/features/theme-preview/components/antd/` 加 `.block.vue`，到 `AntdShowcase.section.vue` 接入。
 - 日期组件（DatePicker / TimePicker / Calendar）依赖 dayjs，中文 locale 已在 `core/plugins/antd.ts` 注入。
 
