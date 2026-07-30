@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx bin/create-tindae-ui.ts",
-    "test": "node --import tsx --test tests/cli.test.ts tests/scaffold-core/patch.test.ts tests/scaffold-core/utils.test.ts tests/scaffold-core/args.test.ts tests/scaffold-core/template.test.ts tests/scaffold-core/precheck.test.ts tests/scaffold-core/dry-run.test.ts tests/scaffold-core/vxe-upgrade-contract.test.ts tests/scaffold-core/tailwind-v4-template.test.ts tests/scaffold-core/msw-template.test.ts tests/scaffold-core/readme.test.ts",
+    "test": "node --import tsx --test tests/cli.test.ts tests/scaffold-core/patch.test.ts tests/scaffold-core/utils.test.ts tests/scaffold-core/args.test.ts tests/scaffold-core/template.test.ts tests/scaffold-core/precheck.test.ts tests/scaffold-core/dry-run.test.ts tests/scaffold-core/vxe-upgrade-contract.test.ts tests/scaffold-core/ant-design-vue-v4-contract.test.ts tests/scaffold-core/tailwind-v4-template.test.ts tests/scaffold-core/msw-template.test.ts tests/scaffold-core/readme.test.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

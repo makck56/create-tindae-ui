@@ -54,7 +54,7 @@ function handleClearSelection() {
       :indeterminate="indeterminate"
       @change="emit('toggleCurrentPage')"
     />
-    <a-popover v-model:visible="popoverVisible" trigger="click" placement="bottomLeft">
+    <a-popover v-model:open="popoverVisible" trigger="click" placement="bottomLeft">
       <template #content>
         <div class="min-w-[120px]">
           <div

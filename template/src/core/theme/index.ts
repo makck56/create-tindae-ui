@@ -14,6 +14,8 @@ export { THEME_PRESETS, DEFAULT_PRESET_KEY, findPreset } from './presets';
 export { lightTokens, darkTokens, getTokensByMode } from './tokens';
 // ECharts 主题桥接（纯函数，不依赖 echarts 运行时；由 shared/components/BaseChart 消费）
 export { buildEChartsTheme } from './bridges/echarts';
+// Ant Design Vue v4 ConfigProvider token 映射。
+export { buildAntDesignVueTheme } from './bridges/antDesignVue';
 // Provider 组件
 export { default as ThemeProvider } from './ThemeProvider.vue';
 // 类型

@@ -51,6 +51,9 @@ const treeData = [
 // AutoComplete 候选项
 const autoCompleteOptions = [{ value: '前端' }, { value: '前端工程' }, { value: '前段' }];
 
+// Ant Design Vue v4 已废弃 Mentions 子选项组件，统一使用 options 契约。
+const mentionsOptions = [{ value: 'afc163' }, { value: 'zombiej' }];
+
 /** AutoComplete 过滤：按输入文本模糊匹配候选 */
 function filterOption(input: string, option: { value: string }): boolean {
   return option.value.includes(input);
@@ -127,8 +130,5 @@ function filterOption(input: string, option: { value: string }): boolean {
 
   <!-- 提及：Mentions -->
   <h4 class="mt-4 mb-2 text-[13px] font-semibold text-secondary">提及 Mentions（输入 @ 触发）</h4>
-  <a-mentions style="width: 100%">
-    <a-mentions-option value="afc163">afc163</a-mentions-option>
-    <a-mentions-option value="zombiej">zombiej</a-mentions-option>
-  </a-mentions>
+  <a-mentions :options="mentionsOptions" style="width: 100%" />
 </template>

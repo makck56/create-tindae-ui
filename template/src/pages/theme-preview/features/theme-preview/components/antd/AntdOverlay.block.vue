@@ -6,12 +6,12 @@ import { message } from 'ant-design-vue';
  * Ant Design Vue「浮层」展示块。
  *
  * 覆盖 Tooltip / Popover / Popconfirm / Modal / Drawer。
- * 注意：antd v3 的 Modal / Drawer 用 visible 受控（v4 才改为 open）。
+ * 注意：Ant Design Vue v4 的受控显隐统一使用 open 契约。
  * 触发按钮、确认按钮、聚焦态均会跟随主题主色。
  */
 defineOptions({ name: 'AntdOverlayBlock' });
 
-/** Modal / Drawer 显隐受控（v3 用 visible） */
+/** Modal / Drawer 显隐受控（v4 使用 open） */
 const modalVisible = ref(false);
 const drawerVisible = ref(false);
 
@@ -64,15 +64,15 @@ function onConfirm(): void {
     <a-button @click="drawerVisible = true">打开 Drawer</a-button>
   </a-space>
 
-  <!-- Modal：v3 用 visible（v4 改为 open） -->
-  <a-modal v-model:visible="modalVisible" title="模态框标题" ok-text="确认" cancel-text="取消">
+  <!-- Modal：v4 使用 open 受控，避免 visible 旧契约回归。 -->
+  <a-modal v-model:open="modalVisible" title="模态框标题" ok-text="确认" cancel-text="取消">
     <p class="m-0">
       Modal 内容区：切换主题后，确认按钮、关闭图标、标题聚焦态都会跟随主色。
     </p>
   </a-modal>
 
   <!-- Drawer -->
-  <a-drawer v-model:visible="drawerVisible" title="抽屉标题" width="380">
+  <a-drawer v-model:open="drawerVisible" title="抽屉标题" width="380">
     <p class="m-0">Drawer 内容区：同样由主题系统统一接管配色。</p>
   </a-drawer>
 </template>

@@ -27,8 +27,8 @@ export function injectThemeOverrideStyles(): void {
 
   const style = document.createElement('style');
   style.id = THEME_STYLE_ID;
-  // 拼接 antd + vxe 两段覆盖样式，集中在一个 <style> 减少 DOM 节点
-  style.textContent = `${ANTD_THEME_CSS}\n${VXE_THEME_CSS}`;
+  // Ant v4 已由 ConfigProvider token 接管；这里仅注入仍需 CSS 变量兜底的 bridge 段。
+  style.textContent = [ANTD_THEME_CSS, VXE_THEME_CSS].filter(Boolean).join('\n');
   document.head.appendChild(style);
 
   injected = true;

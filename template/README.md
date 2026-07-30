@@ -34,7 +34,7 @@ pnpm dev
 | 应用框架 | `vue@^3.5.0`、Composition API、`<script setup>` |
 | 类型与构建 | `typescript@^5.5.0`、`vite@^8.1.5`、`@vitejs/plugin-vue@^6.0.8`、`vue-tsc@^2.1.0` |
 | 样式系统 | `tailwindcss@^4.3.3`、`@tailwindcss/vite@^4.3.3`、CSS Variables、`@theme inline` |
-| UI 组件 | `ant-design-vue@^3.2.0`、`@ant-design/icons-vue@^7.0.0`、`unplugin-vue-components@^32.0.0` |
+| UI 组件 | `ant-design-vue@^4.2.6`、`@ant-design/icons-vue@^7.0.0`、`unplugin-vue-components@^32.0.0` |
 | 表格组件 | `vxe-table@4.20.7`、`vxe-pc-ui@4.16.21`、`@vxe-ui/core@4.4.18`、`xe-utils@^4.0.11` |
 | 图表组件 | `echarts@^6.0.0`、`vue-echarts@^8.0.1`、`BaseChart` 按需注册 renderer / chart / component |
 | 路由与状态 | `vue-router@^4.4.0`、`pinia@^2.2.0` |

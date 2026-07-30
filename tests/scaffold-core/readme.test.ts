@@ -20,7 +20,8 @@ test("README: 根文档和模板文档描述当前技术栈，而不是旧模板
   assert.match(rootReadme, /`echarts@\^6\.0\.0`/);
   assert.match(rootReadme, /`vitest@\^4\.1\.10`/);
   assert.match(templateReadme, /Node\.js `\^20\.19\.0 \|\| >=22\.12\.0`/);
-  assert.match(templateReadme, /`ant-design-vue@\^3\.2\.0`/);
+  assert.match(rootReadme, /`ant-design-vue@\^4\.2\.6`/);
+  assert.match(templateReadme, /`ant-design-vue@\^4\.2\.6`/);
   assert.match(templateReadme, /`vxe-table@4\.20\.7`/);
   assert.match(templateReadme, /`msw@\^2\.14\.6`/);
   assert.match(templateReadme, /`@google\/design\.md@\^0\.3\.0`/);
@@ -28,6 +29,7 @@ test("README: 根文档和模板文档描述当前技术栈，而不是旧模板
   // 旧版 README 曾经写过这些能力，但当前模板并未提供；避免后续复制旧文档时重新引入。
   assert.doesNotMatch(combined, /Vite 5/);
   assert.doesNotMatch(combined, /Tailwind CSS 3/);
+  assert.doesNotMatch(combined, /ant-design-vue@\^3\.2\.0/);
   assert.doesNotMatch(combined, /ECharts 5/);
   assert.doesNotMatch(combined, /Vitest 1/);
   assert.doesNotMatch(combined, /ProTable|ProForm/);
