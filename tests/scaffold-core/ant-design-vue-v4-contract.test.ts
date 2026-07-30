@@ -56,3 +56,11 @@ test('template: Ant Design Vue overlay APIs no longer use v3 visible bindings', 
   assert.equal(source.includes(' visible='), false);
   assert.equal(source.includes('a-mentions-option'), false);
 });
+
+test('template: layout keeps the light sidebar from falling back to Ant dark Sider defaults', () => {
+  const layoutSource = readWorkspaceFile('template/src/layouts/Default.layout.vue');
+
+  assert.match(layoutSource, /app-sider--light/);
+  assert.match(layoutSource, /background:\s*var\(--bg-container\)\s*!important/);
+  assert.match(layoutSource, /:deep\(\.ant-layout-sider-trigger\)/);
+});

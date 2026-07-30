@@ -17,8 +17,9 @@ const tabStore = useTabStore();
 const route = useRoute();
 const router = useRouter();
 
-// 侧边栏跟随全局亮 / 暗：亮色=浅色侧边栏 + light 菜单，暗色=深色侧边栏 + dark 菜单。
-// sider 容器 / trigger 的背景由 antd.ts 的 .app-sider--light / --dark 规则接管。
+// 侧边栏的明暗由布局本地样式接管：
+// - 菜单仍使用 Ant Design Vue 的 light/dark 契约，确保键盘、选中态和折叠态行为保持官方实现；
+// - Sider 容器和折叠 trigger 用本文件下方的 token 化 CSS 覆盖 Ant 默认深色背景，避免 v4 升级后亮色模式侧栏发黑。
 const { isDark } = useTheme();
 const menuTheme = computed<'dark' | 'light'>(() => (isDark.value ? 'dark' : 'light'));
 const siderClass = computed(() => (isDark.value ? 'app-sider--dark' : 'app-sider--light'));
@@ -129,5 +130,35 @@ async function handleLogout() {
  */
 .app-layout-content {
   background: var(--bg-container) !important;
+}
+
+/*
+ * 侧边栏背景不能只依赖 Ant Layout Sider 的默认样式：
+ * Ant Design Vue 的 Sider 默认背景是深蓝黑色，v4 升级后旧的 antd.less 桥接已被移除，
+ * 如果这里不显式接管，亮色主题下会出现「侧边栏菜单栏变暗」的视觉回归。
+ */
+.app-sider--light {
+  background: var(--bg-container) !important;
+  border-right: 1px solid var(--border-light);
+}
+
+.app-sider--light :deep(.ant-layout-sider-trigger) {
+  color: var(--text-title) !important;
+  background: var(--bg-container) !important;
+  border-top: 1px solid var(--border-light);
+}
+
+.app-sider--light :deep(.ant-menu) {
+  color: var(--text-body);
+  background: var(--bg-container);
+}
+
+.app-sider--dark {
+  background: var(--bg-page) !important;
+}
+
+.app-sider--dark :deep(.ant-layout-sider-trigger) {
+  color: var(--text-inverse) !important;
+  background: var(--bg-page) !important;
 }
 </style>
