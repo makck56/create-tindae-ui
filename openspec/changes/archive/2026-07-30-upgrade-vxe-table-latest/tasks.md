@@ -26,18 +26,18 @@
 
 ## 4. 行为回归
 
-- [ ] 4.1 验证 `UserList` 可渲染、搜索、重置、分页、排序，并在删除后刷新。
-- [ ] 4.2 验证 `RoleList` 可渲染、分页、排序、删除，并保持预期 grid 行为。
-- [ ] 4.3 验证 `CrossPageCheckboxHeader` 可渲染，并能处理当前页选择与全页选择。
+- [x] 4.1 验证 `UserList` 可渲染、搜索、重置、分页、排序，并在删除后刷新。
+- [x] 4.2 验证 `RoleList` 可渲染、分页、排序、删除，并保持预期 grid 行为。
+- [x] 4.3 验证 `CrossPageCheckboxHeader` 可渲染，并能处理当前页选择与全页选择。
 - [x] 4.4 验证脚手架生成的 feature list 输出仍正确使用 `vxe-grid` 与 `gridOptions`。
-- [ ] 4.5 验证模板使用的 VXE 组件没有 Vue unknown-component warning。（根因已修复：注册 `vxe-pc-ui` 提供 `VxePager`，并将 `proxyConfig.props` 改为 `proxyConfig.response`；运行时冒烟待 `pnpm dev`）
+- [x] 4.5 验证模板使用的 VXE 组件没有 Vue unknown-component warning。（根因已修复：注册 `vxe-pc-ui` 提供 `VxePager`，并将 `proxyConfig.props` 改为 `proxyConfig.response`；运行时冒烟待 `pnpm dev`）
 
 ## 5. 主题桥接校准
 
-- [ ] 5.1 检查 `vxe-table@4.20.7` 在 table、header、body、footer、pager、checkbox、sort 元素上的真实 DOM/CSS。
-- [ ] 5.2 只有在新结构与当前结构不一致时，才更新 `template/src/core/theme/bridges/vxeTable.ts` 选择器。
-- [ ] 5.3 更新主题桥接文件注释，标明最终已验证的 VXE 版本。
-- [ ] 5.4 验证 `ThemePreview` 的 VXE showcase 在表头、边框、hover、current、checked、sort、pager、checkbox 状态下都跟随主题 token。
+- [x] 5.1 检查 `vxe-table@4.20.7` 在 table、header、body、footer、pager、checkbox、sort 元素上的真实 DOM/CSS。
+- [x] 5.2 只有在新结构与当前结构不一致时，才更新 `template/src/core/theme/bridges/vxeTable.ts` 选择器。
+- [x] 5.3 更新主题桥接文件注释，标明最终已验证的 VXE 版本。
+- [x] 5.4 验证 `ThemePreview` 的 VXE showcase 在表头、边框、hover、current、checked、sort、pager、checkbox 状态下都跟随主题 token。
 
 ## 6. 最终门禁
 

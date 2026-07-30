@@ -58,6 +58,7 @@ function getStatusLabel(status: string) {
       />
     </template>
 
+    <!-- sort-change 显式刷新 proxy 查询：兜住 vxe 4.20.x 图标状态变化但 ajax 未重新触发的运行时场景。 -->
     <vxe-grid
       ref="gridRef"
       v-bind="tableProps"
@@ -65,6 +66,7 @@ function getStatusLabel(status: string) {
       height="auto"
       @checkbox-change="handleCheckboxChange"
       @checkbox-all="handleCheckboxAll"
+      @sort-change="handleSearch"
     >
       <template #status_default="{ row }">
         <a-tag :color="STATUS_COLOR_MAP[row.status]">
@@ -75,9 +77,12 @@ function getStatusLabel(status: string) {
         <a-button type="link" size="small" @click="$router.push(`/user-management/${row.id}`)">
           {{ COPY.COMMON.EDIT }}
         </a-button>
-        <a-popconfirm v-permission="'UserManagement:delete'" title="确定删除？" @confirm="handleDelete(row.id)">
-          <a-button type="link" danger size="small">{{ COPY.COMMON.DELETE }}</a-button>
-        </a-popconfirm>
+        <!-- v-permission 必须挂在原生元素上；a-popconfirm 是组件根节点，直接挂指令会触发 Vue runtime warning。 -->
+        <span v-permission="'UserManagement:delete'">
+          <a-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
+            <a-button type="link" danger size="small">{{ COPY.COMMON.DELETE }}</a-button>
+          </a-popconfirm>
+        </span>
       </template>
     </vxe-grid>
   </PageWrapper>
