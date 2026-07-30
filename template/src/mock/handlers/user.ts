@@ -28,6 +28,20 @@ export const userHandlers = [
       filtered = filtered.filter(u => u.role === role)
     }
 
+    // 表头排序：sortBy 指定字段、sortOrder 指定方向。filtered 已是副本，原地排序不影响源数据。
+    const sortBy = url.searchParams.get('sortBy')
+    const sortOrder = url.searchParams.get('sortOrder')
+    if (sortBy && (sortOrder === 'asc' || sortOrder === 'desc')) {
+      filtered.sort((a, b) => {
+        const av = a[sortBy as keyof User]
+        const bv = b[sortBy as keyof User]
+        if (av == null || bv == null) return 0
+        if (av < bv) return sortOrder === 'asc' ? -1 : 1
+        if (av > bv) return sortOrder === 'asc' ? 1 : -1
+        return 0
+      })
+    }
+
     const total = filtered.length
     const list = paginate(filtered, page, pageSize)
 

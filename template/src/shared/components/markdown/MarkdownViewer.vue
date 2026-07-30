@@ -4,6 +4,7 @@ import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js/lib/common';
 import 'highlight.js/styles/github.css';
 import { createSlugger, type Heading } from './heading';
+import { resolveInternalDoc } from './link';
 
 /**
  * 通用 Markdown 渲染器（Typora / GitHub 经典浅色阅读风）。
@@ -20,11 +21,17 @@ defineOptions({ name: 'MarkdownViewer' });
 const props = defineProps<{
   /** Markdown 源码 */
   source: string;
+  /** 系统内可用的文档绝对路径集合（以 / 开头），用于识别指向内部文档的链接 */
+  docPaths?: Set<string>;
+  /** 当前文档的绝对路径（以 / 开头），作为解析相对链接的基准目录 */
+  currentDocPath?: string;
 }>();
 
 const emit = defineEmits<{
   /** 渲染完成后，按 DOM 顺序输出标题列表（供大纲使用，slug 即 <hN> 真实 id） */
   headings: [Heading[]];
+  /** 点击指向内部文档的链接时触发，payload 为目标文档的绝对路径（由父组件在 SPA 内切换） */
+  navigate: [string];
 }>();
 
 const rootRef = ref<HTMLElement>();
@@ -65,8 +72,48 @@ const html = computed(() => {
     }
     return self.renderToken(tokens, idx, options);
   };
+
+  // 内部文档链接：把指向系统内文档的相对链接解析为绝对路径并打标记，
+  // 由容器 click（handleClick）拦截改走 SPA 切换，避免原生整页导航跳出系统。
+  // 显式读取以下两个 prop，确保切换文档时本 computed 重算（即便 source 恰好相同）。
+  const docPaths = props.docPaths;
+  const currentDocPath = props.currentDocPath;
+  md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
+    if (docPaths && currentDocPath) {
+      const token = tokens[idx];
+      const href = token.attrGet('href') ?? '';
+      const resolved = resolveInternalDoc(href, currentDocPath, docPaths);
+      if (resolved) {
+        token.attrSet('data-doc-link', 'true');
+        token.attrSet('data-doc-path', resolved);
+      }
+    }
+    return self.renderToken(tokens, idx, options);
+  };
+
   return md.render(props.source ?? '');
 });
+
+/**
+ * 拦截正文里「内部文档链接」的点击：阻止浏览器原生整页导航，改 emit('navigate')
+ * 让父组件在 SPA 内切换文档，避免点击相对链接时跳出当前系统。
+ * 修饰键（Ctrl/Cmd/Shift/Alt）与非左键放行，交给浏览器原生新标签打开，符合用户预期。
+ */
+function handleClick(event: MouseEvent): void {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return;
+  }
+  const target = event.target as HTMLElement | null;
+  const anchor = target?.closest<HTMLAnchorElement>('a');
+  if (!anchor || anchor.dataset.docLink !== 'true') {
+    return;
+  }
+  const docPath = anchor.getAttribute('data-doc-path');
+  if (docPath) {
+    event.preventDefault();
+    emit('navigate', docPath);
+  }
+}
 
 /** 从真实 DOM 提取标题并 emit（slug 取自 <hN id>，与大纲同源）。 */
 async function emitHeadings(): Promise<void> {
@@ -89,7 +136,7 @@ watch(html, emitHeadings);
 </script>
 
 <template>
-  <div ref="rootRef" class="markdown-body" v-html="html" />
+  <div ref="rootRef" class="markdown-body" v-html="html" @click="handleClick" />
 </template>
 
 <!--

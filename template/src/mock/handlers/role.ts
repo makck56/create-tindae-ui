@@ -28,6 +28,20 @@ export const roleHandlers = [
       filtered = filtered.filter((r) => r.name.toLowerCase().includes(keyword))
     }
 
+    // 表头排序：filtered 已是副本，原地排序安全。
+    const sortBy = url.searchParams.get('sortBy')
+    const sortOrder = url.searchParams.get('sortOrder')
+    if (sortBy && (sortOrder === 'asc' || sortOrder === 'desc')) {
+      filtered.sort((a, b) => {
+        const av = a[sortBy as keyof Role]
+        const bv = b[sortBy as keyof Role]
+        if (av == null || bv == null) return 0
+        if (av < bv) return sortOrder === 'asc' ? -1 : 1
+        if (av > bv) return sortOrder === 'asc' ? 1 : -1
+        return 0
+      })
+    }
+
     const total = filtered.length
     const list = paginate(filtered, page, pageSize)
 

@@ -147,6 +147,13 @@ function updateCurrentFile(path: string) {
   });
 }
 
+/** MarkdownViewer 内部文档链接点击 → 在 SPA 内切换文档（不跳出系统）。 */
+function onNavigate(docPath: string): void {
+  if (availableDocPaths.value.has(docPath)) {
+    updateCurrentFile(docPath);
+  }
+}
+
 function toggleLeftCollapsed() {
   isLeftCollapsed.value = !isLeftCollapsed.value;
 }
@@ -256,7 +263,10 @@ watch(currentDocPath, () => {
         <MarkdownViewer
           v-if="currentDoc"
           :source="currentDoc.source"
+          :doc-paths="availableDocPaths"
+          :current-doc-path="currentDocPath"
           @headings="headings = $event"
+          @navigate="onNavigate"
         />
         <div
           v-else

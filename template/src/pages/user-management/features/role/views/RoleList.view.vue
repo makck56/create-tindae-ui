@@ -5,7 +5,7 @@ import { COPY } from '@/shared/constants/copy';
 
 defineOptions({ name: 'RoleList' });
 
-const { gridOptions, handleDelete } = useRoleList();
+const { gridRef, gridOptions, handleDelete } = useRoleList();
 
 const STATUS_COLOR_MAP: Record<string, string> = {
   [RoleStatuses.ACTIVE]: 'green',
@@ -18,7 +18,7 @@ function getStatusLabel(status: string) {
 </script>
 
 <template>
-  <vxe-grid v-bind="gridOptions" border>
+  <vxe-grid ref="gridRef" v-bind="gridOptions" border>
     <template #status_default="{ row }">
       <a-tag :color="STATUS_COLOR_MAP[row.status]">
         {{ getStatusLabel(row.status) }}

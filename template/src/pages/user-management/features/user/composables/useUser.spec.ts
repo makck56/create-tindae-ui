@@ -42,9 +42,11 @@ describe('useUserList', () => {
     const { gridOptions } = useUserList();
 
     expect(gridOptions.columns).toHaveLength(6);
-    expect(gridOptions.columns[0]).toEqual({ field: 'name', title: '用户名' });
+    expect(gridOptions.columns[0]).toEqual({ field: 'name', title: '用户名', sortable: true });
     expect(gridOptions.formConfig).toEqual({ enabled: false });
     expect(gridOptions.toolbarConfig).toEqual({ enabled: false });
+    expect(gridOptions.rowConfig).toEqual({ isHover: true, isCurrent: true });
+    expect(gridOptions.checkboxConfig).toEqual({ highlight: true });
     expect(gridOptions.pagerConfig.pageSize).toBe(10);
     expect(typeof gridOptions.proxyConfig.ajax.query).toBe('function');
   });
@@ -85,11 +87,36 @@ describe('useUserList', () => {
     });
   });
 
+  it('查询时会把表头排序参数透传给接口', async () => {
+    const { gridOptions } = useUserList();
+
+    await gridOptions.proxyConfig.ajax.query({
+      page: { currentPage: 1, pageSize: 10 },
+      sorts: [{ field: 'createdAt', order: 'desc' }],
+    });
+
+    expect(getUserList).toHaveBeenCalledWith(
+      expect.objectContaining({ sortBy: 'createdAt', sortOrder: 'desc' }),
+    );
+  });
+
+  it('未指定排序时不携带排序参数', async () => {
+    const { gridOptions } = useUserList();
+
+    await gridOptions.proxyConfig.ajax.query({
+      page: { currentPage: 1, pageSize: 10 },
+    });
+
+    expect(getUserList).toHaveBeenCalledWith(
+      expect.not.objectContaining({ sortBy: expect.anything() }),
+    );
+  });
+
   it('搜索和重置都会触发 commitProxy("query")，且重置会清空筛选条件', () => {
     const { gridRef, filters, handleSearch, resetFilters } = useUserList();
     const commitProxy = vi.fn();
 
-    gridRef.value = { commitProxy };
+    gridRef.value = { commitProxy, clearCheckboxRow: vi.fn(), setCheckboxRow: vi.fn() };
     filters.value.name = '张三';
     filters.value.status = 'active' as UserStatus;
     filters.value.role = 'admin' as UserRole;
@@ -111,7 +138,7 @@ describe('useUserList', () => {
     const { gridRef, handleDelete } = useUserList();
     const commitProxy = vi.fn();
 
-    gridRef.value = { commitProxy };
+    gridRef.value = { commitProxy, clearCheckboxRow: vi.fn(), setCheckboxRow: vi.fn() };
     await handleDelete('1');
 
     expect(deleteUser).toHaveBeenCalledWith('1');

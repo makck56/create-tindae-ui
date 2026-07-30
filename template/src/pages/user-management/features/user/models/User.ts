@@ -41,6 +41,10 @@ export interface UserListParams {
   name?: string;
   status?: UserStatus;
   role?: UserRole;
+  /** 排序字段（对应 vxe 列 field） */
+  sortBy?: string;
+  /** 排序方向 */
+  sortOrder?: 'asc' | 'desc';
 }
 
 /** Paginated list result */

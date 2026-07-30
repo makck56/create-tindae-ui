@@ -25,6 +25,7 @@ export function useCrossPageGrid<T = unknown>(options: UseCrossPageGridOptions<T
   const composable = useCrossPageSelect<T>(selectOptions)
 
   let isSyncing = false
+  let syncTimer: ReturnType<typeof setTimeout> | undefined
 
   function syncGridCheckbox() {
     const grid = gridRef.value
@@ -43,9 +44,28 @@ export function useCrossPageGrid<T = unknown>(options: UseCrossPageGridOptions<T
     }
   }
 
+  function scheduleGridCheckboxSync() {
+    if (syncTimer) {
+      clearTimeout(syncTimer)
+    }
+
+    void nextTick(() => {
+      syncGridCheckbox()
+
+      // VXE proxyConfig 会在 ajax.query 返回后再把数据写回表格内部状态；翻页场景下，
+      // 这一步可能发生在 currentData 变更 watcher 之后，并覆盖前一次 setCheckboxRow。
+      // 因此额外延后一轮宏任务再同步一次，确保表格完成分页数据替换后恢复勾选视觉状态。
+      syncTimer = setTimeout(() => {
+        syncTimer = undefined
+        syncGridCheckbox()
+      }, 0)
+    })
+  }
+
   watch(
     [composable.selectionState, selectOptions.data],
-    () => { nextTick(syncGridCheckbox) },
+    scheduleGridCheckboxSync,
+    { flush: 'post' },
   )
 
   function handleCheckboxChange(params: VxeCheckboxEventParams<T>) {

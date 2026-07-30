@@ -26,6 +26,10 @@ export interface RoleListParams {
   page: number;
   pageSize: number;
   keyword?: string;
+  /** 排序字段（对应 vxe 列 field） */
+  sortBy?: string;
+  /** 排序方向 */
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface RoleListResult {

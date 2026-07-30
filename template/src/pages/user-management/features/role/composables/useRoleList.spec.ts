@@ -53,6 +53,19 @@ describe('useRoleList', () => {
     });
   });
 
+  it('查询时会把表头排序参数透传给接口', async () => {
+    const { gridOptions } = useRoleList();
+
+    await gridOptions.proxyConfig.ajax.query({
+      page: { currentPage: 1, pageSize: 10 },
+      sorts: [{ field: 'name', order: 'asc' }],
+    });
+
+    expect(getRoleList).toHaveBeenCalledWith(
+      expect.objectContaining({ sortBy: 'name', sortOrder: 'asc' }),
+    );
+  });
+
   it('删除成功后提示成功消息', async () => {
     const { handleDelete } = useRoleList();
 
@@ -61,6 +74,17 @@ describe('useRoleList', () => {
     expect(deleteRole).toHaveBeenCalledWith('r-1');
     expect(message.success).toHaveBeenCalledWith(COPY.COMMON.SUCCESS);
     expect(message.error).not.toHaveBeenCalled();
+  });
+
+  it('删除成功后触发列表刷新（commitProxy query）', async () => {
+    const { gridRef, handleDelete } = useRoleList();
+    const commitProxy = vi.fn();
+    // 模拟 vxe-grid 实例挂载到 ref：验证删除后会触发重新查询
+    gridRef.value = { commitProxy };
+
+    await handleDelete('r-1');
+
+    expect(commitProxy).toHaveBeenCalledWith('query');
   });
 
   it('删除失败后提示失败消息', async () => {

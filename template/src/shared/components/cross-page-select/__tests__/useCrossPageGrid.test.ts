@@ -80,4 +80,42 @@ describe('useCrossPageGrid', () => {
     expect(typeof headerSlot).toBe('function');
     expect(headerSlot()).toBeTruthy();
   });
+  it('跨页全选后翻页回来，会在 VXE 数据替换完成后再次恢复当前页勾选态', async () => {
+    vi.useFakeTimers();
+    try {
+      const { composable, data, clearCheckboxRow, setCheckboxRow } = createGridComposable();
+
+      composable.selectAllPages();
+      await nextTick();
+      await nextTick();
+      vi.runOnlyPendingTimers();
+
+      clearCheckboxRow.mockClear();
+      setCheckboxRow.mockClear();
+
+      data.value = [
+        { id: '4' },
+        { id: '5' },
+      ];
+      await nextTick();
+      await nextTick();
+
+      // 模拟 VXE proxyConfig 在首轮同步之后刷新内部数据，并清掉了 checkbox 视觉状态。
+      clearCheckboxRow.mockClear();
+      setCheckboxRow.mockClear();
+
+      vi.runOnlyPendingTimers();
+
+      expect(clearCheckboxRow).toHaveBeenCalled();
+      expect(setCheckboxRow).toHaveBeenCalledWith(
+        [
+          { id: '4' },
+          { id: '5' },
+        ],
+        true,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
