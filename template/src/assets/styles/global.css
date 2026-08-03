@@ -2,8 +2,8 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   /* 文字 / 背景统一引用主题变量（由 core/theme 运行时驱动，支持亮暗切换） */
   color: var(--text-body);
   background-color: var(--bg-page);

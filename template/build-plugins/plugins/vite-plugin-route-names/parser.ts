@@ -34,7 +34,7 @@ export function parseVueFile(content: string): ParsedScriptSetup | null {
       importEndPosition: importEndPos,
       defineOptionsRange: defineOptionsMatch?.range,
     };
-  } catch (error) {
+  } catch {
     // 解析失败，返回 null
     return null;
   }

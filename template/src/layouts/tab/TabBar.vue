@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import {
-  ReloadOutlined,
-  CloseOutlined,
-} from '@ant-design/icons-vue';
+import { ReloadOutlined, CloseOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import { useTabStore } from './tab';
 
@@ -55,11 +52,7 @@ function getMenuDisabled(key: string) {
 <template>
   <div v-if="tabStore.tabs.length > 0" class="tab-bar">
     <div class="tab-bar__list">
-      <a-dropdown
-        v-for="tab in tabStore.tabs"
-        :key="tab.key"
-        :trigger="['contextmenu']"
-      >
+      <a-dropdown v-for="tab in tabStore.tabs" :key="tab.key" :trigger="['contextmenu']">
         <div
           class="tab-bar__tag"
           :class="{ 'tab-bar__tag--active': tab.key === tabStore.activeTab }"
@@ -150,7 +143,9 @@ function getMenuDisabled(key: string) {
   white-space: nowrap;
   background: var(--bg-subtle);
   color: var(--text-secondary);
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
   user-select: none;
 }
 

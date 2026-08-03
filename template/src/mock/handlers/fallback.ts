@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw';
 
 /**
  * 开发态 API mock 兜底。
@@ -11,10 +11,10 @@ import { http, HttpResponse } from 'msw'
  */
 export const fallbackHandlers = [
   http.all(/\/api\/.+/, ({ request }) => {
-    const url = new URL(request.url)
-    const endpoint = `${request.method} ${url.pathname}${url.search}`
+    const url = new URL(request.url);
+    const endpoint = `${request.method} ${url.pathname}${url.search}`;
 
-    console.warn(`[mock] 未匹配的 API 请求: ${endpoint}`)
+    console.warn(`[mock] 未匹配的 API 请求: ${endpoint}`);
 
     return HttpResponse.json(
       {
@@ -23,6 +23,6 @@ export const fallbackHandlers = [
         data: null,
       },
       { status: 404 },
-    )
+    );
   }),
-]
+];

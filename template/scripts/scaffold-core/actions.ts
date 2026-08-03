@@ -262,7 +262,7 @@ export const scaffoldDomain = async (args: DomainArgs = {}) => {
     try {
       await removeDirectory(basePath);
       console.log("✅ 清理完成\n");
-    } catch (cleanupError) {
+    } catch {
       console.error("⚠️  清理失败，请手动删除目录:", basePath);
     }
     return;
@@ -351,6 +351,9 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
   const domainPascal = toPascalCase(domainName);
   const featureKebab = toKebabCase(featureName);
   const featurePascal = toPascalCase(featureName);
+  // Vue Router 的 name 是全局唯一空间。新增 feature 默认拼入 domain 前缀，
+  // 避免 sales/order 与 finance/order 这类跨域同名特性互相覆盖。
+  const featureRouteName = `${domainPascal}${featurePascal}`;
 
   // 选择页面类型：非交互用 --type（默认 list），交互则列表询问。
   // 决定后续渲染哪一套模板（表格型 CRUD / 概览型 Dashboard）。
@@ -413,6 +416,7 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
       chineseName: "",
       featureChineseName,
       featureType,
+      featureRouteName,
     });
 
     // 按页面类型选取模板（view/composable 内部已硬编码对应类型命名）
@@ -477,6 +481,7 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
         domainKebab,
         featureKebab,
         featurePascal,
+        featureRouteName,
         featureChineseName,
         typeSuffix
       );
@@ -538,7 +543,7 @@ export const scaffoldFeature = async (args: FeatureArgs = {}) => {
     try {
       await removeDirectory(basePath);
       console.log("✅ 清理完成\n");
-    } catch (cleanupError) {
+    } catch {
       console.error("⚠️  清理失败，请手动删除目录:", basePath);
     }
     return;

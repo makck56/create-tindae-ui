@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import {
-  BgColorsOutlined,
-  BulbFilled,
-  BulbOutlined,
-  CheckOutlined,
-} from '@ant-design/icons-vue';
+import { BgColorsOutlined, BulbFilled, BulbOutlined, CheckOutlined } from '@ant-design/icons-vue';
 import { useTheme } from '@/core/theme';
 
 /**

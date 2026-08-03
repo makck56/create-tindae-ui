@@ -60,38 +60,44 @@ const md = new MarkdownIt({
   },
 });
 
+// 渲染规则：在模块级一次性配置，依赖（slugger / docPaths / currentDocPath）
+// 通过 md.render(src, env) 的 env 传入——避免在 computed 内修改 md 状态（side effect）。
+md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
+  const slugger = env?.slugger;
+  const token = tokens[idx];
+  if (slugger && !token.attrGet('id')) {
+    token.attrSet('id', slugger(tokens[idx + 1]?.content ?? ''));
+  }
+  return self.renderToken(tokens, idx, options);
+};
+
+// 内部文档链接：把指向系统内文档的相对链接解析为绝对路径并打标记，
+// 由容器 click（handleClick）拦截改走 SPA 切换，避免原生整页导航跳出系统。
+md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+  const { docPaths, currentDocPath } = env ?? {};
+  if (docPaths && currentDocPath) {
+    const token = tokens[idx];
+    const href = token.attrGet('href') ?? '';
+    const resolved = resolveInternalDoc(href, currentDocPath, docPaths);
+    if (resolved) {
+      token.attrSet('data-doc-link', 'true');
+      token.attrSet('data-doc-path', resolved);
+    }
+  }
+  return self.renderToken(tokens, idx, options);
+};
+
 /**
- * 渲染为 HTML：每次重算时新建 slugger，并覆写 heading_open 给每个 <hN> 注入「去重后的唯一 id」。
+ * 渲染为 HTML：纯函数——读 source / docPaths / currentDocPath，组装 env 后交给 md.render。
+ * rules 从 env 取 slugger / 文档路径（见上方模块级配置），不在 computed 内修改 md。
  */
 const html = computed(() => {
-  const slug = createSlugger();
-  md.renderer.rules.heading_open = (tokens, idx, options, _env, self) => {
-    const token = tokens[idx];
-    if (!token.attrGet('id')) {
-      token.attrSet('id', slug(tokens[idx + 1]?.content ?? ''));
-    }
-    return self.renderToken(tokens, idx, options);
+  const env = {
+    slugger: createSlugger(),
+    docPaths: props.docPaths,
+    currentDocPath: props.currentDocPath,
   };
-
-  // 内部文档链接：把指向系统内文档的相对链接解析为绝对路径并打标记，
-  // 由容器 click（handleClick）拦截改走 SPA 切换，避免原生整页导航跳出系统。
-  // 显式读取以下两个 prop，确保切换文档时本 computed 重算（即便 source 恰好相同）。
-  const docPaths = props.docPaths;
-  const currentDocPath = props.currentDocPath;
-  md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
-    if (docPaths && currentDocPath) {
-      const token = tokens[idx];
-      const href = token.attrGet('href') ?? '';
-      const resolved = resolveInternalDoc(href, currentDocPath, docPaths);
-      if (resolved) {
-        token.attrSet('data-doc-link', 'true');
-        token.attrSet('data-doc-path', resolved);
-      }
-    }
-    return self.renderToken(tokens, idx, options);
-  };
-
-  return md.render(props.source ?? '');
+  return md.render(props.source ?? '', env);
 });
 
 /**
@@ -136,7 +142,7 @@ watch(html, emitHeadings);
 </script>
 
 <template>
-  <div ref="rootRef" class="markdown-body" v-html="html" @click="handleClick" />
+  <div ref="rootRef" class="markdown-body" @click="handleClick" v-html="html" />
 </template>
 
 <!--
@@ -151,8 +157,9 @@ watch(html, emitHeadings);
   padding: 40px 48px;
   border: 1px solid #d0d7de;
   border-radius: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 16px;
   line-height: 1.6;
   word-break: break-word;
@@ -231,7 +238,8 @@ watch(html, emitHeadings);
 
 /* 行内代码：Typora 经典 —— 浅粉底 + 暗红字（醒目，区别于正文） */
 .markdown-body code {
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 85%;
   padding: 0.2em 0.4em;
   color: #c7254e;

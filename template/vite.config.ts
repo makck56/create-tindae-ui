@@ -37,7 +37,7 @@ export default defineConfig(async ({ mode }) => {
   if (env.VITE_LEGACY_BUILD === 'true') {
     let legacy: (opts: { targets: string[] }) => unknown;
     try {
-      // @ts-ignore —— 该包按需安装，未安装时 TS「找不到模块」属预期；运行时由下方 catch 守卫
+      // @ts-expect-error —— 该包按需安装，未安装时 TS「找不到模块」属预期；运行时由下方 catch 守卫
       legacy = (await import('@vitejs/plugin-legacy')).default;
     } catch {
       throw new Error(

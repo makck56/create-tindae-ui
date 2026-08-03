@@ -1,12 +1,12 @@
-import type { HttpError } from './error'
+import type { HttpError } from './error';
 
 /** refresh 成功后返回 / 更新的令牌信息 */
 export interface RefreshedTokens {
-  accessToken: string
+  accessToken: string;
   /** rolling 模式下后端可能下发新 refreshToken；不下发则沿用旧的 */
-  refreshToken?: string
+  refreshToken?: string;
   /** accessToken 有效期（秒） */
-  expiresIn?: number
+  expiresIn?: number;
 }
 
 /**
@@ -20,37 +20,37 @@ export interface RefreshedTokens {
  */
 export interface HttpRuntimeConfig {
   /** 获取访问令牌；返回 null 时本次请求不附加 Authorization 头 */
-  getToken?: () => string | null
+  getToken?: () => string | null;
   /** 收到 401 / 未授权时的回调（通常：登出 + 跳登录页） */
-  onUnauthorized?: () => void
+  onUnauthorized?: () => void;
   /** 网络错误 / 超时时的全局提示回调（如 message.error） */
-  onNetworkError?: (error: HttpError) => void
+  onNetworkError?: (error: HttpError) => void;
   /** 业务错误（HTTP 成功但 code !== 0）的全局提示回调 */
-  onBusinessError?: (response: { code: number; message?: string }) => void
+  onBusinessError?: (response: { code: number; message?: string }) => void;
 
   // ── Token 无感续期（B 主动刷新 + C 401 兜底）──────────────
   /** 获取 refresh token（access 过期后用它换新） */
-  getRefreshToken?: () => string | null
+  getRefreshToken?: () => string | null;
   /**
    * 判断 access token 是否临近过期（返回 true 触发主动刷新）。
    * 未配置则不启用「主动刷新」，仅靠 401 兜底。
    */
-  isTokenExpiring?: () => boolean
+  isTokenExpiring?: () => boolean;
   /** 执行 refresh，返回新令牌；失败应 reject（协调器据此让上层触发 onUnauthorized） */
-  refreshAccessToken?: () => Promise<RefreshedTokens>
+  refreshAccessToken?: () => Promise<RefreshedTokens>;
   /** refresh 成功后回调（业务在此更新本地存储） */
-  onTokenRefreshed?: (tokens: RefreshedTokens) => void
+  onTokenRefreshed?: (tokens: RefreshedTokens) => void;
 }
 
 /** 主动刷新阈值：剩余有效期 < 此值视为「临过期」，默认 5 分钟。 */
-const DEFAULT_REFRESH_THRESHOLD_MS = 5 * 60 * 1000
+const DEFAULT_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
 /** localStorage 安全读取（隐私模式 / SSR 降级返回 null） */
 function safeGetItem(key: string): string | null {
   try {
-    return localStorage.getItem(key)
+    return localStorage.getItem(key);
   } catch {
-    return null
+    return null;
   }
 }
 
@@ -64,15 +64,15 @@ const defaultConfig: HttpRuntimeConfig = {
   getToken: () => safeGetItem('token'),
   getRefreshToken: () => safeGetItem('refreshToken'),
   isTokenExpiring: () => {
-    const raw = safeGetItem('tokenExpiresAt')
-    if (!raw) return false
-    const exp = Number(raw)
-    if (!Number.isFinite(exp)) return false
-    return exp - Date.now() < DEFAULT_REFRESH_THRESHOLD_MS
+    const raw = safeGetItem('tokenExpiresAt');
+    if (!raw) return false;
+    const exp = Number(raw);
+    if (!Number.isFinite(exp)) return false;
+    return exp - Date.now() < DEFAULT_REFRESH_THRESHOLD_MS;
   },
-}
+};
 
-let runtimeConfig: HttpRuntimeConfig = { ...defaultConfig }
+let runtimeConfig: HttpRuntimeConfig = { ...defaultConfig };
 
 /**
  * 注入运行时配置（合并式，可多次调用渐进配置）。
@@ -86,10 +86,10 @@ let runtimeConfig: HttpRuntimeConfig = { ...defaultConfig }
  * })
  */
 export function configureHttp(partial: Partial<HttpRuntimeConfig>): void {
-  runtimeConfig = { ...runtimeConfig, ...partial }
+  runtimeConfig = { ...runtimeConfig, ...partial };
 }
 
 /** 读取当前运行时配置（拦截器内部使用） */
 export function getHttpRuntimeConfig(): HttpRuntimeConfig {
-  return runtimeConfig
+  return runtimeConfig;
 }

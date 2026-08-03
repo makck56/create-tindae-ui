@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from 'axios'
+import axios, { type AxiosInstance } from 'axios';
 import type {
   ApiResponse,
   DownloadOptions,
@@ -6,15 +6,15 @@ import type {
   HttpOptions,
   HttpRequestConfig,
   UploadOptions,
-} from './types'
-import { setupInterceptors } from './interceptors'
-import { PendingRequestManager } from './pending'
-import { downloadFile, uploadFile } from './file-transfer'
+} from './types';
+import { setupInterceptors } from './interceptors';
+import { PendingRequestManager } from './pending';
+import { downloadFile, uploadFile } from './file-transfer';
 
 /** 默认接口基础地址（与 vite proxy / mock 的 /api 前缀对齐） */
-const DEFAULT_BASE_URL = '/api'
+const DEFAULT_BASE_URL = '/api';
 /** 默认超时时间 */
-const DEFAULT_TIMEOUT = 10000
+const DEFAULT_TIMEOUT = 10000;
 
 /**
  * 创建一个 HTTP 封装实例。
@@ -39,20 +39,20 @@ export function createHttp(options: HttpOptions = {}): HttpInstance {
     headers,
     withDefaultInterceptors = true,
     cancelPrevious = false,
-  } = options
+  } = options;
 
   // 1) 创建底层 axios 实例
   const axiosInstance: AxiosInstance = axios.create({
     baseURL,
     timeout,
     headers,
-  })
+  });
 
   // 2) 挂载默认拦截器（可关闭）
   if (withDefaultInterceptors) {
     // 每个实例持有独立的 pending 管理器，避免多实例之间互相误取消
-    const manager = new PendingRequestManager()
-    setupInterceptors(axiosInstance, { manager, cancelPrevious })
+    const manager = new PendingRequestManager();
+    setupInterceptors(axiosInstance, { manager, cancelPrevious });
   }
 
   // 3) 基于拦截器解包后的返回值，提供「类型安全」的便捷方法。
@@ -70,17 +70,16 @@ export function createHttp(options: HttpOptions = {}): HttpInstance {
     delete: <T = unknown>(url: string, config?: HttpRequestConfig) =>
       axiosInstance.delete<ApiResponse<T>>(url, config) as unknown as Promise<ApiResponse<T>>,
     // 文件下载：blob 错误检测 + 文件名提取 + 浏览器保存
-    download: (url: string, options?: DownloadOptions) =>
-      downloadFile(axiosInstance, url, options),
+    download: (url: string, options?: DownloadOptions) => downloadFile(axiosInstance, url, options),
     // 文件上传：FormData 进度上传，响应走业务信封解包
     upload: <T = unknown>(
       url: string,
       data: FormData | Record<string, unknown>,
       options?: UploadOptions,
     ) => uploadFile<T>(axiosInstance, url, data, options),
-  }
+  };
 
-  return instance
+  return instance;
 }
 
 /**
@@ -91,4 +90,4 @@ export function createHttp(options: HttpOptions = {}): HttpInstance {
  *   export const getUser = (id: string) => request.get<User>(`/users/${id}`)
  *   const res = await getUser('1')  // res: ApiResponse<User>
  */
-export const request = createHttp()
+export const request = createHttp();

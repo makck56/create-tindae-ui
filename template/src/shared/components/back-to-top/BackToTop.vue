@@ -96,7 +96,9 @@ onBeforeUnmount(() => scrollTarget.removeEventListener('scroll', handleScroll));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 100;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .back-to-top:hover {
@@ -111,7 +113,9 @@ onBeforeUnmount(() => scrollTarget.removeEventListener('scroll', handleScroll));
 /* 淡入淡出 + 轻微上移 */
 .backtop-enter-active,
 .backtop-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 .backtop-enter-from,
 .backtop-leave-to {

@@ -16,8 +16,8 @@ import type { DirEntry } from "./utils";
 /**
  * 自动更新路由配置（扁平路由格式）—— 往 domain.routes.ts 追加 feature 路由。
  *
- * 注意：feature 路由 path 为 `/<featureKebab>`（无 domain 前缀），name 为 `<featurePascal>`。
- * Vue Router 要求 name 全局唯一，因此跨域请避免同名 feature，否则会路由冲突。
+ * 注意：feature 路由 path 为 `/<featureKebab>`（无 domain 前缀），name 使用 `featureRouteName`。
+ * Vue Router 要求 name 全局唯一，因此新增 feature 默认由 actions.ts 传入「域名 + 特性名」的安全名称。
  *
  * `typeSuffix`（List / Overview）决定 component 懒加载的 page 文件名，
  * 与脚手架按类型生成的 `${featurePascal}${typeSuffix}.page.vue` 对齐。默认 List 兼容历史调用。
@@ -26,6 +26,7 @@ export const updateRoutes = async (
   domainKebab: string,
   featureKebab: string,
   featurePascal: string,
+  featureRouteName: string,
   featureChineseName: string,
   typeSuffix: "List" | "Overview" = "List",
   rootDir: string = process.cwd()
@@ -40,16 +41,16 @@ export const updateRoutes = async (
   try {
     const content = await readFile(routesPath);
 
-    if (content.includes(`name: '${featurePascal}'`)) {
+    if (content.includes(`name: '${featureRouteName}'`)) {
       console.log("⚠️  路由配置已存在，跳过更新");
       return;
     }
 
     const newRoute = `  {
     path: '/${featureKebab}',
-    name: '${featurePascal}',
+    name: '${featureRouteName}',
     component: () => import('./pages/${featurePascal}${typeSuffix}.page.vue'),
-    meta: { code: '${featurePascal}', title: '${featureChineseName}', keepAlive: true },
+    meta: { code: '${featureRouteName}', title: '${featureChineseName}', keepAlive: true },
   },`;
 
     // 找到 RouteRecordRaw[] 数组的末尾 ];

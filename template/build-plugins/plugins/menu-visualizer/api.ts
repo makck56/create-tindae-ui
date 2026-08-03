@@ -112,7 +112,7 @@ export const createApiMiddleware = (options: MenuPluginOptions): Connect.NextHan
                 const files = await glob('**/*.vue', { cwd: path.resolve(process.cwd(), options.viewsPath) });
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify({ files }));
-            } catch (error) {
+            } catch {
                 res.statusCode = 500;
                 res.end(JSON.stringify({ error: 'Failed to scan views' }));
             }

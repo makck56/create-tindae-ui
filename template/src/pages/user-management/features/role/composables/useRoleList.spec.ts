@@ -14,9 +14,7 @@ vi.mock('ant-design-vue/es/message', () => ({
 vi.mock('../api/role.api', () => ({
   getRoleList: vi.fn().mockResolvedValue({
     data: {
-      list: [
-        { id: 'r-1', name: '管理员', status: 'active', createdAt: '2026-07-24' },
-      ],
+      list: [{ id: 'r-1', name: '管理员', status: 'active', createdAt: '2026-07-24' }],
       total: 1,
     },
   }),
@@ -46,9 +44,7 @@ describe('useRoleList', () => {
 
     expect(getRoleList).toHaveBeenCalledWith({ page: 2, pageSize: 20 });
     expect(result).toEqual({
-      list: [
-        { id: 'r-1', name: '管理员', status: 'active', createdAt: '2026-07-24' },
-      ],
+      list: [{ id: 'r-1', name: '管理员', status: 'active', createdAt: '2026-07-24' }],
       total: 1,
     });
   });

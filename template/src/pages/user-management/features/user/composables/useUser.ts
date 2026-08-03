@@ -115,7 +115,16 @@ export function useUserList() {
     }
   }
 
-  return { gridRef, gridOptions, filters, currentData, currentTotal, handleSearch, resetFilters, handleDelete };
+  return {
+    gridRef,
+    gridOptions,
+    filters,
+    currentData,
+    currentTotal,
+    handleSearch,
+    resetFilters,
+    handleDelete,
+  };
 }
 
 export function useUserDetail() {

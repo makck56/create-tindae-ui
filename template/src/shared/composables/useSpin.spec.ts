@@ -32,7 +32,7 @@ describe('useSpin', () => {
   });
 
   it('after delay, loading shows', () => {
-    const { spinning, start, stop } = useSpin({ delay: 300 });
+    const { spinning, start } = useSpin({ delay: 300 });
 
     start();
     expect(spinning.value).toBe(false);

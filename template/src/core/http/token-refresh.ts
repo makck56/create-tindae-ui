@@ -1,10 +1,10 @@
-import type { AxiosInstance, AxiosRequestConfig } from 'axios'
-import { getHttpRuntimeConfig, type RefreshedTokens } from './config'
+import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { getHttpRuntimeConfig, type RefreshedTokens } from './config';
 
 /** 带「已重试」标记的 config 类型，防止 401 重试无限递归 */
 type RetryableConfig = AxiosRequestConfig & {
-  __refreshRetried?: boolean
-}
+  __refreshRetried?: boolean;
+};
 
 /**
  * DEV 可观测性日志：Token 续期是「不可见的后台异步动作」，开发期打开 trace 便于排查
@@ -15,8 +15,7 @@ type RetryableConfig = AxiosRequestConfig & {
  */
 function trace(message: string, ...rest: unknown[]): void {
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
-    console.debug('%c[http:refresh]', 'color:#1677ff;font-weight:bold', message, ...rest)
+    console.debug('%c[http:refresh]', 'color:#1677ff;font-weight:bold', message, ...rest);
   }
 }
 
@@ -42,14 +41,14 @@ function trace(message: string, ...rest: unknown[]): void {
  */
 export class TokenRefreshCoordinator {
   /** 当前进行中的 refresh promise（单例去重） */
-  private refreshing: Promise<RefreshedTokens> | null = null
+  private refreshing: Promise<RefreshedTokens> | null = null;
 
   /** 累计成功刷新次数（仅供 DEV 观测面板读取；生产环境只增不减、无副作用） */
-  private refreshCount = 0
+  private refreshCount = 0;
 
   /** 读取累计刷新次数（DEV 观测面板轮询展示用） */
   getRefreshCount(): number {
-    return this.refreshCount
+    return this.refreshCount;
   }
 
   /**
@@ -58,25 +57,25 @@ export class TokenRefreshCoordinator {
    * - 刷新失败 → 抛错（调用方可忽略，靠响应 401 兜底）。
    */
   async ensureFreshToken(): Promise<void> {
-    const cfg = getHttpRuntimeConfig()
+    const cfg = getHttpRuntimeConfig();
     if (!cfg.refreshAccessToken) {
-      trace('未配置 refreshAccessToken，主动刷新关闭')
-      return
+      trace('未配置 refreshAccessToken，主动刷新关闭');
+      return;
     }
     if (!cfg.isTokenExpiring?.()) {
       // 打印剩余有效期，便于定位「为何不刷新」
       // 常见原因：localStorage.tokenExpiresAt 是旧的远期值（未清理上次登录残留）
       if (import.meta.env.DEV) {
-        const exp = Number(localStorage.getItem('tokenExpiresAt') ?? NaN)
+        const exp = Number(localStorage.getItem('tokenExpiresAt') ?? NaN);
         const remain = Number.isFinite(exp)
           ? `${Math.round((exp - Date.now()) / 1000)}s`
-          : '无 tokenExpiresAt'
-        trace(`token 仍新鲜，跳过主动刷新（剩余 ${remain}，阈值 300s）`)
+          : '无 tokenExpiresAt';
+        trace(`token 仍新鲜，跳过主动刷新（剩余 ${remain}，阈值 300s）`);
       }
-      return
+      return;
     }
-    trace('token 临近过期，发起主动刷新')
-    await this.refresh()
+    trace('token 临近过期，发起主动刷新');
+    await this.refresh();
   }
 
   /**
@@ -89,19 +88,19 @@ export class TokenRefreshCoordinator {
     error: { config?: RetryableConfig },
     instance: AxiosInstance,
   ): Promise<unknown> {
-    const config = error.config
+    const config = error.config;
     if (!config || config.__refreshRetried) {
-      trace('收到 401 但无法重试（无 config 或已重试过），交上层处理')
-      throw error
+      trace('收到 401 但无法重试（无 config 或已重试过），交上层处理');
+      throw error;
     }
-    if (!getHttpRuntimeConfig().refreshAccessToken) throw error
+    if (!getHttpRuntimeConfig().refreshAccessToken) throw error;
 
-    trace('收到 401，刷新后重试原请求')
-    config.__refreshRetried = true
+    trace('收到 401，刷新后重试原请求');
+    config.__refreshRetried = true;
     // refresh 成功 → onTokenRefreshed 已更新本地 token；
     // instance.request 会重新走请求拦截器，自动用新 token 附加 Authorization 头。
-    await this.refresh()
-    return instance.request(config)
+    await this.refresh();
+    return instance.request(config);
   }
 
   /**
@@ -111,29 +110,29 @@ export class TokenRefreshCoordinator {
    */
   private refresh(): Promise<RefreshedTokens> {
     if (this.refreshing) {
-      trace('已有刷新进行中，复用同一请求（单例去重）')
-      return this.refreshing
+      trace('已有刷新进行中，复用同一请求（单例去重）');
+      return this.refreshing;
     }
-    const cfg = getHttpRuntimeConfig()
+    const cfg = getHttpRuntimeConfig();
     this.refreshing = (async () => {
       try {
-        trace('调用 refreshAccessToken …')
-        const tokens = await cfg.refreshAccessToken!()
-        trace('刷新成功', { expiresIn: tokens.expiresIn })
-        this.refreshCount += 1
-        cfg.onTokenRefreshed?.(tokens)
-        return tokens
+        trace('调用 refreshAccessToken …');
+        const tokens = await cfg.refreshAccessToken!();
+        trace('刷新成功', { expiresIn: tokens.expiresIn });
+        this.refreshCount += 1;
+        cfg.onTokenRefreshed?.(tokens);
+        return tokens;
       } catch (e) {
-        trace('刷新失败', e instanceof Error ? e.message : e)
-        throw e
+        trace('刷新失败', e instanceof Error ? e.message : e);
+        throw e;
       } finally {
         // 无论成败都清空，允许后续重试（如主动刷新失败后，401 兜底再试一次）
-        this.refreshing = null
+        this.refreshing = null;
       }
-    })()
-    return this.refreshing
+    })();
+    return this.refreshing;
   }
 }
 
 /** 全局单例（整个应用共享一个 refresh 协调器） */
-export const tokenRefreshCoordinator = new TokenRefreshCoordinator()
+export const tokenRefreshCoordinator = new TokenRefreshCoordinator();

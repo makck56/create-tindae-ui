@@ -15,76 +15,76 @@
  * 主动刷新、永远是新鲜的，方案 C 几乎触发不到（仅时钟漂移 / 服务端吊销 / 标签页挂起等边界才会）。
  * 要确定性验证方案 C，必须人为构造「token 失效但前端不自知」的状态。
  */
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { request, tokenRefreshCoordinator } from '@/core/http'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { request, tokenRefreshCoordinator } from '@/core/http';
 
 /** 主动刷新阈值（秒），与 config.ts 的 DEFAULT_REFRESH_THRESHOLD_MS 保持一致，仅用于 UI 着色 */
-const REFRESH_THRESHOLD_SEC = 5 * 60
+const REFRESH_THRESHOLD_SEC = 5 * 60;
 
 /** 剩余有效期（秒）；null 表示未登录（无 tokenExpiresAt） */
-const remainSec = ref<number | null>(null)
+const remainSec = ref<number | null>(null);
 /** 累计续期次数（来自协调器，方案 B / C 任一成功都会 +1） */
-const refreshCount = ref(0)
+const refreshCount = ref(0);
 /** 操作日志（最新在上，仅保留最近若干条） */
-const logs = ref<string[]>([])
+const logs = ref<string[]>([]);
 /** 折叠状态 */
-const collapsed = ref(false)
+const collapsed = ref(false);
 
 /** 是否已进入「临过期」区间（剩余 ≤ 阈值），用于 UI 高亮 */
 const nearExpiry = computed(
   () => remainSec.value !== null && remainSec.value <= REFRESH_THRESHOLD_SEC,
-)
+);
 
-let timer: ReturnType<typeof setInterval> | undefined
+let timer: ReturnType<typeof setInterval> | undefined;
 
 /** 当前时间字符串（日志用） */
 function nowStr(): string {
-  return new Date().toLocaleTimeString()
+  return new Date().toLocaleTimeString();
 }
 
 /** 轮询同步本地状态：剩余有效期 + 续期次数（DEV 面板 500ms 轮询可接受） */
 function sync(): void {
-  const exp = Number(localStorage.getItem('tokenExpiresAt') ?? NaN)
+  const exp = Number(localStorage.getItem('tokenExpiresAt') ?? NaN);
   remainSec.value = Number.isFinite(exp)
     ? Math.max(0, Math.round((exp - Date.now()) / 1000))
-    : null
-  refreshCount.value = tokenRefreshCoordinator.getRefreshCount()
+    : null;
+  refreshCount.value = tokenRefreshCoordinator.getRefreshCount();
 }
 
 // 续期次数变化 → 自动追加一条日志（捕获方案 B / C 的刷新动作，无需盯 Network）
 watch(refreshCount, (n, old) => {
-  if (n > old) logs.value.unshift(`[${nowStr()}] ✅ 完成第 ${n} 次续期`)
-})
+  if (n > old) logs.value.unshift(`[${nowStr()}] ✅ 完成第 ${n} 次续期`);
+});
 
 /** 主动发起一个需鉴权的测试请求（触发请求拦截器 → 方案 B 主动刷新） */
 async function fireRequest(): Promise<void> {
-  logs.value.unshift(`[${nowStr()}] → 发起 /user/info`)
+  logs.value.unshift(`[${nowStr()}] → 发起 /user/info`);
   try {
-    await request.get('/user/info')
-    logs.value.unshift(`[${nowStr()}] ← /user/info 成功`)
+    await request.get('/user/info');
+    logs.value.unshift(`[${nowStr()}] ← /user/info 成功`);
   } catch {
-    logs.value.unshift(`[${nowStr()}] ← /user/info 失败（详见 Network / 控制台）`)
+    logs.value.unshift(`[${nowStr()}] ← /user/info 失败（详见 Network / 控制台）`);
   }
-  sync()
+  sync();
 }
 
 /** 把本地 tokenExpiresAt 改到过去，下一个请求必触发方案 B 主动刷新（免等待） */
 function markNearExpiry(): void {
-  localStorage.setItem('tokenExpiresAt', String(Date.now() - 1000))
-  logs.value.unshift(`[${nowStr()}] ⚠ 已标记临过期（下次请求走方案 B）`)
-  sync()
+  localStorage.setItem('tokenExpiresAt', String(Date.now() - 1000));
+  logs.value.unshift(`[${nowStr()}] ⚠ 已标记临过期（下次请求走方案 B）`);
+  sync();
 }
 
 /** 直接调用主动刷新入口，验证协调器本身 */
 async function checkRefresh(): Promise<void> {
-  logs.value.unshift(`[${nowStr()}] → 调用 ensureFreshToken()`)
+  logs.value.unshift(`[${nowStr()}] → 调用 ensureFreshToken()`);
   try {
-    await tokenRefreshCoordinator.ensureFreshToken()
-    logs.value.unshift(`[${nowStr()}] ← ensureFreshToken() 完成`)
+    await tokenRefreshCoordinator.ensureFreshToken();
+    logs.value.unshift(`[${nowStr()}] ← ensureFreshToken() 完成`);
   } catch {
-    logs.value.unshift(`[${nowStr()}] ← ensureFreshToken() 失败`)
+    logs.value.unshift(`[${nowStr()}] ← ensureFreshToken() 失败`);
   }
-  sync()
+  sync();
 }
 
 /**
@@ -93,20 +93,20 @@ async function checkRefresh(): Promise<void> {
  * 这样下一个请求不会被方案 B 主动拦截，而是带着坏 token 出去 → 收到 401 → 触发方案 C 兜底。
  */
 function simulateInvalidToken(): void {
-  localStorage.setItem('token', 'mock-access-BROKEN')
-  localStorage.setItem('tokenExpiresAt', String(Date.now() + 600 * 1000))
-  logs.value.unshift(`[${nowStr()}] ⚠ 已改坏 token + 标记新鲜（下次请求走方案 C）`)
-  sync()
+  localStorage.setItem('token', 'mock-access-BROKEN');
+  localStorage.setItem('tokenExpiresAt', String(Date.now() + 600 * 1000));
+  logs.value.unshift(`[${nowStr()}] ⚠ 已改坏 token + 标记新鲜（下次请求走方案 C）`);
+  sync();
 }
 
 onMounted(() => {
-  sync()
-  timer = setInterval(sync, 500)
-})
+  sync();
+  timer = setInterval(sync, 500);
+});
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
+  if (timer) clearInterval(timer);
+});
 </script>
 
 <template>
@@ -172,12 +172,29 @@ onUnmounted(() => {
   border-bottom: 1px solid #f0f0f0;
   user-select: none;
 }
-.token-panel__title { font-weight: 600; }
-.token-panel__remain.is-near { color: #fa8c16; font-weight: 600; }
-.token-panel__count { margin-left: auto; color: #1677ff; }
-.token-panel__toggle { color: #999; }
-.token-panel__body { padding: 10px 12px; }
-.token-panel__row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.token-panel__title {
+  font-weight: 600;
+}
+.token-panel__remain.is-near {
+  color: #fa8c16;
+  font-weight: 600;
+}
+.token-panel__count {
+  margin-left: auto;
+  color: #1677ff;
+}
+.token-panel__toggle {
+  color: #999;
+}
+.token-panel__body {
+  padding: 10px 12px;
+}
+.token-panel__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
 .token-panel__row button {
   padding: 4px 8px;
   font-size: 12px;
@@ -203,6 +220,12 @@ onUnmounted(() => {
   line-height: 1.5;
   border-bottom: 1px dashed #f5f5f5;
 }
-.token-panel__logs .is-empty { color: #999; }
-.token-panel__tip { margin: 0; color: #888; line-height: 1.6; }
+.token-panel__logs .is-empty {
+  color: #999;
+}
+.token-panel__tip {
+  margin: 0;
+  color: #888;
+  line-height: 1.6;
+}
 </style>

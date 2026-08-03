@@ -29,9 +29,9 @@ const checked = computed(
 // 半选只表达「当前页有部分选中」，跨页全选时不再显示半选态，避免状态含义冲突。
 const indeterminate = computed(
   () =>
-    props.selectionState.mode !== SELECTION_ALL_PAGES
-    && !props.currentPageAllSelected
-    && props.currentPageSelectedCount > 0,
+    props.selectionState.mode !== SELECTION_ALL_PAGES &&
+    !props.currentPageAllSelected &&
+    props.currentPageSelectedCount > 0,
 );
 
 function handleSelectAllPages() {

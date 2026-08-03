@@ -56,7 +56,12 @@ async function handleLogout() {
       <div :class="['p-4 text-center font-bold text-lg', isDark ? 'text-white' : 'text-title']">
         {{ appStore.appName }}
       </div>
-      <a-menu :theme="menuTheme" mode="inline" :selected-keys="selectedKeys" @click="handleMenuClick">
+      <a-menu
+        :theme="menuTheme"
+        mode="inline"
+        :selected-keys="selectedKeys"
+        @click="handleMenuClick"
+      >
         <template v-for="item in menus" :key="item.routeName ?? item.label">
           <a-menu-item v-if="!item.children" :key="item.routeName">
             {{ item.label }}

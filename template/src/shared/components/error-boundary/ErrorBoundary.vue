@@ -54,7 +54,11 @@ function goHome() {
 <template>
   <template v-if="error">
     <div class="flex items-center justify-center min-h-[60vh]">
-      <a-result status="error" title="页面加载失败" sub-title="抱歉，页面出现异常，请重试或返回首页">
+      <a-result
+        status="error"
+        title="页面加载失败"
+        sub-title="抱歉，页面出现异常，请重试或返回首页"
+      >
         <template #extra>
           <a-button type="primary" @click="retry">重试</a-button>
           <a-button @click="goHome">返回首页</a-button>

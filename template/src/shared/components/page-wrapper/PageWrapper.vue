@@ -30,19 +30,12 @@ defineProps<{
     </div>
 
     <!-- Content -->
-    <div
-      :class="['flex-1 overflow-auto p-4', contentClass]"
-      :style="contentStyle"
-    >
+    <div :class="['flex-1 overflow-auto p-4', contentClass]" :style="contentStyle">
       <slot />
     </div>
 
     <!-- Footer -->
-    <div
-      v-if="$slots.footer"
-      :class="['pt-4', footerClass]"
-      :style="footerStyle"
-    >
+    <div v-if="$slots.footer" :class="['pt-4', footerClass]" :style="footerStyle">
       <slot name="footer" />
     </div>
   </div>

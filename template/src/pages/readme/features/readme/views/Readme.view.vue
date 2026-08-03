@@ -279,7 +279,10 @@ watch(currentDocPath, () => {
       </div>
     </div>
 
-    <div v-if="isLeftCollapsed" class="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center">
+    <div
+      v-if="isLeftCollapsed"
+      class="pointer-events-none absolute inset-y-0 left-0 z-20 flex items-center"
+    >
       <button
         class="pointer-events-auto flex h-16 w-6 items-center justify-center rounded-r-full border border-l-0 border-[#d0d7de] bg-white/92 text-[#57606a] shadow-xs backdrop-blur transition hover:w-7 hover:text-[#1f2328]"
         type="button"
@@ -289,7 +292,10 @@ watch(currentDocPath, () => {
       </button>
     </div>
 
-    <div v-if="isRightCollapsed" class="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-center">
+    <div
+      v-if="isRightCollapsed"
+      class="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-center"
+    >
       <button
         class="pointer-events-auto flex h-16 w-6 items-center justify-center rounded-l-full border border-r-0 border-[#d0d7de] bg-white/92 text-[#57606a] shadow-xs backdrop-blur transition hover:w-7 hover:text-[#1f2328]"
         type="button"

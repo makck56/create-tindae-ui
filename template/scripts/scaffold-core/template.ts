@@ -31,6 +31,10 @@ export interface TemplateData {
   featureKebab: string;
   featurePascal: string;
   featureCamel: string;
+  /** 路由 name / 菜单 code / 权限 code 的统一名称，新增 feature 默认带 domain 前缀 */
+  featureRouteName: string;
+  /** Page Shell 组件名，跟随路由名派生，避免跨域同名 feature 的 keep-alive 名称冲突 */
+  pageComponentName: string;
   chineseName: string;
   featureChineseName: string;
   /** 页面类型（list 表格型 / overview 概览型） */
@@ -72,6 +76,8 @@ export const prepareTemplateData = (config: {
   featureChineseName?: string;
   /** 页面类型，缺省按 list（表格型）处理，保证向后兼容 */
   featureType?: FeatureType;
+  /** 外部可指定路由名；不指定时保持历史兼容，用 featurePascal */
+  featureRouteName?: string;
 }): TemplateData => {
   const { domainName, featureName, chineseName, featureChineseName } = config;
   // featureType 归一化：未显式传入时默认表格型（与历史行为一致）
@@ -87,6 +93,7 @@ export const prepareTemplateData = (config: {
   const featureKebab = featureName ? toKebabCase(featureName) : domainKebab;
   const featurePascal = featureName ? toPascalCase(featureName) : domainPascal;
   const featureCamel = featureName ? toCamelCase(featureName) : domainCamel;
+  const featureRouteName = config.featureRouteName ?? featurePascal;
 
   return {
     domainName,
@@ -97,6 +104,8 @@ export const prepareTemplateData = (config: {
     featureKebab,
     featurePascal,
     featureCamel,
+    featureRouteName,
+    pageComponentName: `${featureRouteName}${typeSuffix}Page`,
     chineseName,
     featureChineseName: featureChineseName || chineseName,
     featureType,

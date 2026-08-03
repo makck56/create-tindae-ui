@@ -7,7 +7,7 @@
 
 ## 1. 技术栈与四层架构
 
-Vue 3（`<script setup>` + TS）· Vite · Pinia · Vue Router · Tailwind CSS 4 · Ant Design Vue **v3** · VXE Table 4 · ECharts 6 · MSW 2.14 · Vitest。
+Vue 3（`<script setup>` + TS）· Vite · Pinia · Vue Router · Tailwind CSS 4 · Ant Design Vue **v4** · VXE Table 4 · ECharts 6 · MSW 2.14 · Vitest。
 
 **四层分层，依赖只能向下，严禁反向：**
 
@@ -63,6 +63,8 @@ pnpm scaffold:feature   # 在现有域下加特性
 1. 在 `src/core/bootstrap/router.ts` 手动 `import` 并加入 `routes`（路由**不**自动发现）。
 2. 在 `src/modules/app/config/menu.config.ts` 加菜单项。
 3. 菜单 `code` 用 **PascalCase**（如 `OrderManagement`），且与路由 `meta.code` 一致。
+
+用 `pnpm scaffold:feature` 在已有域下新增页面时，脚手架会把域名拼入新增 feature 的路由名（如 `sales/order` → `SalesOrder`），避免不同域下同名特性产生 Vue Router `name` 冲突。
 
 ### 3.3 命名约定
 
@@ -172,4 +174,4 @@ Conventional Commits：`type(scope): subject`，type ∈ `feat / fix / refactor 
 
 ---
 
-> 完整机制（架构图、Page/View 全例、http 高级用法、主题 SSOT、权限三道防线、对接真实后端）见 `README.md`；主题细节见 `theme.md`；架构总览见 `ARCHITECTURE.md`。
+> 完整机制（架构图、Page/View 全例、http 高级用法、主题 SSOT、权限三道防线、对接真实后端）见 `README.md`；主题细节见 `theme.md`；架构总览见 `docs/ARCHITECTURE.md`。

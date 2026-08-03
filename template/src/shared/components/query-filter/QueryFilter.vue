@@ -35,7 +35,9 @@ const COMPONENT_MAP = {
   'date-range': ARangePicker,
 };
 
-function isDateRange(item: FilterItemConfig): item is Extract<FilterItemConfig, { type: 'date-range' }> {
+function isDateRange(
+  item: FilterItemConfig,
+): item is Extract<FilterItemConfig, { type: 'date-range' }> {
   return item.type === 'date-range';
 }
 
@@ -89,14 +91,18 @@ function handleReset() {
       v-for="item in config"
       :key="isDateRange(item) ? item.name.join('-') : item.name"
       :label="item.label"
-      :label-col="{ style: labelWidth ? { width: typeof labelWidth === 'number' ? `${labelWidth}px` : labelWidth } : undefined }"
+      :label-col="{
+        style: labelWidth
+          ? { width: typeof labelWidth === 'number' ? `${labelWidth}px` : labelWidth }
+          : undefined,
+      }"
     >
       <component
         :is="COMPONENT_MAP[item.type]"
         v-bind="item.fieldProps"
         :value="getFieldValue(item)"
         @update:value="handleFieldChange(item, $event)"
-        @pressEnter="item.type === 'input' ? handleSearch() : undefined"
+        @press-enter="item.type === 'input' ? handleSearch() : undefined"
       />
     </a-form-item>
     <a-form-item>

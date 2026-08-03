@@ -50,7 +50,8 @@ describe('ErrorBoundary', () => {
           stubs: {
             AResult: {
               props: ['title'],
-              template: '<section data-test="error-result">{{ title }}<slot name="extra" /></section>',
+              template:
+                '<section data-test="error-result">{{ title }}<slot name="extra" /></section>',
             },
             AButton: {
               template: '<button><slot /></button>',

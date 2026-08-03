@@ -9,7 +9,16 @@ import { COPY } from '@/shared/constants/copy';
 
 defineOptions({ name: 'UserList' });
 
-const { gridRef, gridOptions, filters, currentData, currentTotal, handleSearch, resetFilters, handleDelete } = useUserList();
+const {
+  gridRef,
+  gridOptions,
+  filters,
+  currentData,
+  currentTotal,
+  handleSearch,
+  resetFilters,
+  handleDelete,
+} = useUserList();
 
 // 跨页勾选：gridRef 同一实例既负责查询(commitProxy)又负责勾选同步(clear/setCheckboxRow)；
 // currentData/currentTotal 由 useUserList 在每次查询后同步，供选中态判定与表头全选计数。
@@ -32,9 +41,34 @@ const tableProps = computed(() => {
 });
 
 const filterConfig: FilterItemConfig[] = [
-  { type: 'input', label: '用户名', name: 'name', fieldProps: { placeholder: '请输入用户名', allowClear: true } },
-  { type: 'select', label: '状态', name: 'status', fieldProps: { placeholder: '请选择状态', allowClear: true, options: UserStatusOptions, style: { width: '120px' } } },
-  { type: 'select', label: '角色', name: 'role', fieldProps: { placeholder: '请选择角色', allowClear: true, options: UserRoleOptions, style: { width: '120px' } } },
+  {
+    type: 'input',
+    label: '用户名',
+    name: 'name',
+    fieldProps: { placeholder: '请输入用户名', allowClear: true },
+  },
+  {
+    type: 'select',
+    label: '状态',
+    name: 'status',
+    fieldProps: {
+      placeholder: '请选择状态',
+      allowClear: true,
+      options: UserStatusOptions,
+      style: { width: '120px' },
+    },
+  },
+  {
+    type: 'select',
+    label: '角色',
+    name: 'role',
+    fieldProps: {
+      placeholder: '请选择角色',
+      allowClear: true,
+      options: UserRoleOptions,
+      style: { width: '120px' },
+    },
+  },
 ];
 
 const STATUS_COLOR_MAP: Record<string, string> = {

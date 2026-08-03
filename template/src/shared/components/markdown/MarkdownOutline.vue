@@ -24,8 +24,15 @@ function scrollTo(slug: string): void {
   <nav v-if="headings.length" class="markdown-outline">
     <div class="title">大纲</div>
     <ul class="list">
-      <li v-for="h in headings" :key="h.slug" class="item" :class="[`level-${h.level}`]"
-        :style="{ paddingLeft: `${Math.min(h.level - 1, 4) * 14 + 12}px` }" :title="h.text" @click="scrollTo(h.slug)">
+      <li
+        v-for="h in headings"
+        :key="h.slug"
+        class="item"
+        :class="[`level-${h.level}`]"
+        :style="{ paddingLeft: `${Math.min(h.level - 1, 4) * 14 + 12}px` }"
+        :title="h.text"
+        @click="scrollTo(h.slug)"
+      >
         {{ h.text }}
       </li>
     </ul>
@@ -67,7 +74,10 @@ function scrollTo(slug: string): void {
   padding: 4px 8px;
   border-radius: 4px;
   border-left: 2px solid transparent;
-  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

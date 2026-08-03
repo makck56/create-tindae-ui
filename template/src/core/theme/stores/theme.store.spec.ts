@@ -16,10 +16,7 @@ describe('readPersistedTheme（持久化读取 + 容错）', () => {
   });
 
   it('正常存储时正确恢复', () => {
-    localStorage.setItem(
-      THEME_STORAGE_KEY,
-      JSON.stringify({ mode: 'dark', presetKey: 'green' }),
-    );
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ mode: 'dark', presetKey: 'green' }));
     const r = readPersistedTheme();
     expect(r.mode).toBe('dark');
     expect(r.presetKey).toBe('green');
@@ -63,10 +60,7 @@ describe('useThemeStore（状态 / 派生 / 持久化）', () => {
   });
 
   it('从持久化数据初始化', () => {
-    localStorage.setItem(
-      THEME_STORAGE_KEY,
-      JSON.stringify({ mode: 'dark', presetKey: 'purple' }),
-    );
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ mode: 'dark', presetKey: 'purple' }));
     const s = useThemeStore();
     expect(s.mode).toBe('dark');
     expect(s.presetKey).toBe('purple');
@@ -109,10 +103,7 @@ describe('useThemeStore（状态 / 派生 / 持久化）', () => {
   });
 
   it('currentTokens 在暗色 + 预设下：base 来自暗色、primary 来自预设', () => {
-    localStorage.setItem(
-      THEME_STORAGE_KEY,
-      JSON.stringify({ mode: 'dark', presetKey: 'orange' }),
-    );
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ mode: 'dark', presetKey: 'orange' }));
     const s = useThemeStore();
     const orange = findPreset('orange')!;
     expect(s.currentTokens.colors.primary.DEFAULT).toBe(orange.primary.DEFAULT);

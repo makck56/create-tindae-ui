@@ -20,9 +20,11 @@ export function renderUnsupportedBrowser(): void {
         <p style="font-size:14px;color:rgba(0,0,0,.65);line-height:1.6;margin:0 0 8px;">
           为保证最佳体验与安全性，本系统需要更新版本的浏览器。
         </p>
-        ${detected
-          ? `<p style="font-size:13px;color:rgba(0,0,0,.45);margin:0 0 20px;">${detected}</p>`
-          : '<div style="height:20px;"></div>'}
+        ${
+          detected
+            ? `<p style="font-size:13px;color:rgba(0,0,0,.45);margin:0 0 20px;">${detected}</p>`
+            : '<div style="height:20px;"></div>'
+        }
         <p style="font-size:13px;color:rgba(0,0,0,.65);margin:0 0 24px;">请升级到以下任一浏览器的较新版本：</p>
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
           ${['Chrome', 'Edge', 'Firefox', 'Safari']

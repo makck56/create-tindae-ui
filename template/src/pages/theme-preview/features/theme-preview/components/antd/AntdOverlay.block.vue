@@ -45,12 +45,7 @@ function onConfirm(): void {
   <!-- 气泡确认框 Popconfirm -->
   <h4 class="mt-4 mb-2 text-[13px] font-semibold text-secondary">气泡确认框 Popconfirm</h4>
   <a-space wrap class="mb-2">
-    <a-popconfirm
-      title="确定执行此操作吗？"
-      ok-text="确定"
-      cancel-text="取消"
-      @confirm="onConfirm"
-    >
+    <a-popconfirm title="确定执行此操作吗？" ok-text="确定" cancel-text="取消" @confirm="onConfirm">
       <a-button type="primary">点击删除（Popconfirm）</a-button>
     </a-popconfirm>
   </a-space>
@@ -66,9 +61,7 @@ function onConfirm(): void {
 
   <!-- Modal：v4 使用 open 受控，避免 visible 旧契约回归。 -->
   <a-modal v-model:open="modalVisible" title="模态框标题" ok-text="确认" cancel-text="取消">
-    <p class="m-0">
-      Modal 内容区：切换主题后，确认按钮、关闭图标、标题聚焦态都会跟随主色。
-    </p>
+    <p class="m-0">Modal 内容区：切换主题后，确认按钮、关闭图标、标题聚焦态都会跟随主色。</p>
   </a-modal>
 
   <!-- Drawer -->

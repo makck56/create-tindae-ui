@@ -52,7 +52,11 @@ const INPUT_CONFIG = [
 ];
 
 const DATE_RANGE_CONFIG = [
-  { type: 'date-range' as const, label: '创建时间', name: ['startTime', 'endTime'] as [string, string] },
+  {
+    type: 'date-range' as const,
+    label: '创建时间',
+    name: ['startTime', 'endTime'] as [string, string],
+  },
 ];
 
 type QueryFilterProps = InstanceType<typeof QueryFilter>['$props'];
@@ -109,7 +113,10 @@ describe('QueryFilter', () => {
     });
     const buttons = wrapper.findAllComponents(AButton);
     await buttons[1].vm.$emit('click');
-    expect(wrapper.emitted('update:modelValue')?.[0][0]).toEqual({ name: undefined, status: undefined });
+    expect(wrapper.emitted('update:modelValue')?.[0][0]).toEqual({
+      name: undefined,
+      status: undefined,
+    });
     expect(wrapper.emitted('reset')).toBeTruthy();
   });
 
@@ -179,7 +186,12 @@ describe('QueryFilter', () => {
     const wrapper = mountQueryFilter({
       props: {
         config: [
-          { type: 'select', label: '状态', name: 'status', fieldProps: { placeholder: '请选择', allowClear: true } },
+          {
+            type: 'select',
+            label: '状态',
+            name: 'status',
+            fieldProps: { placeholder: '请选择', allowClear: true },
+          },
         ],
       },
     });

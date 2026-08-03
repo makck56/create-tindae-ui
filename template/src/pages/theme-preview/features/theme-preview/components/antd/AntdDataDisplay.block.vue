@@ -69,7 +69,7 @@ const activeCollapse = ref<string[]>(['1']);
 
   <!-- 折叠面板 Collapse -->
   <h4 class="mt-4 mb-2 text-[13px] font-semibold text-secondary">折叠面板 Collapse</h4>
-  <a-collapse v-model:activeKey="activeCollapse" class="mb-2">
+  <a-collapse v-model:active-key="activeCollapse" class="mb-2">
     <a-collapse-panel key="1" header="什么是主题预览页？">
       用于肉眼验证 Tailwind / Ant Design Vue / VXE Table / ECharts 四端在切换主题时的联动效果。
     </a-collapse-panel>

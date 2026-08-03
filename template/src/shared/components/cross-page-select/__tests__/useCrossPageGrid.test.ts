@@ -12,11 +12,7 @@ interface Row {
 }
 
 function createGridComposable() {
-  const data = ref<Row[]>([
-    { id: '1' },
-    { id: '2', disabled: true },
-    { id: '3' },
-  ]);
+  const data = ref<Row[]>([{ id: '1' }, { id: '2', disabled: true }, { id: '3' }]);
 
   const clearCheckboxRow = vi.fn();
   const setCheckboxRow = vi.fn();
@@ -51,13 +47,7 @@ describe('useCrossPageGrid', () => {
     await nextTick();
 
     expect(clearCheckboxRow).toHaveBeenCalled();
-    expect(setCheckboxRow).toHaveBeenCalledWith(
-      [
-        { id: '1' },
-        { id: '3' },
-      ],
-      true,
-    );
+    expect(setCheckboxRow).toHaveBeenCalledWith([{ id: '1' }, { id: '3' }], true);
   });
 
   it('同步期间忽略回流事件，避免递归改写选择状态', async () => {
@@ -93,10 +83,7 @@ describe('useCrossPageGrid', () => {
       clearCheckboxRow.mockClear();
       setCheckboxRow.mockClear();
 
-      data.value = [
-        { id: '4' },
-        { id: '5' },
-      ];
+      data.value = [{ id: '4' }, { id: '5' }];
       await nextTick();
       await nextTick();
 
@@ -107,13 +94,7 @@ describe('useCrossPageGrid', () => {
       vi.runOnlyPendingTimers();
 
       expect(clearCheckboxRow).toHaveBeenCalled();
-      expect(setCheckboxRow).toHaveBeenCalledWith(
-        [
-          { id: '4' },
-          { id: '5' },
-        ],
-        true,
-      );
+      expect(setCheckboxRow).toHaveBeenCalledWith([{ id: '4' }, { id: '5' }], true);
     } finally {
       vi.useRealTimers();
     }

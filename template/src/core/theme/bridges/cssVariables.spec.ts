@@ -46,7 +46,9 @@ describe('applyTokensToRoot', () => {
 
     expect(root.style.getPropertyValue('--color-primary')).toBe(darkTokens.colors.primary.DEFAULT);
     expect(root.style.getPropertyValue('--bg-page')).toBe(darkTokens.bg.page);
-    expect(root.style.getPropertyValue('--font-size-body-lg')).toBe(darkTokens.typography.bodyLg.fontSize);
+    expect(root.style.getPropertyValue('--font-size-body-lg')).toBe(
+      darkTokens.typography.bodyLg.fontSize,
+    );
     expect(root.style.getPropertyValue('--space-unit')).toBe(darkTokens.spacing.unit);
     expect(root.dataset.theme).toBe('dark');
   });

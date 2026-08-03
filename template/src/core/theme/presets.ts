@@ -64,7 +64,9 @@ export function applyPreset(base: ThemeTokens, preset: ThemePreset | undefined):
     return base;
   }
 
-  const colorOverrides: Partial<Record<(typeof OPTIONAL_COLOR_KEYS)[number] | 'primary', ColorScale>> = {
+  const colorOverrides: Partial<
+    Record<(typeof OPTIONAL_COLOR_KEYS)[number] | 'primary', ColorScale>
+  > = {
     primary: preset.primary,
   };
 

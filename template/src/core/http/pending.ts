@@ -1,4 +1,4 @@
-import type { InternalAxiosRequestConfig } from 'axios'
+import type { InternalAxiosRequestConfig } from 'axios';
 
 /**
  * 生成请求唯一标识 key：method + url + 序列化后的 params / data。
@@ -7,9 +7,9 @@ import type { InternalAxiosRequestConfig } from 'axios'
  * 不序列化 headers / 自定义字段，避免无关差异导致 key 抖动。
  */
 export function buildRequestKey(config: InternalAxiosRequestConfig): string {
-  const method = (config.method ?? 'get').toUpperCase()
-  const url = config.url ?? ''
-  return `${method}|${url}|${stableStringify(config.params)}|${stableStringify(config.data)}`
+  const method = (config.method ?? 'get').toUpperCase();
+  const url = config.url ?? '';
+  return `${method}|${url}|${stableStringify(config.params)}|${stableStringify(config.data)}`;
 }
 
 /**
@@ -17,25 +17,25 @@ export function buildRequestKey(config: InternalAxiosRequestConfig): string {
  * 非对象（string / undefined 等）直接返回字符串形式。
  */
 function stableStringify(value: unknown): string {
-  if (value == null || typeof value !== 'object') return String(value ?? '')
+  if (value == null || typeof value !== 'object') return String(value ?? '');
   try {
-    return JSON.stringify(sortKeys(value))
+    return JSON.stringify(sortKeys(value));
   } catch {
-    return String(value)
+    return String(value);
   }
 }
 
 function sortKeys(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sortKeys)
+  if (Array.isArray(value)) return value.map(sortKeys);
   if (value && typeof value === 'object') {
     return Object.keys(value as Record<string, unknown>)
       .sort()
       .reduce<Record<string, unknown>>((acc, k) => {
-        acc[k] = sortKeys((value as Record<string, unknown>)[k])
-        return acc
-      }, {})
+        acc[k] = sortKeys((value as Record<string, unknown>)[k]);
+        return acc;
+      }, {});
   }
-  return value
+  return value;
 }
 
 /**
@@ -45,7 +45,7 @@ function sortKeys(value: unknown): unknown {
  * 从根源消除 Race Condition——旧响应不再有机会到达调用方、覆盖新响应。
  */
 export class PendingRequestManager {
-  private readonly pending = new Map<string, AbortController>()
+  private readonly pending = new Map<string, AbortController>();
 
   /**
    * 登记一个进行中请求：
@@ -54,14 +54,14 @@ export class PendingRequestManager {
    * 3. 返回该 controller，供响应结束时按「身份」清理（避免误删覆盖它的新请求）。
    */
   add(key: string, config: InternalAxiosRequestConfig): AbortController {
-    const prev = this.pending.get(key)
+    const prev = this.pending.get(key);
     if (prev) {
-      prev.abort()
+      prev.abort();
     }
-    const controller = new AbortController()
-    config.signal = controller.signal
-    this.pending.set(key, controller)
-    return controller
+    const controller = new AbortController();
+    config.signal = controller.signal;
+    this.pending.set(key, controller);
+    return controller;
   }
 
   /**
@@ -71,13 +71,13 @@ export class PendingRequestManager {
    */
   remove(key: string, controller: AbortController): void {
     if (this.pending.get(key) === controller) {
-      this.pending.delete(key)
+      this.pending.delete(key);
     }
   }
 
   /** 取消所有进行中请求（如路由切换时批量清理）。 */
   cancelAll(): void {
-    this.pending.forEach((controller) => controller.abort())
-    this.pending.clear()
+    this.pending.forEach((controller) => controller.abort());
+    this.pending.clear();
   }
 }

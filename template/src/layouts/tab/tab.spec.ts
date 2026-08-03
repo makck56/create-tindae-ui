@@ -3,7 +3,9 @@ import { setActivePinia, createPinia } from 'pinia';
 import { useTabStore } from './tab';
 import type { RouteLocationNormalizedLoaded } from 'vue-router';
 
-function mockRoute(overrides: Partial<RouteLocationNormalizedLoaded> & { name: string; path: string }): RouteLocationNormalizedLoaded {
+function mockRoute(
+  overrides: Partial<RouteLocationNormalizedLoaded> & { name: string; path: string },
+): RouteLocationNormalizedLoaded {
   return {
     fullPath: overrides.fullPath ?? overrides.path,
     hash: '',
@@ -161,7 +163,9 @@ describe('useTabStore — closeTab visitedOrder navigation', () => {
 describe('useTabStore — refreshTab', () => {
   it('refreshTab excludes and restores cache by name', async () => {
     const store = useTabStore();
-    store.addTab(mockRoute({ name: 'Home', path: '/home', meta: { title: '首页', keepAlive: true } }));
+    store.addTab(
+      mockRoute({ name: 'Home', path: '/home', meta: { title: '首页', keepAlive: true } }),
+    );
 
     expect(store.cachedNames).toContain('Home');
     await store.refreshTab('/home');

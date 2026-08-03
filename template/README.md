@@ -43,7 +43,7 @@ pnpm dev
 | Markdown 文档页 | `markdown-it@^14.0.0`、`highlight.js@^11.0.0` |
 | 主题 token | `@google/design.md@^0.3.0`、`design.md`、`theme.tokens.json`、`tokens:check` |
 | 测试 | `vitest@^4.1.10`、`@vue/test-utils@^2.4.0`、`jsdom@^24.0.0` |
-| 工程规范 | `eslint@^8.57.0`、`eslint-plugin-vue@^9.27.0`、`prettier@^3.3.0` |
+| 工程规范 | `eslint@^10.0.0`、`eslint-plugin-vue@^10.0.0`、Flat Config（`eslint.config.mjs`）、`prettier@^3.3.0` |
 
 ## 命令
 
@@ -60,6 +60,7 @@ pnpm dev
 | `pnpm scaffold` | 查看业务脚手架帮助 |
 | `pnpm scaffold:domain` | 创建业务域 |
 | `pnpm scaffold:feature` | 在已有业务域下创建特性或页面 |
+| `pnpm template:check` | 模板发布前健康检查，串联 token、测试、构建和脚手架 dry-run |
 
 ## 目录结构
 
@@ -89,9 +90,8 @@ pages -> modules -> shared -> core
 | `/login` | 登录页，包含验证码和 RSA 加密演示 |
 | `/user-management` | 用户管理列表示例 |
 | `/role-management` | 角色管理列表示例 |
-| `/order-management` | 订单中心示例 |
-| `/theme-preview` | 主题预览页 |
-| `/readme` | 应用内 README 展示页 |
+| `/theme-preview` | 主题预览页，仅开发态注册 |
+| `/readme` | 应用内 README 展示页，仅开发态注册 |
 | `/403`、`/404` | 错误页 |
 
 ## 业务开发
@@ -114,6 +114,8 @@ pnpm scaffold:feature
 - `.page.vue` 里的 `defineOptions({ name })`
 - `menu.config.ts` 里的 `routeName`
 - `menu.config.ts` 里的权限 `code`
+
+使用 `pnpm scaffold:feature` 创建页面时，脚手架会把 domain 名拼入新增 feature 的路由名。例如在 `sales` 域下创建 `order` 特性，默认路由名为 `SalesOrder`，避免不同域下同名 feature 发生 Vue Router `name` 冲突。
 
 开发态 mock 的菜单和权限来自 `src/modules/app/config/menu.config.ts`，因此菜单配置错误通常会表现为菜单不显示或路由进入 `/403`。
 

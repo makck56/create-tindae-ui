@@ -11,7 +11,8 @@ import 'vxe-pc-ui/es/style.css';
 // vxe-table 4.6+ 将 VxePager / VxeForm 等 PC UI 组件拆分到独立的 vxe-pc-ui 包，
 // 两个包各自维护一份中文文案，这里合并后再写入共享的 VxeUI，
 // 确保表格（空数据、排序提示等）与分页器（上一页 / 跳转等）文案都完整。
-const tableMessages = (vxeTableZhCN as { default?: Record<string, unknown> }).default ?? vxeTableZhCN;
+const tableMessages =
+  (vxeTableZhCN as { default?: Record<string, unknown> }).default ?? vxeTableZhCN;
 const pcUiMessages = (vxePcUiZhCN as { default?: Record<string, unknown> }).default ?? vxePcUiZhCN;
 const messages: Record<string, unknown> = { ...pcUiMessages, ...tableMessages };
 

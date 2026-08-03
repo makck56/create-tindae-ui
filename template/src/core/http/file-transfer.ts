@@ -1,11 +1,11 @@
-import type { AxiosInstance, AxiosResponse } from 'axios'
-import type { ApiResponse, DownloadOptions, HttpRequestConfig, UploadOptions } from './types'
-import { HttpError } from './error'
+import type { AxiosInstance, AxiosResponse } from 'axios';
+import type { ApiResponse, DownloadOptions, HttpRequestConfig, UploadOptions } from './types';
+import { HttpError } from './error';
 
 /** 从 ProgressEvent 计算 0-100 的百分比；total 未知时返回 0。 */
 function computePercent(e: ProgressEvent): number {
-  if (!e.total) return 0
-  return Math.min(100, Math.round((e.loaded / e.total) * 100))
+  if (!e.total) return 0;
+  return Math.min(100, Math.round((e.loaded / e.total) * 100));
 }
 
 /**
@@ -13,35 +13,35 @@ function computePercent(e: ProgressEvent): number {
  * 依次尝试：`filename*= UTF-8''xxx`（RFC 5987，中文友好）→ `filename="xxx"` → `filename=xxx`。
  */
 export function extractFilename(disposition: string | undefined, fallback: string): string {
-  if (!disposition) return fallback
+  if (!disposition) return fallback;
   // RFC 5987：filename*= UTF-8''编码后的名字（支持中文）
-  const star = /filename\*\s*=\s*[^']*''([^;]+)/i.exec(disposition)
+  const star = /filename\*\s*=\s*[^']*''([^;]+)/i.exec(disposition);
   if (star?.[1]) {
     try {
-      return decodeURIComponent(star[1])
+      return decodeURIComponent(star[1]);
     } catch {
-      return star[1]
+      return star[1];
     }
   }
   // 普通带引号
-  const quoted = /filename\s*=\s*"([^"]+)"/i.exec(disposition)
-  if (quoted?.[1]) return quoted[1]
+  const quoted = /filename\s*=\s*"([^"]+)"/i.exec(disposition);
+  if (quoted?.[1]) return quoted[1];
   // 不带引号
-  const plain = /filename\s*=\s*([^;]+)/i.exec(disposition)
-  if (plain?.[1]) return plain[1].trim()
-  return fallback
+  const plain = /filename\s*=\s*([^;]+)/i.exec(disposition);
+  if (plain?.[1]) return plain[1].trim();
+  return fallback;
 }
 
 /** 触发浏览器保存 blob 为文件：创建临时 a 链接点击下载，随后释放 ObjectURL 避免内存泄漏。 */
 export function saveBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -52,20 +52,18 @@ export function saveBlob(blob: Blob, filename: string): void {
  * - 是 JSON 且含 code → 返回业务错误信息；
  * - 否则（真正的文件流）→ 返回 null。
  */
-async function parseBlobAsError(
-  blob: Blob,
-): Promise<{ code: number; message?: string } | null> {
+async function parseBlobAsError(blob: Blob): Promise<{ code: number; message?: string } | null> {
   // 只有 content-type 为 json 时才可能是错误响应
-  if (blob.type && !blob.type.includes('application/json')) return null
+  if (blob.type && !blob.type.includes('application/json')) return null;
   try {
-    const parsed = JSON.parse(await blob.text())
+    const parsed = JSON.parse(await blob.text());
     if (parsed && typeof parsed.code === 'number') {
-      return { code: parsed.code, message: parsed.message }
+      return { code: parsed.code, message: parsed.message };
     }
   } catch {
     // 解析失败说明是真正的二进制文件
   }
-  return null
+  return null;
 }
 
 /**
@@ -84,38 +82,40 @@ export async function downloadFile(
   url: string,
   options: DownloadOptions = {},
 ): Promise<{ blob: Blob; filename: string }> {
-  const { params, filename, onProgress, autoSave = true, skipAuth, skipErrorHandler } = options
+  const { params, filename, onProgress, autoSave = true, skipAuth, skipErrorHandler } = options;
 
   // rawResponse: 跳过业务信封解包，拿到完整 AxiosResponse<Blob>
   const response = (await instance.get(url, {
     responseType: 'blob',
     params,
-    onDownloadProgress: onProgress ? (e: ProgressEvent) => onProgress(computePercent(e)) : undefined,
+    onDownloadProgress: onProgress
+      ? (e: ProgressEvent) => onProgress(computePercent(e))
+      : undefined,
     rawResponse: true,
     skipAuth,
     skipErrorHandler,
-  } as HttpRequestConfig)) as unknown as AxiosResponse<Blob>
+  } as HttpRequestConfig)) as unknown as AxiosResponse<Blob>;
 
   // 1. 服务端可能用 blob 包装了 JSON 错误（HTTP 200 但 body 是 { code, message }）
-  const bizError = await parseBlobAsError(response.data)
+  const bizError = await parseBlobAsError(response.data);
   if (bizError && bizError.code !== 0) {
     throw new HttpError({
       message: bizError.message || '下载失败',
       status: response.status,
       response: bizError,
-    })
+    });
   }
 
   // 2. 提取文件名：优先显式传入，其次响应头 content-disposition，最后兜底。
   //    headers 索引值类型是联合（string | string[] | number ...），用 typeof 收敛为 string。
-  const dispositionHeader = response.headers['content-disposition']
-  const disposition = typeof dispositionHeader === 'string' ? dispositionHeader : undefined
-  const finalName = filename ?? extractFilename(disposition, `download-${Date.now()}`)
+  const dispositionHeader = response.headers['content-disposition'];
+  const disposition = typeof dispositionHeader === 'string' ? dispositionHeader : undefined;
+  const finalName = filename ?? extractFilename(disposition, `download-${Date.now()}`);
 
   // 3. 默认触发浏览器保存
-  if (autoSave) saveBlob(response.data, finalName)
+  if (autoSave) saveBlob(response.data, finalName);
 
-  return { blob: response.data, filename: finalName }
+  return { blob: response.data, filename: finalName };
 }
 
 /**
@@ -131,7 +131,7 @@ export function uploadFile<T = unknown>(
   data: FormData | Record<string, unknown>,
   options: UploadOptions = {},
 ): Promise<ApiResponse<T>> {
-  const { onProgress, skipAuth, skipErrorHandler, cancelPrevious, headers } = options
+  const { onProgress, skipAuth, skipErrorHandler, cancelPrevious, headers } = options;
 
   return instance.post<ApiResponse<T>>(url, data, {
     headers,
@@ -139,5 +139,5 @@ export function uploadFile<T = unknown>(
     skipAuth,
     skipErrorHandler,
     cancelPrevious,
-  } as HttpRequestConfig) as unknown as Promise<ApiResponse<T>>
+  } as HttpRequestConfig) as unknown as Promise<ApiResponse<T>>;
 }

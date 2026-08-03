@@ -1,4 +1,4 @@
-const { createApp, ref, computed, watch, nextTick } = Vue;
+const { createApp, ref } = Vue;
 
 // Recursive Component for Tree
 const MenuTree = {
@@ -265,21 +265,14 @@ createApp({
         
         // 尝试通过 Vite 的客户端监听
         try {
-            const hmr = window.__vite_hmr_cb || (async () => {
-                // 等待 Vite 客户端准备好
-                if (typeof window.importMetaHot === 'undefined') {
-                    // 如果不是 module，我们需要手动通过原生 WebSocket 或者等 Vite 挂载
-                }
-            });
-            
-            // 实际上，Vite 会把 custom event 派发到 document
+            // Vite 会把 custom event 派发到 document
             window.addEventListener('vite:custom', (e) => {
                 if (e.detail.type === 'menu-config-update') {
                     console.log('HMR: menu.config.ts changed, reloading...');
                     loadData();
                 }
             });
-        } catch (e) {}
+        } catch {}
     }
 
     document.addEventListener('keydown', (e) => {

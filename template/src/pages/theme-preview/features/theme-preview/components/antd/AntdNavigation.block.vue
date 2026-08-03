@@ -29,7 +29,7 @@ function nextStep(): void {
 
   <!-- 标签页 -->
   <h4 class="mt-4 mb-2 text-[13px] font-semibold text-secondary">标签页 Tabs</h4>
-  <a-tabs v-model:activeKey="tab" class="mb-2">
+  <a-tabs v-model:active-key="tab" class="mb-2">
     <a-tab-pane key="1" tab="标签一">标签一内容</a-tab-pane>
     <a-tab-pane key="2" tab="标签二">标签二内容</a-tab-pane>
   </a-tabs>
@@ -44,8 +44,10 @@ function nextStep(): void {
   <a-button size="small" class="mb-2" @click="nextStep">下一步</a-button>
 
   <!-- 导航菜单：选中项 / 悬浮子菜单高亮主色 -->
-  <h4 class="mt-4 mb-2 text-[13px] font-semibold text-secondary">导航菜单 Menu（选中态跟随主色）</h4>
-  <a-menu v-model:selectedKeys="menuSelectedKeys" mode="horizontal" class="mb-2">
+  <h4 class="mt-4 mb-2 text-[13px] font-semibold text-secondary">
+    导航菜单 Menu（选中态跟随主色）
+  </h4>
+  <a-menu v-model:selected-keys="menuSelectedKeys" mode="horizontal" class="mb-2">
     <a-menu-item key="nav1">菜单项一</a-menu-item>
     <a-menu-item key="nav2">菜单项二</a-menu-item>
     <a-sub-menu key="sub" title="子菜单">

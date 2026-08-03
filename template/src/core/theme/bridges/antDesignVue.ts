@@ -15,10 +15,7 @@ function toPixelNumber(value: string): number {
  * - Ant v4 通过 ConfigProvider 直接消费运行时 token，避免继续维护大量 v3 selector 覆盖；
  * - 只映射全局语义 token，不在这里耦合具体页面或业务组件样式。
  */
-export function buildAntDesignVueTheme(
-  tokens: ThemeTokens,
-  mode: ThemeMode,
-): ThemeConfig {
+export function buildAntDesignVueTheme(tokens: ThemeTokens, mode: ThemeMode): ThemeConfig {
   return {
     algorithm: mode === 'dark' ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
     token: {

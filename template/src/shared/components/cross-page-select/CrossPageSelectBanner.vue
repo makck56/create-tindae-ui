@@ -1,12 +1,12 @@
 <script setup lang="ts">
-defineOptions({ name: 'CrossPageSelectBanner' })
+defineOptions({ name: 'CrossPageSelectBanner' });
 
 defineProps<{
-  selectedCount: number
-  total: number
-}>()
+  selectedCount: number;
+  total: number;
+}>();
 
-const emit = defineEmits<{ clear: [] }>()
+const emit = defineEmits<{ clear: [] }>();
 </script>
 
 <template>

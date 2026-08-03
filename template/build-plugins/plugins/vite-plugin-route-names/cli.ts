@@ -4,7 +4,6 @@
  */
 
 import { checkRouteNameConsistency, printConsistencyReport } from './checker.js';
-import { fixRouteNames } from './fixer.js';
 import { generateNames } from './generator.js';
 
 /**

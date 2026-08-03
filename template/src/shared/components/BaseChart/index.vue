@@ -17,7 +17,15 @@ import { CanvasRenderer } from 'echarts/renderers';
  * - BaseChart chunk 被懒加载时才引入 ECharts，避免污染首屏主包。
  * - 同一个页面渲染多个图表时只注册一次，避免在每个组件实例 setup 阶段重复执行。
  */
-use([CanvasRenderer, BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent]);
+use([
+  CanvasRenderer,
+  BarChart,
+  LineChart,
+  PieChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+]);
 </script>
 
 <script setup lang="ts">

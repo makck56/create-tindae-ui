@@ -98,5 +98,17 @@ export const useAuthStore = defineStore('auth', () => {
     return permissionCodes.value.has(code);
   }
 
-  return { user, menus, permissionCodes, loading, error, initialized, isLoggedIn, fetchUser, login, logout, hasPermission };
+  return {
+    user,
+    menus,
+    permissionCodes,
+    loading,
+    error,
+    initialized,
+    isLoggedIn,
+    fetchUser,
+    login,
+    logout,
+    hasPermission,
+  };
 });

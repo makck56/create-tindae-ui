@@ -17,29 +17,29 @@
  */
 export class HttpError extends Error {
   /** HTTP 状态码；网络/超时等无法拿到响应时为 0 */
-  readonly status: number
+  readonly status: number;
   /** 是否为请求超时 */
-  readonly isTimeout: boolean
+  readonly isTimeout: boolean;
   /** 是否为网络中断 / DNS 失败等无法到达服务器的错误 */
-  readonly isNetworkError: boolean
+  readonly isNetworkError: boolean;
   /** 后端业务响应体（若服务端有返回） */
-  readonly response?: { code: number; message?: string }
+  readonly response?: { code: number; message?: string };
 
   constructor(params: {
-    message: string
-    status?: number
-    isTimeout?: boolean
-    isNetworkError?: boolean
-    response?: { code: number; message?: string }
+    message: string;
+    status?: number;
+    isTimeout?: boolean;
+    isNetworkError?: boolean;
+    response?: { code: number; message?: string };
   }) {
-    super(params.message)
-    this.name = 'HttpError'
-    this.status = params.status ?? 0
-    this.isTimeout = params.isTimeout ?? false
-    this.isNetworkError = params.isNetworkError ?? false
-    this.response = params.response
+    super(params.message);
+    this.name = 'HttpError';
+    this.status = params.status ?? 0;
+    this.isTimeout = params.isTimeout ?? false;
+    this.isNetworkError = params.isNetworkError ?? false;
+    this.response = params.response;
     // 保证 instanceof 在 ES5 编译目标下仍正确（TS 继承内置类的已知坑）
-    Object.setPrototypeOf(this, HttpError.prototype)
+    Object.setPrototypeOf(this, HttpError.prototype);
   }
 }
 
@@ -62,8 +62,8 @@ export class HttpError extends Error {
  */
 export class RequestCanceledError extends Error {
   constructor(message = '请求已取消') {
-    super(message)
-    this.name = 'RequestCanceledError'
-    Object.setPrototypeOf(this, RequestCanceledError.prototype)
+    super(message);
+    this.name = 'RequestCanceledError';
+    Object.setPrototypeOf(this, RequestCanceledError.prototype);
   }
 }
