@@ -14,3 +14,4 @@ bin/**/*.js
 
 # 本地思考草稿，不入库
 think.md
+demo*
