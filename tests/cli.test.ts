@@ -86,4 +86,3 @@ test('scaffold 发布用户文档但排除开发期产物', () => {
     rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
-

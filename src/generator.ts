@@ -24,7 +24,7 @@ const PUBLISH_IGNORE = [
   'node_modules',
   'docs/superpowers',
   'docs/optimization-candidates.md',
-];
+] as const;
 
 function resolveTemplateDir(): string {
   const candidates = [
