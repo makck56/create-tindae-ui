@@ -174,4 +174,4 @@ Conventional Commits：`type(scope): subject`，type ∈ `feat / fix / refactor 
 
 ---
 
-> 完整机制（架构图、Page/View 全例、http 高级用法、主题 SSOT、权限三道防线、对接真实后端）见 `README.md`；主题细节见 `theme.md`；架构总览见 `docs/ARCHITECTURE.md`。
+> 完整机制（架构图、Page/View 全例、http 高级用法、主题 SSOT、权限三道防线、对接真实后端）见 `README.md`；主题细节见 `theme.md`；架构总览见 `ARCHITECTURE.md`。

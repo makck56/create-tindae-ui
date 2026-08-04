@@ -4,6 +4,18 @@
 
 ---
 
+## 核心原则
+
+本架构围绕五条核心原则组织，下文各章节均是它们的展开：
+
+1. **域驱动设计 (Domain-Driven Design)**：代码组织的第一维度是"业务领域"，而不是"技术类型"。
+2. **显式分层 (Explicit Layering)**：严格区分"通用底层"、"全局业务"和"具体页面"，底层严禁反向依赖上层。
+3. **特性内聚 (Feature Cohesion)**：一个业务功能（特性）所需的所有代码（UI、逻辑、API、模型）都应被组织在一起。
+4. **视图/页面分离 (View/Page Separation)**：通过分离"路由壳"与"功能核"，实现路由解耦、健壮的缓存和极高的可复用性。
+5. **类型安全 (Type Safety)**：通过严格的 TypeScript 命名与 `as const` 约定，确保枚举与常量的可维护性。
+
+---
+
 ## 1. 分层与依赖流向
 
 项目分为四层，依赖方向 **只能向下**，严禁反向。
@@ -53,6 +65,15 @@ graph TD
 | **shared** | 无业务的通用工具（utils、ui-kit） | 只能引用 core |
 | **modules** | 跨域复用的业务模块（auth） | shared |
 | **pages** | 具体业务功能 | modules、shared |
+
+### 第三方增强 (UI Kit vs Core Plugins)
+
+分层职责在增强第三方库时有一套固定分工：
+
+- **初始化配置 (`src/core/plugins/`)**：决定库如何启动。例如 `echarts.ts` 注册主题，`antd.ts` 引入全局样式。
+- **运行时增强 (`src/shared/ui-kit/`)**：决定库如何更好用。
+  - `composables/`：解决特定 UI 行为的逻辑（如 `usePopupContainer`）。
+  - `styles/`：覆盖第三方库的样式文件。
 
 ---
 
@@ -135,6 +156,13 @@ pages/login/
 | `assets/` | — | ✅ 域内静态资源 |
 
 **判断标准：** 只有 1 个功能模块且不需要独立 API 层 → 轻量域；否则 → 标准域。
+
+### Feature 粒度与边界 (Feature Granularity)
+
+Feature 的拆分应基于**业务聚合**而非 **UI 页面**，避免"一个页面一个 Feature"的机械拆分。
+
+- **实体一致性 (Identity Cohesion)**：针对同一个核心业务实体（如"用户"、"订单"）的**列表、详情、新建、编辑**等所有视图，应属于**同一个 Feature**。它们共享相同的 API 定义、数据模型 (Model) 和业务逻辑 (Composable)；若强行拆分，这些公共资源会被迫下沉到 `shared/` 层，造成底层臃肿和语义模糊。
+- **示例**：`datasource`（数据源管理）作为一个 Feature，包含 `DataSourceList.view.vue`（列表）、`DataSourceDetail.view.vue`（详情）、`DataSourceEdit.view.vue`（编辑），并共享 `api/datasource.api.ts` 与 `models/DataSource.ts`。
 
 ---
 
@@ -315,3 +343,15 @@ graph LR
 | composables/ | 不推荐 | 显式路径避免循环依赖 |
 | api/ | 禁止 | 防止循环依赖 |
 | models/ | 允许 | 类型在编译后消失，无运行时风险 |
+
+---
+
+## 8. 代码归属决策树 (Checklist)
+
+编写代码前，按此清单自查归属：
+
+1. **这个类型放哪？** 后端知道 → `models/`；不知道 → `constants/`。
+2. **这个枚举单独建文件吗？** 是主实体的属性 → 合并进主实体文件（如 `User.ts`）；被多处引用 → 独立文件（如 `UserStatus.ts`）。
+3. **列表和详情要分开吗？** 操作同一个核心对象 → **不分**，属于同一个 Feature（见 §2「Feature 粒度与边界」）。
+4. **API 参数类型放哪？** 被复用 → `models/`；仅此接口用 → `api.ts` 顶部。
+5. **组件能调 API 吗？** 是业务组件（如搜索框）→ 能；是 UI 组件（如卡片）→ 不能。

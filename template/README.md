@@ -161,7 +161,7 @@ pnpm scaffold:feature
 
 ## 更多文档
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)：架构说明。
+- [ARCHITECTURE.md](ARCHITECTURE.md)：架构说明。
 - [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md)：编码规范。
 - [docs/MIGRATION.md](docs/MIGRATION.md)：迁移说明。
 - [theme.md](theme.md)：主题系统说明。
