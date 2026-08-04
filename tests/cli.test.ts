@@ -70,3 +70,20 @@ test('scaffold copies root-level template docs such as design.md', () => {
   }
 });
 
+test('scaffold 发布用户文档但排除开发期产物', () => {
+  const tmpRoot = mkdtempSync(join(tmpdir(), 'create-tindae-ui-'));
+  const targetDir = join(tmpRoot, 'demo-app');
+
+  try {
+    scaffold(targetDir, 'demo-app', { skipInstall: true, skipGit: true });
+
+    // 用户文档应发布
+    assert.equal(existsSync(join(targetDir, 'docs', 'MIGRATION.md')), true);
+    // 开发期产物不应发布
+    assert.equal(existsSync(join(targetDir, 'docs', 'superpowers')), false);
+    assert.equal(existsSync(join(targetDir, 'docs', 'optimization-candidates.md')), false);
+  } finally {
+    rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+

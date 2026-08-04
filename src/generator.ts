@@ -14,6 +14,18 @@ export interface ScaffoldOptions {
   skipGit?: boolean;
 }
 
+/**
+ * 模板内不应发布给最终用户的开发期产物（相对 template 根的 POSIX 路径）。
+ * - node_modules: 依赖目录
+ * - docs/superpowers: superpowers 工作流产生的设计文档快照（属 create-tindae-ui 开发，不属于生成项目）
+ * - docs/optimization-candidates.md: 开发期优化备忘（正式变更由 openspec 承载）
+ */
+const PUBLISH_IGNORE = [
+  'node_modules',
+  'docs/superpowers',
+  'docs/optimization-candidates.md',
+];
+
 function resolveTemplateDir(): string {
   const candidates = [
     resolve(__dirname, '..', 'template'),
@@ -52,7 +64,7 @@ export function scaffold(targetDir: string, projectName: string, options: Scaffo
 
   console.log(`\n✨ Scaffolding tindae-ui project in ${targetDir}...\n`);
   console.log('   ├── Copying template...');
-  copyDir(templateDir, targetDir);
+  copyDir(templateDir, targetDir, PUBLISH_IGNORE);
 
   console.log('   ├── Restoring .npmrc (from .npmrc.template)...');
   restoreNpmrc(targetDir);
