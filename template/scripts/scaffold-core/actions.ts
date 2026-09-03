@@ -156,6 +156,8 @@ export const scaffoldDomain = async (args: DomainArgs = {}) => {
       featureName: featureName || domainName,
       chineseName,
       featureChineseName,
+      // 域默认特性不拼接 List/Overview 类型后缀：文件名与组件名直接对齐域路由 name
+      omitTypeSuffix: true,
     });
 
     // Domain Files
@@ -164,18 +166,18 @@ export const scaffoldDomain = async (args: DomainArgs = {}) => {
       await renderTemplate("domain/routes.ts.hbs", templateData)
     );
     await createFile(
-      `${basePath}/pages/${domainPascal}List.page.vue`,
+      `${basePath}/pages/${domainPascal}.page.vue`,
       await renderTemplate("domain/page-list.vue.hbs", templateData)
     );
     // Feature Files
     await createFile(
-      `${basePath}/features/${featureKebab}/views/${domainPascal}List.view.vue`,
+      `${basePath}/features/${featureKebab}/views/${domainPascal}.view.vue`,
       await renderTemplate("feature/view-list.vue.hbs", templateData)
     );
     await createFile(
       `${basePath}/features/${featureKebab}/composables/use${toPascalCase(
         featureName || domainName
-      )}List.ts`,
+      )}.ts`,
       await renderTemplate("feature/composable-list.ts.hbs", templateData)
     );
     await createFile(

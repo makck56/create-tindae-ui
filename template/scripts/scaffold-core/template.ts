@@ -41,6 +41,12 @@ export interface TemplateData {
   featureType: FeatureType;
   /** 类型对应的 PascalCase 后缀，用于文件名 / 组件名拼接 */
   typeSuffix: "List" | "Overview";
+  /**
+   * 组件身份后缀（拼接在 featurePascal 后组成组件名 / composable 名）。
+   * 默认 === typeSuffix（List/Overview）；domain 默认特性经 omitTypeSuffix 置空，
+   * 使命名与域路由 name 对齐（如 DataManagement 而非 DataManagementList）。
+   */
+  featureSuffix: string;
 }
 
 export const loadTemplate = async (
@@ -78,6 +84,8 @@ export const prepareTemplateData = (config: {
   featureType?: FeatureType;
   /** 外部可指定路由名；不指定时保持历史兼容，用 featurePascal */
   featureRouteName?: string;
+  /** domain 默认特性置 true → featureSuffix 为空（命名去 List/Overview 后缀，与路由 name 对齐） */
+  omitTypeSuffix?: boolean;
 }): TemplateData => {
   const { domainName, featureName, chineseName, featureChineseName } = config;
   // featureType 归一化：未显式传入时默认表格型（与历史行为一致）
@@ -85,6 +93,8 @@ export const prepareTemplateData = (config: {
   // 派生 PascalCase 后缀，模板据此拼接文件名 / 组件名
   const typeSuffix: "List" | "Overview" =
     featureType === "overview" ? "Overview" : "List";
+  // 组件身份后缀：domain 默认特性省略类型后缀（与路由 name 对齐），其余场景与 typeSuffix 一致
+  const featureSuffix: string = config.omitTypeSuffix ? "" : typeSuffix;
 
   const domainKebab = toKebabCase(domainName);
   const domainPascal = toPascalCase(domainName);
@@ -110,5 +120,6 @@ export const prepareTemplateData = (config: {
     featureChineseName: featureChineseName || chineseName,
     featureType,
     typeSuffix,
+    featureSuffix,
   };
 };

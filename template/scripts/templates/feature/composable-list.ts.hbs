@@ -3,7 +3,7 @@ import { message } from 'ant-design-vue';
 import { get{{featurePascal}}List, delete{{featurePascal}} } from '../api/{{featureCamel}}.api';
 import { COPY } from '@/shared/constants/copy';
 
-export function use{{featurePascal}}List() {
+export function use{{featurePascal}}{{featureSuffix}}() {
   const gridOptions = reactive({
     columns: [
       { field: 'name', title: '名称' },

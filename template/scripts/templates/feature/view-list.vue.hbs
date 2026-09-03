@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { use{{featurePascal}}List } from '../composables/use{{featurePascal}}List';
+import { use{{featurePascal}}{{featureSuffix}} } from '../composables/use{{featurePascal}}{{featureSuffix}}';
 import { COPY } from '@/shared/constants/copy';
 
-defineOptions({ name: '{{featurePascal}}List' });
+defineOptions({ name: '{{featurePascal}}{{featureSuffix}}' });
 
-const { gridOptions, handleDelete } = use{{featurePascal}}List();
+const { gridOptions, handleDelete } = use{{featurePascal}}{{featureSuffix}}();
 </script>
 
 <template>

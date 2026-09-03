@@ -80,3 +80,39 @@ test("renderTemplate: page 模板按 typeSuffix 拼接 View 文件名", async ()
   assert.ok(listPage.includes("OrderOverviewList.view.vue"));
   assert.ok(listPage.includes("OrderOverviewListView"));
 });
+
+test("prepareTemplateData: omitTypeSuffix 使 featureSuffix 置空（domain 默认特性命名去 List）", () => {
+  const data = prepareTemplateData({ ...baseConfig, omitTypeSuffix: true });
+  assert.equal(data.featureSuffix, "");
+});
+
+test("prepareTemplateData: 缺省 omitTypeSuffix 时 featureSuffix 与 typeSuffix 一致", () => {
+  const data = prepareTemplateData(baseConfig);
+  assert.equal(data.featureSuffix, "List");
+
+  const overview = prepareTemplateData({ ...baseConfig, featureType: "overview" });
+  assert.equal(overview.featureSuffix, "Overview");
+});
+
+test("renderTemplate: 缺省时 feature 模板仍产出 use/name 的 List 系列", async () => {
+  const data = prepareTemplateData(baseConfig);
+  const view = await renderTemplate("feature/view-list.vue.hbs", data);
+  assert.ok(view.includes("defineOptions({ name: 'OrderOverviewList' })"));
+  assert.ok(view.includes("useOrderOverviewList()"));
+
+  const composable = await renderTemplate("feature/composable-list.ts.hbs", data);
+  assert.ok(composable.includes("export function useOrderOverviewList()"));
+});
+
+test("renderTemplate: domain 模板在 omitTypeSuffix 下引用无 List 的 page/view 文件名", async () => {
+  const data = prepareTemplateData({ ...baseConfig, omitTypeSuffix: true });
+
+  const route = await renderTemplate("domain/routes.ts.hbs", data);
+  assert.ok(route.includes("import('./pages/OrderManagement.page.vue')"));
+  assert.ok(!route.includes("List"));
+
+  const page = await renderTemplate("domain/page-list.vue.hbs", data);
+  assert.ok(page.includes("<OrderManagementView />"));
+  assert.ok(page.includes("views/OrderManagement.view.vue"));
+  assert.ok(!page.includes("List"));
+});
