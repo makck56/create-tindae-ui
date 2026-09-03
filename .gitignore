@@ -5,7 +5,6 @@ dist
 # 仅忽略「仓库根目录」的开发用 .npmrc（可能含本地 token）；
 # 前导 / 锚定根目录，使 template/.npmrc（交付给生成项目的共享配置）可正常入库。
 /.npmrc
-.claude
 demo
 
 # tsc 编译产物（正式发布产物在 dist/，源码旁的 .js 属异常输出）

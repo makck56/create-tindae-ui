@@ -1,6 +1,8 @@
-## 规范
+## 编写代码
 
-默认使用Openspec
+1. 不要直接写代码，每次涉及改动，都需要先使用openspec:explore探索
+2. openspec:explore完成后，需要再经过用户确认再执行openspec:apply-change
+3. 最后用户再次确认没问题，再归档
 
 ## OpenSpec
 
@@ -13,5 +15,4 @@
 - 编码前必须优先读取对应 OpenSpec change 的 `proposal.md`、`design.md`、`tasks.md` 和 `specs/*/spec.md`。
 - `openspec/changes/archive/*legacy-superpowers*/` 是 Superpowers 历史归档入口，新需求不得继续使用 Superpowers 沉淀正式规格文档。
 - 详细规则见 `docs/DOCUMENTATION_GUIDE.md`。
-
 
