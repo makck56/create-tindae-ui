@@ -46,8 +46,10 @@ pages ──► modules ──► shared ──► core
 
 | 文件               | 角色                    | 职责                                      | 禁止                   |
 | :----------------- | :---------------------- | :---------------------------------------- | :--------------------- |
-| `XxxList.page.vue` | **路由壳**（极薄）      | keep-alive 锚点、取 `$route` 参数传 View  | ❌ 业务逻辑、❌ 调 API |
-| `XxxList.view.vue` | **业务核**（100% 功能） | 组合 composables + 组件、处理交互/loading |                        |
+| `Xxx.page.vue`     | **路由壳**（极薄）      | keep-alive 锚点、取 `$route` 参数传 View  | ❌ 业务逻辑、❌ 调 API |
+| `Xxx.view.vue`     | **业务核**（100% 功能） | 组合 composables + 组件、处理交互/loading |                        |
+
+> `Xxx` 为域/特性的 PascalCase 名。`scaffold:domain` 的域默认页面直接以域命名（`DataManagement.page.vue`，与路由 `name` 一致）；`scaffold:feature` 新增的子特性按页面类型带后缀（`OrderList` / `OrderOverview`）。
 
 ### 3.2 新建域 / 特性
 
@@ -145,7 +147,7 @@ export const getOrderList = (params: OrderListParams) =>
 
 | 命令                                | 作用                                       |
 | :---------------------------------- | :----------------------------------------- |
-| `pnpm dev`                          | 启动（端口 3000，自动开浏览器）            |
+| `pnpm dev`                          | 启动（端口 5173，自动开浏览器）            |
 | `pnpm build`                        | `vue-tsc --noEmit` 类型检查 + `vite build` |
 | `pnpm lint`                         | ESLint 修复 + Prettier 格式化              |
 | `pnpm test`                         | `vitest run` 跑单测                        |

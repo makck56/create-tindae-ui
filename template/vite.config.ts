@@ -56,9 +56,25 @@ export default defineConfig(async ({ mode }) => {
         '@': resolve(__dirname, 'src'),
       },
     },
+    // 预打包 antd 深路径依赖：query-filter 等懒路由模块才引入 ant-design-vue/es/{cascader,date-picker,input,select,tree-select}，
+    // 若不提前 include，dev 下首航这些懒路由时会触发 Vite「on-demand 依赖发现 → 重新预打包 → 整页 reload」，
+    // 进行中的动态 import()（路由懒加载）会报 "Failed to fetch dynamically imported module"。启动期一并预打包可消除该竞态。
+    optimizeDeps: {
+      include: [
+        'ant-design-vue/es/cascader',
+        'ant-design-vue/es/date-picker',
+        'ant-design-vue/es/input',
+        'ant-design-vue/es/select',
+        'ant-design-vue/es/tree-select',
+        'ant-design-vue/es/message',
+        'ant-design-vue/es/locale/zh_CN',
+        'ant-design-vue/es/config-provider/context',
+      ],
+    },
     server: {
       host: true,
-      port: 3000,
+      // 用 Vite 默认端口 5173，与另一份应用（demo 占用 3000）区分，避免误跑到旧拷贝
+      port: 5173,
       open: true,
     },
     build: {
