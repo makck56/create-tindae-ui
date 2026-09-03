@@ -56,15 +56,15 @@ test('parseArgs rejects missing package manager value', async () => {
   );
 });
 
-test('scaffold copies root-level template docs such as design.md', () => {
+test('scaffold copies template docs under docs directory', () => {
   const tmpRoot = mkdtempSync(join(tmpdir(), 'create-tindae-ui-'));
   const targetDir = join(tmpRoot, 'demo-app');
 
   try {
     scaffold(targetDir, 'demo-app', { skipInstall: true, skipGit: true });
 
-    assert.equal(existsSync(join(targetDir, 'design.md')), true);
-    assert.equal(existsSync(join(targetDir, 'theme.md')), true);
+    assert.equal(existsSync(join(targetDir, 'docs', 'ARCHITECTURE.md')), true);
+    assert.equal(existsSync(join(targetDir, 'docs', 'theme.md')), true);
   } finally {
     rmSync(tmpRoot, { recursive: true, force: true });
   }

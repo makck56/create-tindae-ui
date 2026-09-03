@@ -71,7 +71,7 @@ test('template: Ant v4 cleanup removes obsolete v3 Less bridge leftovers', () =>
   };
   const envSource = readWorkspaceFile('template/env.d.ts');
   const injectorSource = readWorkspaceFile('template/src/core/theme/bridges/injectStyle.ts');
-  const themeGuide = readWorkspaceFile('template/theme.md');
+  const themeGuide = readWorkspaceFile('template/docs/theme.md');
   const templateAgentGuide = readWorkspaceFile('template/AGENTS.md');
 
   assert.equal(existsSync(join(repoRoot, 'template/src/core/theme/bridges/antd.ts')), false);

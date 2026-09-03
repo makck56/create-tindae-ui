@@ -1,7 +1,48 @@
-import type { ThemeMode, ThemeTokens } from '../types';
+import type { CustomThemeTokenValue, CustomThemeTokens, ThemeMode, ThemeTokens } from '../types';
 
+
+function toKebabCase(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+}
+
+function isTokenGroup(value: CustomThemeTokenValue | CustomThemeTokens): value is CustomThemeTokens {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * 把自定义 Token 树展开成 CSS 变量。
+ *
+ * 变量统一使用 --custom-* 前缀，避免与核心 Token 或第三方库变量冲突；
+ * 嵌套路径会被拼接并转成 kebab-case，例如 chart.referenceLine -> --custom-chart-reference-line。
+ */
+function appendCustomCssVars(
+  target: Record<string, string>,
+  tokens: CustomThemeTokens | undefined,
+  path: readonly string[] = [],
+): void {
+  if (!tokens) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(tokens)) {
+    const nextPath = [...path, toKebabCase(key)].filter(Boolean);
+    if (nextPath.length === 0) {
+      continue;
+    }
+
+    if (isTokenGroup(value)) {
+      appendCustomCssVars(target, value, nextPath);
+    } else {
+      target[`--custom-${nextPath.join('-')}`] = String(value);
+    }
+  }
+}
 export function buildCssVarMap(tokens: ThemeTokens): Record<string, string> {
-  return {
+  const map: Record<string, string> = {
     '--color-primary': tokens.colors.primary.DEFAULT,
     '--color-primary-hover': tokens.colors.primary.hover,
     '--color-primary-active': tokens.colors.primary.active,
@@ -80,6 +121,9 @@ export function buildCssVarMap(tokens: ThemeTokens): Record<string, string> {
     '--sidebar-collapsed-width': tokens.layout.sidebarCollapsedWidth,
     '--header-height': tokens.layout.headerHeight,
   };
+
+  appendCustomCssVars(map, tokens.custom);
+  return map;
 }
 
 export function applyTokensToRoot(tokens: ThemeTokens, mode: ThemeMode): void {

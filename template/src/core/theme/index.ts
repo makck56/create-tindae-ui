@@ -30,6 +30,9 @@ export type {
   BorderTokens,
   RadiusTokens,
   LayoutTokens,
+  CustomThemeTokens,
+  CustomThemeTokenValue,
+  CustomThemeTokenOverrides,
 } from './types';
 
 /**

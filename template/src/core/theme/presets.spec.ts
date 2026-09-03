@@ -159,4 +159,34 @@ describe('applyPreset', () => {
     expect(lightTokens.bg.page).toBe(originalBgPage);
     expect(lightTokens.radius.lg).toBe(originalRadiusLg);
   });
+
+  it('custom 扩展 Token 支持递归深合并，并保留未覆盖字段', () => {
+    const base = {
+      ...lightTokens,
+      custom: {
+        chart: {
+          referenceLine: '#dddddd',
+          gridGap: '12px',
+        },
+        workflow: {
+          pendingBg: '#fff7e6',
+        },
+      },
+    };
+
+    const r = applyPreset(base, {
+      key: 'custom',
+      label: '扩展',
+      primary: sampleScale,
+      custom: {
+        chart: {
+          referenceLine: '#123456',
+        },
+      },
+    });
+
+    expect(r.custom?.chart).toEqual({ referenceLine: '#123456', gridGap: '12px' });
+    expect(r.custom?.workflow).toEqual({ pendingBg: '#fff7e6' });
+    expect(base.custom.chart.referenceLine).toBe('#dddddd');
+  });
 });

@@ -1,4 +1,4 @@
-import type { ColorScale, ThemePreset, ThemeTokens } from './types';
+import type { ColorScale, CustomThemeTokens, ThemePreset, ThemeTokens } from './types';
 
 export const THEME_PRESETS: readonly ThemePreset[] = [
   {
@@ -40,7 +40,38 @@ function overridePart<T extends object>(basePart: T, override?: Partial<T>): T {
   return override ? { ...basePart, ...override } : basePart;
 }
 
-function overrideNestedPart<T extends Record<string, object>>(
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * 递归合并自定义 Token。
+ *
+ * 自定义 Token 通常按业务域分组；使用深合并可以只覆盖某个叶子字段，
+ * 同时保留同组内未覆盖的其他字段，避免浅合并造成整组丢失。
+ */
+function mergeCustomTokens(
+  base?: CustomThemeTokens,
+  override?: ThemePreset['custom'],
+): CustomThemeTokens | undefined {
+  if (!override) {
+    return base;
+  }
+
+  const next: Record<string, CustomThemeTokens[string]> = { ...(base ?? {}) };
+  for (const [key, value] of Object.entries(override)) {
+    const baseValue = base?.[key];
+    if (isPlainRecord(baseValue) && isPlainRecord(value)) {
+      next[key] = mergeCustomTokens(baseValue as CustomThemeTokens, value as ThemePreset['custom'])!;
+    } else {
+      next[key] = value as CustomThemeTokens[string];
+    }
+  }
+
+  return next;
+}
+function overrideNestedPart<T extends Record<string, unknown>>(
   basePart: T,
   override?: Partial<{ [K in keyof T]: Partial<T[K]> }>,
 ): T {
@@ -52,7 +83,8 @@ function overrideNestedPart<T extends Record<string, object>>(
   for (const key of Object.keys(override) as (keyof T)[]) {
     const partial = override[key];
     if (partial) {
-      next[key] = { ...basePart[key], ...partial };
+      // 每一项都是嵌套结构（如 TypographyStyle），这里做一层浅合并即可
+      next[key] = { ...(basePart[key] as object), ...(partial as object) } as T[keyof T];
     }
   }
 
@@ -87,5 +119,6 @@ export function applyPreset(base: ThemeTokens, preset: ThemePreset | undefined):
     spacing: overridePart(base.spacing, preset.spacing),
     radius: overridePart(base.radius, preset.radius),
     layout: overridePart(base.layout, preset.layout),
+    custom: mergeCustomTokens(base.custom, preset.custom),
   };
 }

@@ -32,6 +32,27 @@ describe('buildCssVarMap', () => {
     expect(map['--sidebar-width']).toBe(lightTokens.layout.sidebarWidth);
     expect(map['--header-height']).toBe(lightTokens.layout.headerHeight);
   });
+
+  it('自动展开 custom 扩展 Token 为 --custom-* CSS 变量', () => {
+    const map = buildCssVarMap({
+      ...lightTokens,
+      custom: {
+        chart: {
+          referenceLine: '#ccd6e0',
+          axisLabel: 'rgba(0, 0, 0, 0.65)',
+        },
+        workflowState: {
+          pendingBg: '#fff7e6',
+          stepGap: 12,
+        },
+      },
+    });
+
+    expect(map['--custom-chart-reference-line']).toBe('#ccd6e0');
+    expect(map['--custom-chart-axis-label']).toBe('rgba(0, 0, 0, 0.65)');
+    expect(map['--custom-workflow-state-pending-bg']).toBe('#fff7e6');
+    expect(map['--custom-workflow-state-step-gap']).toBe('12');
+  });
 });
 
 describe('applyTokensToRoot', () => {

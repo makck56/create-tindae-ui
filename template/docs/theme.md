@@ -84,8 +84,9 @@ const {
 |---|---|---|---|
 | 加一套换肤预设（主色 / 语义色 / 全套视觉） | ① 预设 | `presets.ts` 加一项 | ⭐ |
 | 调整亮/暗整体配色 | ② Token | `tokens.ts` + `variables.css` | ⭐⭐ |
-| 新增一个语义色 / 尺寸变量 | ③ 新 Token | 4 文件联动 | ⭐⭐⭐ |
-| 让新的第三方库跟随主题 | ④ 新桥接 | 新增 `bridges/xxx.ts` | ⭐⭐⭐ |
+| 新增业务专属变量 | ③ 扩展 Token | `tokens.ts` 的 `custom` | ⭐⭐ |
+| 新增核心语义色 / 尺寸变量 | ④ 核心 Token | 4 文件联动 | ⭐⭐⭐ |
+| 让新的第三方库跟随主题 | ⑤ 新桥接 | 新增 `bridges/xxx.ts` | ⭐⭐⭐ |
 
 ### ① 加一套预设（换肤）
 
@@ -141,9 +142,68 @@ const {
 
 ⚠️ **必须同步** `assets/styles/variables.css`——它是无 JS 时的兜底默认值，两处需一致（当前唯一的双源；后续可用构建脚本从 `tokens.ts` 自动生成来消除）。
 
-### ③ 新增一个语义 Token（如 `--color-brand2`）
+### ③ 新增业务扩展 Token（推荐）
 
-四步，**漏一步不报错但部分场景失效**：
+业务专属变量优先放入 `ThemeTokens.custom`，桥接层会自动展开为 `--custom-*` CSS 变量，不需要再修改 `bridges/cssVariables.ts`。
+
+```ts
+// src/core/theme/tokens.ts
+export const lightTokens: ThemeTokens = {
+  // ...核心 Token
+  custom: {
+    chart: {
+      referenceLine: '#ccd6e0',
+      axisLabel: 'rgba(0, 0, 0, 0.65)',
+    },
+    workflowState: {
+      pendingBg: '#fff7e6',
+    },
+  },
+};
+```
+
+运行时自动输出：
+
+| custom 路径 | CSS 变量 |
+|---|---|
+| `custom.chart.referenceLine` | `--custom-chart-reference-line` |
+| `custom.chart.axisLabel` | `--custom-chart-axis-label` |
+| `custom.workflowState.pendingBg` | `--custom-workflow-state-pending-bg` |
+
+使用方式：
+
+```vue
+<template>
+  <div style="border-color: var(--custom-chart-reference-line)">
+    图表辅助线示例
+  </div>
+</template>
+```
+
+预设也可以覆盖扩展 Token，且是递归深合并：
+
+```ts
+{
+  key: 'brand-2026',
+  label: '品牌定制',
+  primary: { DEFAULT: '#7c3aed', hover: '#9061f9', active: '#6d28d9', disabled: '#c4b5fd' },
+  custom: {
+    chart: {
+      referenceLine: '#b9a8ff', // 只覆盖这一项，同组 axisLabel 会保留基础 Token
+    },
+  },
+}
+```
+
+命名建议：
+
+- 按业务域分组，如 `chart`、`workflowState`、`dashboard`。
+- 变量名自动 camelCase 转 kebab-case，并加 `--custom-` 前缀，避免和核心 Token 冲突。
+- 高频、跨业务、可沉淀为设计系统规范的变量，再升级为核心 Token。
+
+### ④ 新增核心语义 Token（如 `--color-brand2`）
+
+核心 Token 适合全项目通用、需要 Tailwind 类或第三方桥接直接消费的设计系统变量。新增核心 Token 仍需四步，**漏一步不报错但部分场景失效**：
 
 | 步 | 文件 | 作用 | 漏了会怎样 |
 |---|---|---|---|
@@ -151,8 +211,7 @@ const {
 | 2 | `tokens.ts` | 亮 / 暗各加值 | 运行时无值 |
 | 3 | `bridges/cssVariables.ts` | `buildCssVarMap` 加 `--xxx` 映射 | 运行时不生效 |
 | 4 | `tailwind.config.js` + `variables.css` | 加工具类 + 兜底值 | Tailwind 类不可用 |
-
-### ④ 接入新的第三方库
+### ⑤ 接入新的第三方库
 
 仿 `bridges/echarts.ts` 新建 `bridges/xxx.ts`，把 `ThemeTokens` 翻译成该库的主题机制：
 
@@ -168,7 +227,8 @@ const {
 - ⚠️ 无「运行时任意主色」：用户不能用取色器实时选色，`setPreset` 只接受已注册 key（需要时可加 `setCustomPrimary(hex)` + 色阶生成算法）；
 - ⚠️ 预设不感知亮 / 暗模式（同一 key 跨模式覆盖 base 对应字段；模式固有差异由 base 承载）；
 - ⚠️ `tokens.ts` ↔ `variables.css` 双源需手动同步（见 ②）；
-- ⚠️ 新增 Token 四步靠流程约束，无自动校验。
+- ✅ 业务扩展 Token 可放入 `custom` 并自动输出 `--custom-*` CSS 变量；
+- ⚠️ 核心 Token 四步靠流程约束，无自动校验。
 
 ---
 
