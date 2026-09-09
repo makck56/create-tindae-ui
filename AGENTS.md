@@ -16,3 +16,7 @@
 - `openspec/changes/archive/*legacy-superpowers*/` 是 Superpowers 历史归档入口，新需求不得继续使用 Superpowers 沉淀正式规格文档。
 - 详细规则见 `docs/DOCUMENTATION_GUIDE.md`。
 
+## 设计
+
+1. 设计稿规范1920\*1080
+
