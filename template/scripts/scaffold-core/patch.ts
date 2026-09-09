@@ -113,7 +113,9 @@ export const applyRootMenuPatch = (
   if (!content.includes(MENU_ROOT_ANCHOR)) {
     return { ok: false, changed: false, reason: "未找到根级菜单锚点，请确认 menu.config.ts 未被手动改动" };
   }
-  const newMenuItem = `  {\n    label: '${label}',\n    code: '${routeName}',\n    routeName: '${routeName}',\n  },`;
+  // 根级菜单固定带 icon：antd 折叠态靠 icon 隐藏文字（.ant-menu-item-icon + span），
+  // 无 icon 的根级菜单收缩后文字会被裁切。默认 AppstoreOutlined，开发者可自行替换。
+  const newMenuItem = `  {\n    label: '${label}',\n    icon: 'AppstoreOutlined',\n    code: '${routeName}',\n    routeName: '${routeName}',\n  },`;
   const next = content.replace(
     MENU_ROOT_ANCHOR,
     `${newMenuItem}\n${MENU_ROOT_ANCHOR}`
@@ -295,12 +297,16 @@ export const parseRoutes = (content: string): ParsedRoute[] => {
  * - 多条路由：父级菜单（纯分组，无 routeName），children 含全部路由，
  *   第一项为默认特性，避免「过滤掉第一个」导致默认页入口丢失。
  *
+ * icon 透传原菜单项的图标名（缺失时回退 AppstoreOutlined）：
+ * 重建会整体替换菜单对象，不透传会把用户自定义的图标静默丢掉。
+ *
  * 缩进：对象用 indent（数组项缩进），属性 indent+2，children 项 indent+4。
  */
 const buildDomainMenuItem = (
   indent: string,
   label: string,
-  routes: ParsedRoute[]
+  routes: ParsedRoute[],
+  icon: string
 ): string => {
   const propIndent = indent + "  ";
   const childIndent = indent + "    ";
@@ -311,6 +317,7 @@ const buildDomainMenuItem = (
     return (
       `{\n` +
       `${propIndent}label: '${label}',\n` +
+      `${propIndent}icon: '${icon}',\n` +
       `${propIndent}code: '${r.name}',\n` +
       `${propIndent}routeName: '${r.name}',\n` +
       `${indent}}`
@@ -328,6 +335,7 @@ const buildDomainMenuItem = (
   return (
     `{\n` +
     `${propIndent}label: '${label}',\n` +
+    `${propIndent}icon: '${icon}',\n` +
     `${propIndent}code: '${routes[0].name}',\n` +
     `${propIndent}children: [\n` +
     `${childrenLines}\n` +
@@ -357,16 +365,18 @@ export const rebuildDomainMenu = (
   }
   const { openIdx, closeIdx } = located;
 
-  // 沿用原菜单项的 label（父级标题）
+  // 沿用原菜单项的 label（父级标题）与 icon（图标名；缺失回退默认图标）
   const block = content.slice(openIdx, closeIdx + 1);
   const labelMatch = /label:\s*['"]([^'"]+)['"]/.exec(block);
   const label = labelMatch ? labelMatch[1] : domainRouteName;
+  const iconMatch = /icon:\s*['"]([^'"]+)['"]/.exec(block);
+  const icon = iconMatch ? iconMatch[1] : "AppstoreOutlined";
 
   // 推断缩进：对象 { 所在行的前导空白
   const lineStart = content.lastIndexOf("\n", openIdx) + 1;
   const indent = content.slice(lineStart, openIdx);
 
-  const newItem = buildDomainMenuItem(indent, label, routes);
+  const newItem = buildDomainMenuItem(indent, label, routes, icon);
 
   // 幂等：新结构若与原对象一致则跳过
   if (content.slice(openIdx, closeIdx + 1) === newItem) {

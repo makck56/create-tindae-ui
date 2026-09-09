@@ -5,11 +5,13 @@ const businessMenus: MenuConfig = [
     label: '用户管理',
     code: 'UserManagement',
     routeName: 'UserManagement',
+    icon: 'TeamOutlined',
   },
   {
     label: '角色管理',
     code: 'RoleManagement',
     routeName: 'RoleManagement',
+    icon: 'SafetyCertificateOutlined',
   },
   // @scaffold:menu ← 新根级菜单在此行上方插入（由 scaffold:domain 自动维护，请勿删除）
 ];
@@ -19,11 +21,13 @@ const devOnlyMenus: MenuConfig = [
     label: '主题预览',
     code: 'ThemePreview',
     routeName: 'ThemePreview',
+    icon: 'BgColorsOutlined',
   },
   {
     label: '项目文档',
     code: 'Readme',
     routeName: 'Readme',
+    icon: 'BookOutlined',
   },
 ];
 

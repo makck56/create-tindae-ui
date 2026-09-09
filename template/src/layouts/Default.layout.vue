@@ -8,6 +8,7 @@ import { useTabStore, TabBar } from '@/layouts/tab';
 import { ErrorBoundary } from '@/shared/components/error-boundary';
 import { ThemeSwitcher } from '@/shared/components/theme-switcher';
 import { useTheme } from '@/core/theme';
+import { resolveMenuIcon, resolveRootMenuIcon } from '@/modules/app/config/menuIcons';
 
 defineOptions({ name: 'DefaultLayout' });
 
@@ -27,6 +28,11 @@ const siderClass = computed(() => (isDark.value ? 'app-sider--dark' : 'app-sider
 // 侧边栏直接渲染后端下发的菜单树（authStore.menus 为唯一真相源）。
 // 后端按用户角色已过滤，前端不再需要本地 filterMenu / menuConfig 双源。
 const menus = computed(() => authStore.menus);
+
+// 标题收缩：侧栏折叠为 80px 后完整应用名放不下，收缩时只显示首字符。
+const siderTitle = computed(() =>
+  appStore.sidebarCollapsed ? appStore.appName.charAt(0) : appStore.appName,
+);
 
 const selectedKeys = computed(() => {
   const name = route.name as string;
@@ -53,8 +59,14 @@ async function handleLogout() {
       :width="220"
       :class="siderClass"
     >
-      <div :class="['p-4 text-center font-bold text-lg', isDark ? 'text-white' : 'text-title']">
-        {{ appStore.appName }}
+      <!-- 折叠时只显示应用名首字符，避免溢出 80px 折叠宽度 -->
+      <div
+        :class="[
+          'p-4 text-center font-bold text-lg truncate',
+          isDark ? 'text-white' : 'text-title',
+        ]"
+      >
+        {{ siderTitle }}
       </div>
       <a-menu
         :theme="menuTheme"
@@ -63,11 +75,24 @@ async function handleLogout() {
         @click="handleMenuClick"
       >
         <template v-for="item in menus" :key="item.routeName ?? item.label">
+          <!-- icon 必须放在 #icon 插槽：antd 会给插槽内容附加 .ant-menu-item-icon 类，
+               折叠态正是靠 `.ant-menu-item-icon + span { opacity: 0 }` 隐藏文字；
+               根级菜单经 resolveRootMenuIcon 兜底，保证收缩后一定有图标可显示 -->
           <a-menu-item v-if="!item.children" :key="item.routeName">
+            <template #icon>
+              <component :is="resolveRootMenuIcon(item.icon)" />
+            </template>
             {{ item.label }}
           </a-menu-item>
           <a-sub-menu v-else :key="item.label" :title="item.label">
+            <template #icon>
+              <component :is="resolveRootMenuIcon(item.icon)" />
+            </template>
             <a-menu-item v-for="child in item.children" :key="child.routeName">
+              <!-- 子级图标按需渲染（严格解析，未配置则不占位）；弹层子项折叠时仍显示文字 -->
+              <template #icon>
+                <component :is="resolveMenuIcon(child.icon)" v-if="resolveMenuIcon(child.icon)" />
+              </template>
               {{ child.label }}
             </a-menu-item>
           </a-sub-menu>
